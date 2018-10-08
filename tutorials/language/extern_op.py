@@ -94,7 +94,7 @@ A = tvm.placeholder((n,), name='A')
 B = tvm.extern(A.shape, [A], lambda ins, outs: tvm.call_packed(
     "tvm.contrib.my_tvm_addone", ins[0], outs[0]), name="C")
 s = tvm.create_schedule(B.op)
-f = tvm.build(s, [A, B], "llvm")
+f = tvm.build(s, [A, B], "llvm -mtriple=x86_64 -mcpu=skylake-avx512 -mattr=+skx,+fma,+fma4,+avx512ifma,+avx512f,+avx512cd,+avx512bw,+avx512vl,+avx512dq")
 a = tvm.nd.array(np.random.uniform(size=(n,)).astype(A.dtype), ctx)
 b = tvm.nd.array(np.random.uniform(size=(n,)).astype(B.dtype), ctx)
 f(a, b)
