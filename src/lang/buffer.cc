@@ -226,6 +226,7 @@ inline Expr ElemOffset(const BufferNode* n, Array<Expr> index) {
   Expr base = n->elem_offset;
   if (n->strides.size() == 0) {
     CHECK_EQ(n->shape.size(), index.size());
+<<<<<<< HEAD
     if (n->shape.size() != 0) {
       if (is_zero(base)) {
         base = index[0];
@@ -236,6 +237,14 @@ inline Expr ElemOffset(const BufferNode* n, Array<Expr> index) {
     base = MergeMulMod(base);
     for (size_t i = 1; i < index.size(); ++i) {
       base = MergeMulMod(base * n->shape[i] + index[i]);
+=======
+    if (index.size() > 0) {
+      Expr offset = index[0];
+      for (size_t i = 1; i < index.size(); ++i) {
+        offset = MergeMulMod(offset * n->shape[i] + index[i]);
+      }
+      base = base + offset;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     }
   } else {
     CHECK_EQ(n->strides.size(), index.size());
@@ -264,32 +273,53 @@ inline Expr BufferOffset(const BufferNode* n, Array<Expr> index, Type dtype) {
 }
 
 Expr Buffer::vload(Array<Expr> begin, Type dtype) const {
+  // specially handle bool, stored as Int(8)
   const BufferNode* n = operator->();
   CHECK(dtype.element_of() == n->dtype.element_of() &&
         dtype.lanes() % n->dtype.lanes() == 0)
       << "Cannot load " << dtype
       << " from buffer of " << n->dtype;
-  return ir::Load::make(
-      dtype, n->data, BufferOffset(n, begin, dtype),
-      const_true(dtype.lanes()));
+  if (dtype == Bool()) {
+    return ir::Cast::make(
+        Bool(),
+        ir::Load::make(
+            Int(8), n->data, BufferOffset(n, begin, Int(8)),
+            const_true()));
+  } else {
+    return ir::Load::make(
+        dtype, n->data, BufferOffset(n, begin, dtype),
+        const_true(dtype.lanes()));
+  }
 }
 
 Stmt Buffer::vstore(Array<Expr> begin, Expr value) const {
+  // specially handle bool, stored as Int(8)
   const BufferNode* n = operator->();
   Type dtype = value.type();
   CHECK(dtype.element_of() == n->dtype.element_of() &&
         dtype.lanes() % n->dtype.lanes() == 0)
       << "Cannot load " << dtype
       << " from buffer of " << n->dtype;
-  return ir::Store::make(n->data, value, BufferOffset(n, begin, dtype),
-                         const_true(dtype.lanes()));
+  if (value.type() == Bool()) {
+    return ir::Store::make(n->data,
+                           ir::Cast::make(Int(8), value),
+                           BufferOffset(n, begin, Int(8)),
+                           const_true());
+  } else {
+    return ir::Store::make(n->data, value, BufferOffset(n, begin, dtype),
+                           const_true(dtype.lanes()));
+  }
 }
 
 Buffer Buffer::MakeStrideView() const {
   if ((*this)->strides.size() != 0) return *this;
   if ((*this)->shape.size() == 0) return *this;
   std::vector<Expr> temp;
+<<<<<<< HEAD
   auto n = std::make_shared<BufferNode>(*operator->());
+=======
+  auto n = make_node<BufferNode>(*operator->());
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   Expr acc = make_const(n->DefaultIndexType(), 1);
   for (size_t i = n->shape.size(); i != 0 ; --i) {
     temp.push_back(acc);
@@ -350,12 +380,20 @@ Expr Buffer::access_ptr(int access_mask, Type ptr_type, int content_lanes, Expr 
   }
   Expr elem_offset = self->elem_offset + offset;
   if (content_lanes > 1) {
+<<<<<<< HEAD
     e_dtype = make_zero(self->dtype.with_lanes(content_lanes));
+=======
+    e_dtype = ir::TypeAnnotation(self->dtype.with_lanes(content_lanes));
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     extent = extent / make_const(self->elem_offset.type(), content_lanes);
     elem_offset = self->elem_offset / make_const(self->elem_offset.type(),
                                                  content_lanes);
   } else {
+<<<<<<< HEAD
     e_dtype = make_zero(self->dtype);
+=======
+    e_dtype = ir::TypeAnnotation(self->dtype);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   }
   Array<Expr> acc_args{
     e_dtype, self->data, elem_offset,
@@ -373,7 +411,7 @@ Buffer BufferNode::make(Var data,
                         std::string scope,
                         int data_alignment,
                         int offset_factor) {
-  auto n = std::make_shared<BufferNode>();
+  auto n = make_node<BufferNode>();
   n->data = std::move(data);
   n->dtype = dtype;
   n->shape = std::move(shape);

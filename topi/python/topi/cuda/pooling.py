@@ -1,4 +1,4 @@
-# pylint: disable=invalid-name, unused-variable
+# pylint: disable=invalid-name, unused-variable, unused-argument
 """Schedule for pooling operators"""
 import tvm
 from .. import tag
@@ -33,9 +33,8 @@ def schedule_global_pool(outs):
         else:
             Out = outs[0].op.output(0)
             s[Pool].set_scope("local")
-        i, c, h, w = s[Out].op.axis
-        by, ty = s[Out].split(i, factor=num_thread)
-        bx, tx = s[Out].split(c, factor=num_thread)
+        by, ty = s[Out].split(s[Out].op.axis[0], factor=num_thread)
+        bx, tx = s[Out].split(s[Out].op.axis[1], factor=num_thread)
         s[Out].reorder(by, bx, ty, tx)
         s[Out].bind(ty, thread_y)
         s[Out].bind(tx, thread_x)
@@ -46,6 +45,8 @@ def schedule_global_pool(outs):
         else:
             s[Pool].compute_at(s[Out], tx)
 
+    scheduled_ops = []
+
     def traverse(OP):
         """Internal travserse function"""
         # inline all one-to-one-mapping operators except the last stage (output)
@@ -53,7 +54,7 @@ def schedule_global_pool(outs):
             if OP not in s.outputs:
                 s[OP].compute_inline()
             for tensor in OP.input_tensors:
-                if tensor.op.input_tensors:
+                if tensor.op.input_tensors and tensor.op not in scheduled_ops:
                     traverse(tensor.op)
         # schedule global_pool
         elif OP.tag.startswith('global_pool'):
@@ -62,12 +63,14 @@ def schedule_global_pool(outs):
         else:
             raise RuntimeError("Unsupported operator: %s" % OP.tag)
 
+        scheduled_ops.append(OP)
+
     traverse(outs[0].op)
     return s
 
 
 @generic.schedule_pool.register(["cuda", "gpu"])
-def schedule_pool(outs):
+def schedule_pool(outs, layout):
     """Schedule for pool.
 
     Parameters
@@ -75,6 +78,9 @@ def schedule_pool(outs):
     outs: Array of Tensor
         The computation graph description of pool
         in the format of an array of tensors.
+
+    layout: str
+        Data layout.
 
     Returns
     -------
@@ -102,6 +108,8 @@ def schedule_pool(outs):
         else:
             s[Pool].compute_at(s[Out], tx)
 
+    scheduled_ops = []
+
     def traverse(OP):
         """Internal travserse function"""
         # inline all one-to-one-mapping operators except the last stage (output)
@@ -109,7 +117,7 @@ def schedule_pool(outs):
             if OP not in s.outputs:
                 s[OP].compute_inline()
             for tensor in OP.input_tensors:
-                if tensor.op.input_tensors:
+                if tensor.op.input_tensors and tensor.op not in scheduled_ops:
                     traverse(tensor.op)
         # schedule pool
         elif OP.tag.startswith('pool'):
@@ -118,6 +126,8 @@ def schedule_pool(outs):
             _schedule(PaddedInput, Pool)
         else:
             raise RuntimeError("Unsupported operator: %s" % OP.tag)
+
+        scheduled_ops.append(OP)
 
     traverse(outs[0].op)
     return s

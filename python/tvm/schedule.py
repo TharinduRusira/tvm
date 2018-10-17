@@ -153,6 +153,12 @@ class Fuse(NodeBase):
 
 
 @register_node
+class Singleton(NodeBase):
+    """Singleton axis."""
+    pass
+
+
+@register_node
 class IterVar(NodeBase, _expr.ExprOp):
     """Represent iteration variable.
 
@@ -356,7 +362,7 @@ class Stage(NodeBase):
         """
         if nparts is not None:
             if factor is not None:
-                raise ValueError("Donot need to provide both outer and nparts")
+                raise ValueError("Do not need to provide both outer and nparts")
             outer, inner = _api_internal._StageSplitByNParts(self, parent, nparts)
         else:
             if factor is None:
@@ -380,10 +386,7 @@ class Stage(NodeBase):
         fused : IterVar
             The fused variable of iteration.
         """
-        assert len(args) >= 1, "Length of the arguments must be >=1 for fuse."
-        fused = args[0]
-        for i in range(1, len(args)):
-            fused = _api_internal._StageFuse(self, fused, args[i])
+        fused = _api_internal._StageFuse(self, args)
         return fused
 
     def set_scope(self, scope):
@@ -600,6 +603,11 @@ class Stage(NodeBase):
           :code:`for (int i = task_id; i < end; i += num_task)`
 
         """
+<<<<<<< HEAD
+=======
+        if isinstance(pragma_value, string_types):
+            pragma_value = convert(pragma_value)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         _api_internal._StagePragma(self, var, pragma_type, pragma_value)
 
     def prefetch(self, tensor, var, offset):

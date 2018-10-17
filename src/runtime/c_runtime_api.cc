@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <string>
 #include <cstdlib>
-#include "./runtime_base.h"
+#include "runtime_base.h"
 
 namespace tvm {
 namespace runtime {
@@ -31,12 +31,21 @@ inline std::string DeviceName(int type) {
     case kDLCPU: return "cpu";
     case kDLGPU: return "gpu";
     case kDLOpenCL: return "opencl";
+<<<<<<< HEAD
+=======
+    case kDLSDAccel: return "sdaccel";
+    case kDLAOCL: return "aocl";
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     case kDLVulkan: return "vulkan";
     case kDLMetal: return "metal";
     case kDLVPI: return "vpi";
     case kDLROCM: return "rocm";
     case kOpenGL: return "opengl";
+<<<<<<< HEAD
     case kExtDev: return "ext_dev";
+=======
+    case kDLExtDev: return "ext_dev";
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     default: LOG(FATAL) << "unknown type =" << type; return "Unknown";
   }
 }
@@ -112,6 +121,7 @@ void DeviceAPI::FreeWorkspace(TVMContext ctx, void* ptr) {
 TVMStreamHandle DeviceAPI::CreateStream(TVMContext ctx) {
   LOG(FATAL) << "Device does not support stream api.";
   return 0;
+<<<<<<< HEAD
 }
 
 void DeviceAPI::FreeStream(TVMContext ctx, TVMStreamHandle stream) {
@@ -154,23 +164,19 @@ inline void VerifyType(int dtype_code, int dtype_bits, int dtype_lanes) {
     CHECK_EQ(dtype_bits % 8, 0);
   }
   CHECK_EQ(dtype_bits & (dtype_bits - 1), 0);
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
-inline size_t GetDataSize(TVMArray* arr) {
-  size_t size = 1;
-  for (tvm_index_t i = 0; i < arr->ndim; ++i) {
-    size *= arr->shape[i];
-  }
-  size *= (arr->dtype.bits * arr->dtype.lanes + 7) / 8;
-  return size;
+void DeviceAPI::FreeStream(TVMContext ctx, TVMStreamHandle stream) {
+  LOG(FATAL) << "Device does not support stream api.";
 }
 
-inline size_t GetDataAlignment(TVMArray* arr) {
-  size_t align = (arr->dtype.bits / 8) * arr->dtype.lanes;
-  if (align < kAllocAlignment) return kAllocAlignment;
-  return align;
+void DeviceAPI::SyncStreamFromTo(TVMContext ctx,
+                                 TVMStreamHandle event_src,
+                                 TVMStreamHandle event_dst) {
+  LOG(FATAL) << "Device does not support stream api.";
 }
-
 }  // namespace runtime
 }  // namespace tvm
 
@@ -369,6 +375,7 @@ int TVMFuncCreateFromCFunc(TVMPackedCFunc func,
   API_END();
 }
 
+<<<<<<< HEAD
 int TVMArrayAlloc(const tvm_index_t* shape,
                   int ndim,
                   int dtype_code,
@@ -453,13 +460,20 @@ int TVMArrayCopyFromBytes(TVMArrayHandle handle,
       data, 0,
       handle->data, static_cast<size_t>(handle->byte_offset),
       nbytes, cpu_ctx, handle->ctx, handle->dtype, nullptr);
+=======
+int TVMStreamCreate(int device_type, int device_id, TVMStreamHandle* out) {
+  API_BEGIN();
+  TVMContext ctx;
+  ctx.device_type = static_cast<DLDeviceType>(device_type);
+  ctx.device_id = device_id;
+  *out = DeviceAPIManager::Get(ctx)->CreateStream(ctx);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   API_END();
 }
 
-int TVMArrayCopyToBytes(TVMArrayHandle handle,
-                        void* data,
-                        size_t nbytes) {
+int TVMStreamFree(int device_type, int device_id, TVMStreamHandle stream) {
   API_BEGIN();
+<<<<<<< HEAD
   TVMContext cpu_ctx;
   cpu_ctx.device_type = kDLCPU;
   cpu_ctx.device_id = 0;
@@ -484,6 +498,8 @@ int TVMStreamCreate(int device_type, int device_id, TVMStreamHandle* out) {
 
 int TVMStreamFree(int device_type, int device_id, TVMStreamHandle stream) {
   API_BEGIN();
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   TVMContext ctx;
   ctx.device_type = static_cast<DLDeviceType>(device_type);
   ctx.device_id = device_id;

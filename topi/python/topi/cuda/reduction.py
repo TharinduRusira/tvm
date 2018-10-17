@@ -4,6 +4,7 @@ from __future__ import absolute_import as _abs
 import tvm
 from .. import tag
 from .. import generic
+from .injective import _schedule_injective
 
 def _schedule_reduce(op, sch, is_idx_reduce=False):
     if is_idx_reduce:
@@ -11,7 +12,9 @@ def _schedule_reduce(op, sch, is_idx_reduce=False):
     else:
         data_in = op.input_tensors[0]
         data_out = op.output(0)
-    assert len(sch[data_out].op.reduce_axis) > 0, "reduce_axis must be bigger than zero!"
+
+    if not sch[data_out].op.reduce_axis:
+        return _schedule_injective(op, sch)
 
     if len(sch[data_out].op.axis) > 0:
         all_reduce = False
@@ -85,6 +88,7 @@ def schedule_reduce(outs):
     """
     outs = [outs] if isinstance(outs, tvm.tensor.Tensor) else outs
     sch = tvm.create_schedule([x.op for x in outs])
+    scheduled_ops = []
 
     def traverse_before_reduce(operator):
         """Internal travserse function"""
@@ -93,9 +97,12 @@ def schedule_reduce(outs):
         elif tag.is_injective(operator.tag):
             sch[operator].compute_inline()
             for tensor in operator.input_tensors:
-                traverse_before_reduce(tensor.op)
+                if tensor.op not in scheduled_ops:
+                    traverse_before_reduce(tensor.op)
         else:
             raise RuntimeError("Unsupported operator: %s" % operator.tag)
+
+        scheduled_ops.append(operator)
 
     def traverse_after_reduce(operator):
         """Internal travserse function"""
@@ -104,13 +111,18 @@ def schedule_reduce(outs):
         elif operator.tag == 'comm_reduce':
             _schedule_reduce(operator, sch, is_idx_reduce=False)
             for tensor in operator.input_tensors:
-                traverse_before_reduce(tensor.op)
+                if tensor.op not in scheduled_ops:
+                    traverse_before_reduce(tensor.op)
         elif operator.tag == 'comm_reduce_idx':
             _schedule_reduce(operator, sch, is_idx_reduce=True)
-            for tensor in operator.input_tensors[0].op.input_tensors:
-                traverse_before_reduce(tensor.op)
+            input_tensors = operator.input_tensors[0].op.input_tensors
+            for tensor in input_tensors:
+                if tensor.op not in scheduled_ops:
+                    traverse_before_reduce(tensor.op)
         else:
             raise RuntimeError("Unsupported operator: %s" % operator.tag)
+
+        scheduled_ops.append(operator)
 
     traverse_after_reduce(outs[0].op)
     return sch

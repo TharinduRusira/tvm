@@ -11,8 +11,16 @@
 #include <nnvm/pass_functions.h>
 #include <nnvm/compiler/op_attr_types.h>
 #include <mutex>
+<<<<<<< HEAD
 #include "./graph_hash.h"
 #include "./compile_engine.h"
+=======
+#include <tuple>
+#include <vector>
+#include <limits>
+#include "graph_hash.h"
+#include "compile_engine.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace nnvm {
 namespace compiler {
@@ -91,7 +99,11 @@ class CompileEngine {
       return it->second->graph_func;
     }
     GraphFunc f = DoLower(key->graph, key->inputs, key->target, master_idx);
+<<<<<<< HEAD
     std::shared_ptr<GraphCacheEntryNode> n = std::make_shared<GraphCacheEntryNode>();
+=======
+    auto n = tvm::make_node<GraphCacheEntryNode>();
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     n->graph_func = f;
     n->use_count = 1;
     n->master_idx = master_idx;
@@ -104,8 +116,12 @@ class CompileEngine {
     Array<NodeRef> items;
     for (auto& kv : cache_) {
       items.push_back(kv.first);
+<<<<<<< HEAD
       std::shared_ptr<GraphCacheEntryNode> n =
           std::make_shared<GraphCacheEntryNode>(*(kv.second.operator->()));
+=======
+      auto n = tvm::make_node<GraphCacheEntryNode>(*(kv.second.operator->()));
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
       items.push_back(GraphCacheEntry(n));
     }
     return items;
@@ -123,7 +139,11 @@ class CompileEngine {
   // Set the given function on given graph key.
   void Set(const GraphKey& key, GraphFunc func) {
     std::lock_guard<std::mutex> lock(mutex_);
+<<<<<<< HEAD
     std::shared_ptr<GraphCacheEntryNode> n = std::make_shared<GraphCacheEntryNode>();
+=======
+    auto n = tvm::make_node<GraphCacheEntryNode>();
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     n->graph_func = func;
     n->use_count = 1;
     cache_[key] = GraphCacheEntry(n);
@@ -262,7 +282,11 @@ class CompileEngine {
         graph, inputs, target, master_idx,
         &readable_name, &outputs);
 
+<<<<<<< HEAD
     std::shared_ptr<GraphFuncNode> gf = std::make_shared<GraphFuncNode>();
+=======
+    auto gf = tvm::make_node<GraphFuncNode>();
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     gf->target = target;
     gf->func_name = GetUniqeName(readable_name);
     gf->inputs = inputs;

@@ -14,7 +14,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-#include "./codegen_source_base.h"
+#include "codegen_source_base.h"
 
 namespace tvm {
 namespace codegen {
@@ -73,6 +73,11 @@ class CodeGenC :
     return os.str();
   }
   // The following parts are overloadable print operations.
+  /*!
+   * \brief Insert statement before function body.
+   * \param f The function to be compiled.
+   */
+  virtual void PreFunctionBody(LoweredFunc f) {}
   /*!
    * \brief Initialize codegen state for generating f.
    * \param f The function to be compiled.

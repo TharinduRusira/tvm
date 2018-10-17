@@ -60,7 +60,7 @@ public class RPCSession {
   public TVMContext context(String devType, int devId) {
     TVMContext ctx = new TVMContext(devType, devId);
     int encode = (tblIndex + 1) * RPC.RPC_SESS_MASK;
-    return new TVMContext(ctx.deviceType + encode, devId);
+    return new TVMRemoteContext(ctx.deviceType + encode, devId, this);
   }
 
   /**
@@ -80,7 +80,7 @@ public class RPCSession {
    */
   public TVMContext context(int devType, int devId) {
     int encode = (tblIndex + 1) * RPC.RPC_SESS_MASK;
-    return new TVMContext(devType + encode, devId);
+    return new TVMRemoteContext(devType + encode, devId, this);
   }
 
   /**
@@ -144,6 +144,24 @@ public class RPCSession {
   }
 
   /**
+   * Construct remote OpenCL device.
+   * @param devId device id.
+   * @return Remote OpenCL context.
+   */
+  public TVMContext vulkan(int devId) {
+    return context(7, devId);
+  }
+
+  /**
+   * Construct remote OpenCL device.
+   * @return Remote OpenCL context.
+   */
+  public TVMContext vulkan() {
+    return vulkan(0);
+  }
+
+
+  /**
    * Construct remote Metal device.
    * @param devId device id.
    * @return Remote metal context.
@@ -172,7 +190,7 @@ public class RPCSession {
     final String funcName = "upload";
     Function remoteFunc = remoteFuncs.get(funcName);
     if (remoteFunc == null) {
-      remoteFunc = getFunction("tvm.contrib.rpc.server.upload");
+      remoteFunc = getFunction("tvm.rpc.server.upload");
       remoteFuncs.put(funcName, remoteFunc);
     }
     remoteFunc.pushArg(target).pushArg(data).invoke();
@@ -205,7 +223,7 @@ public class RPCSession {
     final String name = "download";
     Function func = remoteFuncs.get(name);
     if (func == null) {
-      func = getFunction("tvm.contrib.rpc.server.download");
+      func = getFunction("tvm.rpc.server.download");
       remoteFuncs.put(name, func);
     }
     return func.pushArg(path).invoke().asBytes();

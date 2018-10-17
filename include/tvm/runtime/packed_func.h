@@ -14,8 +14,10 @@
 #include <limits>
 #include <memory>
 #include <type_traits>
-#include "./c_runtime_api.h"
-#include "./module.h"
+#include "c_runtime_api.h"
+#include "module.h"
+#include "ndarray.h"
+#include "node_base.h"
 
 namespace HalideIR {
 // Forward declare type for extensions
@@ -28,6 +30,7 @@ struct Expr;
 #ifndef TVM_RUNTIME_HEADER_ONLY
 #define TVM_RUNTIME_HEADER_ONLY 0
 #endif
+<<<<<<< HEAD
 
 namespace tvm {
 // Forward declare NodeRef and Node for extensions.
@@ -35,7 +38,10 @@ namespace tvm {
 // as long as it is not used.
 class Node;
 class NodeRef;
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
+namespace tvm {
 namespace runtime {
 // forward declarations
 class TVMArgs;
@@ -115,6 +121,179 @@ class PackedFunc {
  private:
   /*! \brief internal container of packed function */
   FType body_;
+};
+
+/*!
+ * \brief Please refer to \ref TypedPackedFuncAnchor "TypedPackedFunc<R(Args..)>"
+ */
+template<typename FType>
+class TypedPackedFunc;
+
+/*!
+ * \anchor TypedPackedFuncAnchor
+ * \brief A PackedFunc wrapper to provide typed function signature.
+ * It is backed by a PackedFunc internally.
+ *
+ * TypedPackedFunc enables compile time type checking.
+ * TypedPackedFunc works with the runtime system:
+ * - It can be passed as an argument of PackedFunc.
+ * - It can be assigned to TVMRetValue.
+ * - It can be directly converted to a type-erased PackedFunc.
+ *
+ * Developers should prefer TypedPackedFunc over PackedFunc in C++ code
+ * as it enables compile time checking.
+ * We can construct a TypedPackedFunc from a lambda function
+ * with the same signature.
+ *
+ * \code
+ *  // user defined lambda function.
+ *  auto addone = [](int x)->int {
+ *    return x + 1;
+ *  };
+ *  // We can directly convert
+ *  // lambda function to TypedPackedFunc
+ *  TypedPackedFunc<int(int)> ftyped(addone);
+ *  // invoke the function.
+ *  int y = ftyped(1);
+ *  // Can be directly converted to PackedFunc
+ *  PackedFunc packed = ftype;
+ * \endcode
+ * \tparam R The return value of the function.
+ * \tparam Args The argument signature of the function.
+ */
+template<typename R, typename ...Args>
+class TypedPackedFunc<R(Args...)> {
+ public:
+  /*! \brief short hand for this function type */
+  using TSelf = TypedPackedFunc<R(Args...)>;
+  /*! \brief default constructor */
+  TypedPackedFunc() {}
+  /*!
+   * \brief construct by wrap a PackedFunc
+   *
+   * Example usage:
+   * \code
+   * PackedFunc packed([](TVMArgs args, TVMRetValue *rv) {
+   *   int x = args[0];
+   *   *rv = x + 1;
+   *  });
+   * // construct from packed function
+   * TypedPackedFunc<int(int)> ftyped(packed);
+   * // call the typed version.
+   * CHECK_EQ(ftyped(1), 2);
+   * \endcode
+   *
+   * \param packed The packed function
+   */
+  inline TypedPackedFunc(PackedFunc packed);  // NOLINT(*)
+  /*!
+   * \brief constructor from TVMRetValue
+   * \param value The TVMRetValue
+   */
+  inline TypedPackedFunc(const TVMRetValue& value);  // NOLINT(*)
+  /*!
+   * \brief constructor from TVMArgValue
+   * \param value The TVMArgValue
+   */
+  inline TypedPackedFunc(const TVMArgValue& value);  // NOLINT(*)
+  /*!
+   * \brief construct from a lambda function with the same signature.
+   *
+   * Example usage:
+   * \code
+   * auto typed_lambda = [](int x)->int { return x + 1; }
+   * // construct from packed function
+   * TypedPackedFunc<int(int)> ftyped(typed_lambda);
+   * // call the typed version.
+   * CHECK_EQ(ftyped(1), 2);
+   * \endcode
+   *
+   * \param typed_lambda typed lambda function.
+   * \tparam FLambda the type of the lambda function.
+   */
+  template<typename FLambda,
+           typename = typename std::enable_if<
+             std::is_convertible<FLambda,
+                                 std::function<R(Args...)>
+                                 >::value>::type>
+  TypedPackedFunc(const FLambda& typed_lambda) {  // NOLINT(*)
+    this->AssignTypedLambda(typed_lambda);
+  }
+  /*!
+   * \brief copy assignment operator from typed lambda
+   *
+   * Example usage:
+   * \code
+   * // construct from packed function
+   * TypedPackedFunc<int(int)> ftyped;
+   * ftyped = [](int x) { return x + 1; }
+   * // call the typed version.
+   * CHECK_EQ(ftyped(1), 2);
+   * \endcode
+   *
+   * \param typed_lambda typed lambda function.
+   * \tparam FLambda the type of the lambda function.
+   * \returns reference to self.
+   */
+  template<typename FLambda,
+           typename = typename std::enable_if<
+             std::is_convertible<FLambda,
+                                 std::function<R(Args...)>
+                                 >::value>::type>
+  TSelf& operator=(FLambda typed_lambda) {  // NOLINT(*)
+    this->AssignTypedLambda(typed_lambda);
+    return *this;
+  }
+  /*!
+   * \brief copy assignment operator from PackedFunc.
+   * \param packed The packed function.
+   * \returns reference to self.
+   */
+  TSelf& operator=(PackedFunc packed) {
+    packed_ = packed;
+    return *this;
+  }
+  /*!
+   * \brief Invoke the operator.
+   * \param args The arguments
+   * \returns The return value.
+   */
+  inline R operator()(Args ...args) const;
+  /*!
+   * \brief convert to PackedFunc
+   * \return the internal PackedFunc
+   */
+  operator PackedFunc() const {
+    return packed();
+  }
+  /*!
+   * \return reference the internal PackedFunc
+   */
+  const PackedFunc& packed() const {
+    return packed_;
+  }
+  /*! \return Whether the packed function is nullptr */
+  bool operator==(std::nullptr_t null) const {
+    return packed_ == nullptr;
+  }
+  /*! \return Whether the packed function is not nullptr */
+  bool operator!=(std::nullptr_t null) const {
+    return packed_ != nullptr;
+  }
+
+ private:
+  friend class TVMRetValue;
+  /*! \brief The internal packed function */
+  PackedFunc packed_;
+  /*!
+   * \brief Assign the packed field using a typed lambda function.
+   *
+   * \param flambda The lambda function.
+   * \tparam FLambda The lambda function type.
+   * \note We capture the lambda when possible for maximum efficiency.
+   */
+  template<typename FLambda>
+  inline void AssignTypedLambda(FLambda flambda);
 };
 
 /*! \brief Arguments into TVM functions. */
@@ -222,6 +401,15 @@ class ExtTypeVTable {
 class TVMPODValue_ {
  public:
   operator double() const {
+<<<<<<< HEAD
+=======
+    // Allow automatic conversion from int to float
+    // This avoids errors when user pass in int from
+    // the frontend while the API expects a float.
+    if (type_code_ == kDLInt) {
+      return static_cast<double>(value_.v_int64);
+    }
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     TVM_CHECK_TYPE_CODE(type_code_, kDLFloat);
     return value_.v_float64;
   }
@@ -249,10 +437,22 @@ class TVMPODValue_ {
     TVM_CHECK_TYPE_CODE(type_code_, kHandle);
     return value_.v_handle;
   }
-  operator TVMArray*() const {
-    if (type_code_ == kNull) return nullptr;
-    TVM_CHECK_TYPE_CODE(type_code_, kArrayHandle);
-    return static_cast<TVMArray*>(value_.v_handle);
+  operator DLTensor*() const {
+    if (type_code_ == kArrayHandle ||
+        type_code_ == kNDArrayContainer) {
+      return static_cast<DLTensor*>(value_.v_handle);
+    } else {
+      if (type_code_ == kNull) return nullptr;
+      LOG(FATAL) << "Expected "
+                 << "DLTensor* or NDArray but get "
+                 << TypeCode2Str(type_code_);
+      return nullptr;
+    }
+  }
+  operator NDArray() const {
+    if (type_code_ == kNull) return NDArray();
+    TVM_CHECK_TYPE_CODE(type_code_, kNDArrayContainer);
+    return NDArray(static_cast<NDArray::Container*>(value_.v_handle));
   }
   operator TVMContext() const {
     TVM_CHECK_TYPE_CODE(type_code_, kTVMContext);
@@ -297,6 +497,8 @@ class TVMPODValue_ {
  */
 class TVMArgValue : public TVMPODValue_ {
  public:
+  /*! \brief default constructor */
+  TVMArgValue() {}
   /*!
    * \brief constructor
    * \param value of the function
@@ -312,8 +514,10 @@ class TVMArgValue : public TVMPODValue_ {
   using TVMPODValue_::operator int;
   using TVMPODValue_::operator bool;
   using TVMPODValue_::operator void*;
-  using TVMPODValue_::operator TVMArray*;
+  using TVMPODValue_::operator DLTensor*;
+  using TVMPODValue_::operator NDArray;
   using TVMPODValue_::operator TVMContext;
+
   // conversion operator.
   operator std::string() const {
     if (type_code_ == kTVMType) {
@@ -330,6 +534,12 @@ class TVMArgValue : public TVMPODValue_ {
     if (type_code_ == kStr) {
       return String2TVMType(operator std::string());
     }
+    // None type
+    if (type_code_ == kNull) {
+      TVMType t;
+      t.code = kHandle; t.bits = 0; t.lanes = 0;
+      return t;
+    }
     TVM_CHECK_TYPE_CODE(type_code_, kTVMType);
     return value_.v_type;
   }
@@ -337,6 +547,10 @@ class TVMArgValue : public TVMPODValue_ {
     if (type_code_ == kNull) return PackedFunc();
     TVM_CHECK_TYPE_CODE(type_code_, kFuncHandle);
     return *ptr<PackedFunc>();
+  }
+  template<typename FType>
+  operator TypedPackedFunc<FType>() const {
+    return TypedPackedFunc<FType>(operator PackedFunc());
   }
   operator Module() const {
     TVM_CHECK_TYPE_CODE(type_code_, kModuleHandle);
@@ -359,7 +573,7 @@ class TVMArgValue : public TVMPODValue_ {
   inline operator HalideIR::Type() const;
   inline operator HalideIR::Expr() const;
   // get internal node ptr, if it is node
-  inline std::shared_ptr<Node>& node_sptr();
+  inline NodePtr<Node>& node_sptr();
 };
 
 /*!
@@ -394,8 +608,9 @@ class TVMRetValue : public TVMPODValue_ {
   using TVMPODValue_::operator int;
   using TVMPODValue_::operator bool;
   using TVMPODValue_::operator void*;
-  using TVMPODValue_::operator TVMArray*;
+  using TVMPODValue_::operator DLTensor*;
   using TVMPODValue_::operator TVMContext;
+  using TVMPODValue_::operator NDArray;
   // Disable copy and assign from another value, but allow move.
   TVMRetValue(const TVMRetValue& other) {
     this->Assign(other);
@@ -421,6 +636,10 @@ class TVMRetValue : public TVMPODValue_ {
     if (type_code_ == kNull) return PackedFunc();
     TVM_CHECK_TYPE_CODE(type_code_, kFuncHandle);
     return *ptr<PackedFunc>();
+  }
+  template<typename FType>
+  operator TypedPackedFunc<FType>() const {
+    return TypedPackedFunc<FType>(operator PackedFunc());
   }
   operator Module() const {
     TVM_CHECK_TYPE_CODE(type_code_, kModuleHandle);
@@ -459,6 +678,11 @@ class TVMRetValue : public TVMPODValue_ {
     value_.v_int64 = value;
     return *this;
   }
+  TVMRetValue& operator=(TVMContext value) {
+    this->SwitchToPOD(kTVMContext);
+    value_.v_ctx = value;
+    return *this;
+  }
   TVMRetValue& operator=(TVMType t) {
     this->SwitchToPOD(kTVMType);
     value_.v_type = t;
@@ -477,9 +701,20 @@ class TVMRetValue : public TVMPODValue_ {
     this->SwitchToClass(kBytes, std::string(value.data, value.size));
     return *this;
   }
+  TVMRetValue& operator=(NDArray other) {
+    this->Clear();
+    type_code_ = kNDArrayContainer;
+    value_.v_handle = other.data_;
+    other.data_ = nullptr;
+    return *this;
+  }
   TVMRetValue& operator=(PackedFunc f) {
     this->SwitchToClass(kFuncHandle, f);
     return *this;
+  }
+  template<typename FType>
+  TVMRetValue& operator=(const TypedPackedFunc<FType>& f) {
+    return operator=(f.packed());
   }
   TVMRetValue& operator=(Module m) {
     this->SwitchToClass(kModuleHandle, m);
@@ -534,7 +769,7 @@ class TVMRetValue : public TVMPODValue_ {
   template<typename TNodeRef>
   inline TNodeRef AsNodeRef() const;
   inline TVMRetValue& operator=(const NodeRef& other);
-  inline TVMRetValue& operator=(const std::shared_ptr<Node>& other);
+  inline TVMRetValue& operator=(const NodePtr<Node>& other);
   // type related
   inline operator HalideIR::Type() const;
   inline TVMRetValue& operator=(const HalideIR::Type& other);
@@ -559,9 +794,13 @@ class TVMRetValue : public TVMPODValue_ {
         SwitchToClass<Module>(kModuleHandle, other);
         break;
       }
+      case kNDArrayContainer: {
+        *this = other.operator NDArray();
+        break;
+      }
       case kNodeHandle: {
-        SwitchToClass<std::shared_ptr<Node> >(
-            kNodeHandle, *other.template ptr<std::shared_ptr<Node> >());
+        SwitchToClass<NodePtr<Node> >(
+            kNodeHandle, *other.template ptr<NodePtr<Node> >());
         break;
       }
       default: {
@@ -606,7 +845,11 @@ class TVMRetValue : public TVMPODValue_ {
       case kStr: delete ptr<std::string>(); break;
       case kFuncHandle: delete ptr<PackedFunc>(); break;
       case kModuleHandle: delete ptr<Module>(); break;
-      case kNodeHandle: delete ptr<std::shared_ptr<Node> >(); break;
+      case kNodeHandle: delete ptr<NodePtr<Node> >(); break;
+      case kNDArrayContainer: {
+        static_cast<NDArray::Container*>(value_.v_handle)->DecRef();
+        break;
+      }
     }
     if (type_code_ > kExtBegin) {
 #if TVM_RUNTIME_HEADER_ONLY
@@ -635,6 +878,7 @@ inline const char* TypeCode2Str(int type_code) {
     case kTVMContext: return "TVMContext";
     case kFuncHandle: return "FunctionHandle";
     case kModuleHandle: return "ModuleHandle";
+    case kNDArrayContainer: return "NDArrayContainer";
     default: LOG(FATAL) << "unknown type_code="
                         << static_cast<int>(type_code); return "";
   }
@@ -642,6 +886,9 @@ inline const char* TypeCode2Str(int type_code) {
 
 #ifndef _LIBCPP_SGX_NO_IOSTREAMS
 inline std::ostream& operator<<(std::ostream& os, TVMType t) {  // NOLINT(*)
+  if (t.bits == 1 && t.lanes == 1 && t.code == kDLUInt) {
+    os << "bool"; return os;
+  }
   os << TypeCode2Str(t.code);
   if (t.code == kHandle) return os;
   os << static_cast<int>(t.bits);
@@ -653,12 +900,22 @@ inline std::ostream& operator<<(std::ostream& os, TVMType t) {  // NOLINT(*)
 #endif
 
 inline std::string TVMType2String(TVMType t) {
+<<<<<<< HEAD
+=======
+  if (t.bits == 0) return "";
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #ifndef _LIBCPP_SGX_NO_IOSTREAMS
   std::ostringstream os;
   os << t;
   return os.str();
 #else
+<<<<<<< HEAD
   std::string repr = "";
+=======
+  if (t.bits == 1 && t.lanes == 1 && t.code == kDLUInt) {
+    return "bool";
+  }
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   repr += TypeCode2Str(t.code);
   if (t.code == kHandle) return repr;
   repr += std::to_string(static_cast<int>(t.bits));
@@ -671,6 +928,11 @@ inline std::string TVMType2String(TVMType t) {
 
 inline TVMType String2TVMType(std::string s) {
   TVMType t;
+  // handle None type
+  if (s.length() == 0) {
+    t.bits = 0; t.lanes = 0; t.code = kHandle;
+    return t;
+  }
   t.bits = 32; t.lanes = 1;
   const char* scan;
   if (s.substr(0, 3) == "int") {
@@ -683,6 +945,11 @@ inline TVMType String2TVMType(std::string s) {
     t.code = kHandle;
     t.bits = 64;  // handle uses 64 bit by default.
     scan = s.c_str() + 6;
+  } else if (s == "bool") {
+    t.code = kDLUInt;
+    t.bits = 1;
+    t.lanes = 1;
+    return t;
   } else {
     scan = s.c_str();
     LOG(FATAL) << "unknown type " << s;
@@ -715,6 +982,8 @@ inline void PackedFunc::CallPacked(TVMArgs args, TVMRetValue* rv) const {
 inline PackedFunc::FType PackedFunc::body() const {
   return body_;
 }
+
+
 
 // internal namespace
 namespace detail {
@@ -776,7 +1045,7 @@ class TVMArgsSetter {
     values_[i].v_handle = value;
     type_codes_[i] = kHandle;
   }
-  void operator()(size_t i, TVMArray* value) const {
+  void operator()(size_t i, DLTensor* value) const {
     values_[i].v_handle = value;
     type_codes_[i] = kArrayHandle;
   }
@@ -807,9 +1076,17 @@ class TVMArgsSetter {
     values_[i].v_handle = const_cast<PackedFunc*>(&value);
     type_codes_[i] = kFuncHandle;
   }
+  template<typename FType>
+  void operator()(size_t i, const TypedPackedFunc<FType>& value) const {  // NOLINT(*)
+    operator()(i, value.packed());
+  }
   void operator()(size_t i, const Module& value) const {  // NOLINT(*)
     values_[i].v_handle = const_cast<Module*>(&value);
     type_codes_[i] = kModuleHandle;
+  }
+  void operator()(size_t i, const NDArray& value) const {  // NOLINT(*)
+    values_[i].v_handle = value.data_;
+    type_codes_[i] = kNDArrayContainer;
   }
   void operator()(size_t i, const TVMRetValue& value) const {  // NOLINT(*)
     if (value.type_code() == kStr) {
@@ -848,6 +1125,96 @@ inline TVMRetValue PackedFunc::operator()(Args&& ...args) const {
   TVMRetValue rv;
   body_(TVMArgs(values, type_codes, kNumArgs), &rv);
   return rv;
+}
+
+namespace detail {
+template<typename R, int nleft, int index, typename F>
+struct unpack_call_dispatcher {
+  template<typename ...Args>
+  static void run(const F& f,
+                  const TVMArgs& args_pack,
+                  TVMRetValue* rv,
+                  Args&&... unpacked_args) {
+    unpack_call_dispatcher<R, nleft - 1, index + 1, F>
+        ::run(f, args_pack, rv,
+              std::forward<Args>(unpacked_args)...,
+              args_pack[index]);
+  }
+};
+
+template<typename R, int index, typename F>
+struct unpack_call_dispatcher<R, 0, index, F> {
+  template<typename ...Args>
+  static void run(const F& f,
+                  const TVMArgs& args_pack,
+                  TVMRetValue* rv,
+                  Args&&... unpacked_args) {
+    *rv = R(f(std::forward<Args>(unpacked_args)...));
+  }
+};
+
+template<int index, typename F>
+struct unpack_call_dispatcher<void, 0, index, F> {
+  template<typename ...Args>
+  static void run(const F& f,
+                  const TVMArgs& args_pack,
+                  TVMRetValue* rv,
+                  Args&&... unpacked_args) {
+    f(std::forward<Args>(unpacked_args)...);
+  }
+};
+
+template<typename R, int nargs, typename F>
+inline void unpack_call(const F& f, const TVMArgs& args, TVMRetValue* rv) {
+  unpack_call_dispatcher<R, nargs, 0, F>::run(f, args, rv);
+}
+
+template<typename R, typename ...Args>
+inline R call_packed(const PackedFunc& pf, Args&& ...args) {
+  return R(pf(std::forward<Args>(args)...));
+}
+
+template<typename R>
+struct typed_packed_call_dispatcher {
+  template<typename ...Args>
+  static inline R run(const PackedFunc& pf, Args&& ...args) {
+    return pf(std::forward<Args>(args)...);
+  }
+};
+
+template<>
+struct typed_packed_call_dispatcher<void> {
+  template<typename ...Args>
+  static inline void run(const PackedFunc& pf, Args&& ...args) {
+    pf(std::forward<Args>(args)...);
+  }
+};
+}  // namespace detail
+
+template<typename R, typename ...Args>
+TypedPackedFunc<R(Args...)>::TypedPackedFunc(PackedFunc packed)
+  : packed_(packed) {}
+
+template<typename R, typename ...Args>
+TypedPackedFunc<R(Args...)>::TypedPackedFunc(const TVMRetValue& value)
+    : packed_(value.operator PackedFunc()) {}
+
+template<typename R, typename ...Args>
+TypedPackedFunc<R(Args...)>::TypedPackedFunc(const TVMArgValue& value)
+    : packed_(value.operator PackedFunc()) {}
+
+template<typename R, typename ...Args>
+template<typename FType>
+inline void TypedPackedFunc<R(Args...)>::AssignTypedLambda(FType flambda) {
+  packed_ = PackedFunc([flambda](const TVMArgs& args, TVMRetValue* rv) {
+      detail::unpack_call<R, sizeof...(Args)>(flambda, args, rv);
+    });
+}
+
+template<typename R, typename ...Args>
+inline R TypedPackedFunc<R(Args...)>::operator()(Args... args) const {
+  return detail::typed_packed_call_dispatcher<R>
+      ::run(packed_, std::forward<Args>(args)...);
 }
 
 // extension and node type handling

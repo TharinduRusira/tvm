@@ -3,10 +3,14 @@
  * \file ir_builder.cc
  * \brief IRBuilder for SPIRV block
  */
+<<<<<<< HEAD
 
 #if TVM_VULKAN_RUNTIME
 
 #include "./ir_builder.h"
+=======
+#include "ir_builder.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace tvm {
 namespace codegen {
@@ -225,12 +229,30 @@ Value IRBuilder::GetPushConstant(
   return this->MakeValue(spv::OpLoad, v_type, ptr);
 }
 
+<<<<<<< HEAD
 Value IRBuilder::DeclareKenrelFunction(const std::string& name) {
   Value val = NewValue(t_void_func_, kFunction);
   ib_.Begin(spv::OpEntryPoint)
       .AddSeq(spv::ExecutionModelGLCompute, val, name)
       .Commit(&entry_);
   return val;
+=======
+Value IRBuilder::NewFunction() {
+  return NewValue(t_void_func_, kFunction);
+}
+
+void IRBuilder::CommitKernelFunction(const Value& func, const std::string& name) {
+  CHECK_EQ(func.flag, kFunction);
+  ib_.Begin(spv::OpEntryPoint)
+    .AddSeq(spv::ExecutionModelGLCompute, func, name);
+  if (workgroup_id_.id != 0) {
+    ib_.Add(workgroup_id_);
+  }
+  if (local_id_.id != 0) {
+    ib_.Add(local_id_);
+  }
+  ib_.Commit(&entry_);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
 void IRBuilder::StartFunction(const Value& func) {
@@ -432,8 +454,30 @@ Value IRBuilder::Cast(const SType& dst_type, spirv::Value value) {
   const tvm::Type& from = value.stype.type;
   const tvm::Type& to = dst_type.type;
   CHECK_EQ(from.lanes(), to.lanes());
+<<<<<<< HEAD
 
   if (from.is_int() && to.is_int()) {
+=======
+  if (from == Bool()) {
+    if (to.is_int()) {
+      return Select(value, IntImm(dst_type, 1), IntImm(dst_type, 0));
+    } else if (to.is_uint()) {
+      return Select(value, UIntImm(dst_type, 1), UIntImm(dst_type, 0));
+    } else {
+      LOG(FATAL) << "cannot cast from " << from << " to " << to;
+      return Value();
+    }
+  } else if (to == Bool()) {
+    if (from.is_int()) {
+      return NE(value, IntImm(value.stype, 0));
+    } else if (to.is_uint()) {
+      return NE(value, UIntImm(value.stype, 0));
+    } else {
+      LOG(FATAL) << "cannot cast from " << from << " to " << to;
+      return Value();
+    }
+  } else if (from.is_int() && to.is_int()) {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     return MakeValue(spv::OpSConvert, dst_type, value);
   } else if (from.is_uint() && to.is_uint()) {
     return MakeValue(spv::OpUConvert, dst_type, value);
@@ -555,5 +599,8 @@ Value IRBuilder::Select(Value cond, Value a, Value b) {
 }  // namespace spirv
 }  // namespace codegen
 }  // namespace tvm
+<<<<<<< HEAD
 
 #endif  // TVM_VULKAN_RUNTIME
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

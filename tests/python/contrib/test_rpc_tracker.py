@@ -3,13 +3,22 @@ import logging
 import numpy as np
 import time
 import multiprocessing
+<<<<<<< HEAD
 from tvm.contrib import rpc
+=======
+from tvm import rpc
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 def check_server_drop():
     """test when server drops"""
     try:
+<<<<<<< HEAD
         from tvm.contrib.rpc import tracker, proxy, base
         from tvm.contrib.rpc.base import TrackerCode
+=======
+        from tvm.rpc import tracker, proxy, base
+        from tvm.rpc.base import TrackerCode
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
         @tvm.register_func("rpc.test2.addone")
         def addone(x):

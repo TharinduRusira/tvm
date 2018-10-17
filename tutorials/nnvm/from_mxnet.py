@@ -1,4 +1,9 @@
 """
+<<<<<<< HEAD
+=======
+.. _tutorial-from-mxnet:
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 Compile MXNet Models
 ====================
 **Author**: `Joshua Z. Zhang <https://zhreshold.github.io/>`_
@@ -8,9 +13,17 @@ This article is an introductory tutorial to deploy mxnet models with NNVM.
 For us to begin with, mxnet module is required to be installed.
 
 A quick solution is
+<<<<<<< HEAD
 ```
 pip install mxnet --user
 ```
+=======
+
+.. code-block:: bash
+
+    pip install mxnet --user
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 or please refer to offical installation guide.
 https://mxnet.incubator.apache.org/versions/master/install/index.html
 """
@@ -29,7 +42,11 @@ from mxnet.gluon.utils import download
 from PIL import Image
 from matplotlib import pyplot as plt
 block = get_model('resnet18_v1', pretrained=True)
+<<<<<<< HEAD
 img_name = 'cat.jpg'
+=======
+img_name = 'cat.png'
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 synset_url = ''.join(['https://gist.githubusercontent.com/zhreshold/',
                       '4d0b62f3d01426887599d4f7ede23ee5/raw/',
                       '596b27d23537e5a1b5751d2b0481ef172f58b539/',
@@ -68,7 +85,12 @@ sym = nnvm.sym.softmax(sym)
 import nnvm.compiler
 target = 'cuda'
 shape_dict = {'data': x.shape}
+<<<<<<< HEAD
 graph, lib, params = nnvm.compiler.build(sym, target, shape_dict, params=params)
+=======
+with nnvm.compiler.build_config(opt_level=3):
+    graph, lib, params = nnvm.compiler.build(sym, target, shape_dict, params=params)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 ######################################################################
 # Execute the portable graph on TVM
@@ -84,8 +106,13 @@ m.set_input(**params)
 # execute
 m.run()
 # get outputs
+<<<<<<< HEAD
 tvm_output = m.get_output(0, tvm.nd.empty((1000,), dtype))
 top1 = np.argmax(tvm_output.asnumpy())
+=======
+tvm_output = m.get_output(0)
+top1 = np.argmax(tvm_output.asnumpy()[0])
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 print('TVM prediction top-1:', top1, synset[top1])
 
 ######################################################################

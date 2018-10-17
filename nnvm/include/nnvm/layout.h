@@ -298,7 +298,11 @@ class Layout {
     std::ostringstream repr;
     if (is_subdim(layout_simplified_[i])) {
       auto factor = subsizeof(layout_simplified_[i]);
+<<<<<<< HEAD
       CHECK_LT(factor, 0);
+=======
+      CHECK_GT(factor, 0);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
       repr << factor;
     }
     repr << layout_simplified_[i];
@@ -348,7 +352,11 @@ class Layout {
     return false;
   }
 
+<<<<<<< HEAD
   inline const LayoutDim operator[](size_t i) const {
+=======
+  inline LayoutDim operator[](size_t i) const {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     return layout_simplified_[i];
   }
 

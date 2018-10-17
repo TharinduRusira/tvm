@@ -67,7 +67,11 @@ RemapThreadAxis(LoweredFunc f, Map<Expr, IterVar> thread_map) {
   }
 
   CHECK_EQ(f->func_type, kDeviceFunc);
+<<<<<<< HEAD
   auto n = std::make_shared<LoweredFuncNode>(*f.operator->());
+=======
+  auto n = make_node<LoweredFuncNode>(*f.operator->());
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   // replace the thread axis
   for (size_t i = 0; i < n->thread_axis.size(); ++i) {
     auto it = tmap.find(n->thread_axis[i]->thread_tag);

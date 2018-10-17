@@ -3,12 +3,11 @@
  * \file codegen_cuda.cc
  */
 #include <tvm/base.h>
-#include <tvm/runtime/config.h>
 #include <tvm/runtime/registry.h>
 #include <tvm/packed_func_ext.h>
 #include <vector>
 #include <string>
-#include "./codegen_cuda.h"
+#include "codegen_cuda.h"
 #include "../arithmetic/compute_expr.h"
 
 namespace tvm {
@@ -30,8 +29,20 @@ void CodeGenCUDA::AddFunction(LoweredFunc f) {
   CodeGenC::AddFunction(f);
 }
 
+std::string CodeGenCUDA::Finish() {
+  if (enable_fp16_) {
+    decl_stream << "#include <cuda_fp16.h>\n";
+  }
+
+  if (enable_int8_) {
+    decl_stream << "#include <sm_61_intrinsics.h>\n";
+  }
+
+  return CodeGenC::Finish();
+}
+
 void CodeGenCUDA::VisitStmt_(const ir::For* op) {
-  CHECK(is_zero(op->min));
+  CHECK(is_const_int(op->min, 0));
   if (op->for_type == ir::ForType::Unrolled) {
     PrintIndent();
     stream << "#pragma unroll\n";
@@ -55,7 +66,9 @@ void CodeGenCUDA::PrintType(Type t, std::ostream& os) {  // NOLINT(*)
   bool fail = false;
   if (t.is_float()) {
     switch (t.bits()) {
-      case 16: os << "half"; break;
+      case 16: os << "half";
+        enable_fp16_ = true;
+        break;
       case 32: os << "float"; break;
       case 64: os << "double"; break;
       default: fail = true; break;
@@ -64,6 +77,8 @@ void CodeGenCUDA::PrintType(Type t, std::ostream& os) {  // NOLINT(*)
     if (!fail && (lanes >= 2 && lanes <= 4)) {
       os << lanes; return;
     }
+  } else if (t == Bool()) {
+    os << "bool"; return;
   } else if (t.is_uint() || t.is_int()) {
     if (t.is_uint()) {
       if (t.lanes() != 1) {
@@ -71,6 +86,7 @@ void CodeGenCUDA::PrintType(Type t, std::ostream& os) {  // NOLINT(*)
       } else {
         os << "unsigned ";
       }
+<<<<<<< HEAD
     }
     if (t.bits() == 8 && t.lanes() == 4) {
       // directly 4 8 bit int in integer.
@@ -79,6 +95,26 @@ void CodeGenCUDA::PrintType(Type t, std::ostream& os) {  // NOLINT(*)
     switch (t.bits()) {
       case 8: {
         if (!t.is_uint() && t.lanes() == 1) {
+=======
+    }
+    switch (t.bits()) {
+      case 8: {
+        if (t.lanes() == 4) {
+          // directly 4 8 bit int in integer.
+          enable_int8_ = true;
+
+          // We use int for int8x4 instead of char4 because using char4 is
+          // likely to produce extra instructions to pack four int8 elements
+          // into 32-bit data.
+          os << "int"; return;
+        } else if (t.lanes() == 8) {
+          enable_int8_ = true;
+          os << "int2"; return;
+        } else if (t.lanes() == 16) {
+          enable_int8_ = true;
+          os << "int4"; return;
+        } else if (!t.is_uint() && t.lanes() == 1) {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
           os << "signed char"; break;
         } else {
           os << "char"; break;
@@ -257,6 +293,31 @@ void CodeGenCUDA::VisitExpr_(const Broadcast* op, std::ostream& os) {   // NOLIN
     os << v;
   }
   os << ')';
+}
+
+
+inline void PrintConst(const FloatImm* op, std::ostream& os, CodeGenCUDA* p) { // NOLINT(*)
+  switch (op->type.bits()) {
+    case 64: case 32: {
+      std::ostringstream temp;
+      temp << std::scientific << op->value;
+      if (op->type.bits() == 32) temp << 'f';
+      p->MarkConst(temp.str());
+      os << temp.str();
+      break;
+    }
+    case 16: {
+      os << "__float2half_rn";
+      os << '(' << std::scientific << op->value << 'f' << ')';
+      break;
+    }
+    default: LOG(FATAL) << "Bad bit-width for float: " << op->type << "\n";
+  }
+}
+
+
+void CodeGenCUDA::VisitExpr_(const FloatImm *op, std::ostream& os) { // NOLINT(*)
+  PrintConst(op, os, this);
 }
 
 }  // namespace codegen

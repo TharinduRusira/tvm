@@ -72,6 +72,14 @@ jstring getTVMValueStringField(JNIEnv *env, jobject obj) {
   return ret;
 }
 
+jobject newTVMValueHandle(JNIEnv *env, jlong value) {
+  jclass cls = env->FindClass("ml/dmlc/tvm/TVMValueHandle");
+  jmethodID constructor = env->GetMethodID(cls, "<init>", "(J)V");
+  jobject object = env->NewObject(cls, constructor, value);
+  env->DeleteLocalRef(cls);
+  return object;
+}
+
 jobject newTVMValueLong(JNIEnv *env, jlong value) {
   jclass cls = env->FindClass("ml/dmlc/tvm/TVMValueLong");
   jmethodID constructor = env->GetMethodID(cls, "<init>", "(J)V");
@@ -126,10 +134,10 @@ jobject newFunction(JNIEnv *env, jlong value) {
   return object;
 }
 
-jobject newNDArray(JNIEnv *env, jlong value) {
+jobject newNDArray(JNIEnv *env, jlong handle, jboolean isview) {
   jclass cls = env->FindClass("ml/dmlc/tvm/NDArrayBase");
-  jmethodID constructor = env->GetMethodID(cls, "<init>", "(J)V");
-  jobject object = env->NewObject(cls, constructor, value);
+  jmethodID constructor = env->GetMethodID(cls, "<init>", "(JZ)V");
+  jobject object = env->NewObject(cls, constructor, handle, isview);
   env->DeleteLocalRef(cls);
   return object;
 }
@@ -166,12 +174,16 @@ jobject tvmRetValueToJava(JNIEnv *env, TVMValue value, int tcode) {
       return newTVMValueLong(env, static_cast<jlong>(value.v_int64));
     case kDLFloat:
       return newTVMValueDouble(env, static_cast<jdouble>(value.v_float64));
+    case kHandle:
+      return newTVMValueHandle(env, reinterpret_cast<jlong>(value.v_handle));
     case kModuleHandle:
       return newModule(env, reinterpret_cast<jlong>(value.v_handle));
     case kFuncHandle:
       return newFunction(env, reinterpret_cast<jlong>(value.v_handle));
     case kArrayHandle:
-      return newNDArray(env, reinterpret_cast<jlong>(value.v_handle));
+      return newNDArray(env, reinterpret_cast<jlong>(value.v_handle), true);
+    case kNDArrayContainer:
+      return newNDArray(env, reinterpret_cast<jlong>(value.v_handle), false);
     case kStr:
       return newTVMValueString(env, value.v_str);
     case kBytes:

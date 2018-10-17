@@ -8,9 +8,15 @@
 #include <dmlc/thread_local.h>
 #include <algorithm>
 #ifndef _LIBCPP_SGX_CONFIG
+<<<<<<< HEAD
 #include "./mt_random_engine.cc"
 #else
 #include "./sgx_random_engine.cc"
+=======
+#include "mt_random_engine.cc"
+#else
+#include "sgx_random_engine.cc"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #endif
 
 #define DLPACK_INTEGER_TYPE_SWITCH(type, DType, ...)    \
@@ -87,6 +93,10 @@ TVM_REGISTER_GLOBAL("tvm.contrib.random.randint")
     })
   });
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 TVM_REGISTER_GLOBAL("tvm.contrib.random.uniform")
 .set_body([](TVMArgs args, TVMRetValue *ret) {
     RandomThreadLocalEntry *entry = RandomThreadLocalEntry::ThreadLocal();
@@ -97,5 +107,18 @@ TVM_REGISTER_GLOBAL("tvm.contrib.random.uniform")
   });
 
 
+<<<<<<< HEAD
+=======
+TVM_REGISTER_GLOBAL("tvm.contrib.random.normal")
+.set_body([](TVMArgs args, TVMRetValue *ret) {
+    RandomThreadLocalEntry *entry = RandomThreadLocalEntry::ThreadLocal();
+    double loc = args[0];
+    double scale = args[1];
+    DLTensor* out = args[2];
+    entry->random_engine.SampleNormal(out, loc, scale);
+  });
+
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }  // namespace contrib
 }  // namespace tvm

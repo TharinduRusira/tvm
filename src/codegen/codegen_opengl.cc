@@ -5,11 +5,19 @@
  * We are targeting OpenGL 3.3. The reason of not targeting a recent version
  * of OpenGL is to have better compatibility of WebGL 2.
  */
+<<<<<<< HEAD
 #include <tvm/runtime/config.h>
 #include <tvm/packed_func_ext.h>
 #include <vector>
 #include <string>
 #include "./codegen_opengl.h"
+=======
+#include <tvm/packed_func_ext.h>
+#include <vector>
+#include <string>
+#include "codegen_opengl.h"
+#include "build_common.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include "../runtime/thread_storage_scope.h"
 
 namespace tvm {
@@ -269,5 +277,24 @@ void CodeGenOpenGL::VisitStmt_(const Evaluate* op) {
   this->stream << GetVarID(buffer) << " = " << PrintExpr(value) << ";\n";
 }
 
+<<<<<<< HEAD
+=======
+runtime::Module BuildOpenGL(Array<LoweredFunc> funcs) {
+  bool output_ssa = false;
+  CodeGenOpenGL cg;
+  cg.Init(output_ssa);
+  for (LoweredFunc f : funcs) {
+    cg.AddFunction(f);
+  }
+  auto shaders = cg.Finish();
+  return OpenGLModuleCreate(shaders, "gl", ExtractFuncInfo(funcs));
+}
+
+TVM_REGISTER_API("codegen.build_opengl")
+.set_body([](TVMArgs args, TVMRetValue* rv) {
+  *rv = BuildOpenGL(args[0]);
+});
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }  // namespace codegen
 }  // namespace tvm

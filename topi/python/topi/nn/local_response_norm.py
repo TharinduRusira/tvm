@@ -2,8 +2,12 @@
 """TVM operator for local response norm compute."""
 from __future__ import absolute_import
 import tvm
+<<<<<<< HEAD
 import topi
 from .pad import pad
+=======
+from .. import cpp
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 @tvm.target.generic_func
 def lrn(data, size, axis=1, alpha=0.0001, beta=0.75, bias=2):
@@ -42,6 +46,7 @@ def lrn(data, size, axis=1, alpha=0.0001, beta=0.75, bias=2):
     output : tvm.Tensor
         4-D output with same shape
     """
+<<<<<<< HEAD
     assert len(data.shape) == 4, "only support 4-dim lrn"
     assert (size % 2) == 1, "size should be odd number"
     assert (axis == 1) or (axis == 3), "axis should 1 or 3 for NCHW and NHWC"
@@ -66,3 +71,6 @@ def lrn(data, size, axis=1, alpha=0.0001, beta=0.75, bias=2):
         (bias + (alpha * sqr_sum[i, j, k, l] / size)), beta))
 
     return topi.broadcast_div(data, sqr_sum_up)
+=======
+    return cpp.nn.lrn(data, size, axis, alpha, beta, bias)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

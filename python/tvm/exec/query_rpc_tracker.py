@@ -4,7 +4,11 @@ from __future__ import absolute_import
 import logging
 import argparse
 import os
+<<<<<<< HEAD
 from ..contrib import rpc
+=======
+from .. import rpc
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 def main():
     """Main funciton"""

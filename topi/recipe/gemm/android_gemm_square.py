@@ -1,14 +1,23 @@
 """Example code to do square matrix multiplication on Android Phone."""
 import tvm
 import os
+<<<<<<< HEAD
 from tvm.contrib import rpc, util, ndk
+=======
+from tvm import rpc
+from tvm.contrib import util, ndk
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 import numpy as np
 
 # Set to be address of tvm proxy.
 proxy_host = os.environ["TVM_ANDROID_RPC_PROXY_HOST"]
 proxy_port = 9090
 key = "android"
+<<<<<<< HEAD
  
+=======
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 # Change target configuration.
 # Run `adb shell cat /proc/cpuinfo` to find the arch.
 arch = "arm64"
@@ -100,7 +109,11 @@ def test_gemm_gpu(N, times, bn, num_block, num_thread):
     print(tvm.lower(s, [A, B, C], simple_mode=True))
 
     f = tvm.build(s, [A, B, C], "opencl", target_host=target, name="gemm_gpu")
+<<<<<<< HEAD
     temp = util.tempdir()   
+=======
+    temp = util.tempdir()
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     path_dso = temp.relpath("gemm_gpu.so")
     f.export_library(path_dso, ndk.create_shared)
 

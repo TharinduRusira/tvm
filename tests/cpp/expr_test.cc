@@ -20,7 +20,11 @@ TEST(ExprNodeRef, Basic) {
   Var x("x");
   Expr z = max(x + 1 + 2, 100);
   const ir::Max* op = z.as<ir::Max>();
+<<<<<<< HEAD
   CHECK(op->GetNodeRef().same_as(z));
+=======
+  CHECK(NodeRef(op->GetNodePtr()).same_as(z));
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
 

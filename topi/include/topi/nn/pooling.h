@@ -52,28 +52,46 @@ inline Tensor pool_impl(const Tensor& x,
   CHECK(x->shape.size() >= 2) << "Pooling input must >= 2-D (H, W)";
   CHECK_EQ(kernel_size.size(), 2) << "Pooling kernel_size must have 2 elements";
   CHECK_EQ(stride_size.size(), 2) << "Pooling stride_size must have 2 elements";
+<<<<<<< HEAD
   CHECK_EQ(padding_size.size(), 2) << "Pooling padding_size must have 2 elements";
+=======
+  CHECK_EQ(padding_size.size(), 4) << "Pooling padding_size must have 4 elements";
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
   auto kernel_height = kernel_size[0];
   auto kernel_width = kernel_size[1];
   auto stride_height = stride_size[0];
   auto stride_width = stride_size[1];
+<<<<<<< HEAD
   auto padding_height = padding_size[0];
   auto padding_width = padding_size[1];
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
   auto height = x->shape[height_axis];
   auto width = x->shape[width_axis];
 
+<<<<<<< HEAD
   auto pad_tuple = detail::GetPadTuple(padding_height, padding_width);
   auto pad_top = pad_tuple[0];
   auto pad_left = pad_tuple[1];
   auto pad_down = pad_tuple[2];
   auto pad_right = pad_tuple[3];
+=======
+  auto pad_top = padding_size[0];
+  auto pad_left = padding_size[1];
+  auto pad_bottom = padding_size[2];
+  auto pad_right = padding_size[3];
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
   if (ceil_mode) {
     // Additional padding to ensure we do ceil instead of floor when
     // dividing by stride.
+<<<<<<< HEAD
     pad_down += stride_height - 1;
+=======
+    pad_bottom += stride_height - 1;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     pad_right += stride_width - 1;
   }
 
@@ -82,11 +100,19 @@ inline Tensor pool_impl(const Tensor& x,
   pad_before.Set(width_axis, pad_left);
 
   Array<Expr> pad_after(std::vector<Expr>(x->shape.size(), 0));
+<<<<<<< HEAD
   pad_after.Set(height_axis, pad_down);
   pad_after.Set(width_axis, pad_right);
 
   auto out_height = tvm::ir::Simplify(
     (height - kernel_height + pad_top + pad_down) / stride_height + 1);
+=======
+  pad_after.Set(height_axis, pad_bottom);
+  pad_after.Set(width_axis, pad_right);
+
+  auto out_height = tvm::ir::Simplify(
+    (height - kernel_height + pad_top + pad_bottom) / stride_height + 1);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   auto out_width = tvm::ir::Simplify(
     (width - kernel_width + pad_left + pad_right) / stride_width + 1);
 
@@ -97,9 +123,18 @@ inline Tensor pool_impl(const Tensor& x,
   out_shape.Set(height_axis, out_height);
   out_shape.Set(width_axis, out_width);
 
+<<<<<<< HEAD
   const int64_t *padding_h = HalideIR::Internal::as_const_int(padding_height);
   const int64_t *padding_w = HalideIR::Internal::as_const_int(padding_width);
   const bool do_pad = ((padding_h && *padding_h) || (padding_w && *padding_w));
+=======
+  const int64_t *padding_h0 = as_const_int(pad_top);
+  const int64_t *padding_w0 = as_const_int(pad_left);
+  const int64_t *padding_h1 = as_const_int(pad_bottom);
+  const int64_t *padding_w1 = as_const_int(pad_right);
+  const bool do_pad = ((padding_h0 && *padding_h0) || (padding_w0 && *padding_w0)) ||
+                      ((padding_h1 && *padding_h1) || (padding_w1 && *padding_w1));
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
   if (pool_type == kMaxPool) {
     auto temp = do_pad ? pad(x, pad_before, pad_after, x->dtype.min(), "pad_temp") : x;
@@ -112,30 +147,52 @@ inline Tensor pool_impl(const Tensor& x,
     }, "tensor", "pool_max");
   } else if (pool_type == kAvgPool) {
     auto temp = do_pad ? pad(x, pad_before, pad_after, 0, "pad_temp") : x;
+<<<<<<< HEAD
     auto tsum = tvm::compute(out_shape, [&](const Array<Var>& output) {
+=======
+    auto tavg = [&](const Array<Var>& output, Expr divide_factor) {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
       Array<Expr> indices;
       for (const Var& var : output) indices.push_back(var);
       indices.Set(height_axis, output[height_axis] * stride_height + dheight);
       indices.Set(width_axis, output[width_axis] * stride_width + dwidth);
+<<<<<<< HEAD
       return tvm::sum(temp(indices), { dheight, dwidth });
     }, "tensor", "pool_avg");
+=======
+      return tvm::sum(temp(indices) / divide_factor, { dheight, dwidth });
+    };
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     return tvm::compute(out_shape,
     [&](const Array<Var>& output) {
       if (count_include_pad) {
+<<<<<<< HEAD
         return tsum(output) / (kernel_height * kernel_width);
       } else {
         Expr h_start = output[height_axis] * stride_height - padding_height;
         Expr w_start = output[width_axis] * stride_width - padding_width;
+=======
+        return tavg(output, kernel_height * kernel_width);
+      } else {
+        Expr h_start = output[height_axis] * stride_height - pad_top;
+        Expr w_start = output[width_axis] * stride_width - pad_left;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         Expr h_end = ir::Min::make(h_start + kernel_height, height);
         Expr w_end = ir::Min::make(w_start + kernel_width, width);
         h_start = ir::Max::make(h_start, make_const(Int(32), 0));
         w_start = ir::Max::make(w_start, make_const(Int(32), 0));
         Expr divide_factor = ir::Max::make((h_end - h_start) * (w_end - w_start),
                                            make_const(Int(32), 1));
+<<<<<<< HEAD
         return tsum(output) / divide_factor;
       }
     }, "tensor", kElementWise);
+=======
+        return tavg(output, divide_factor);
+      }
+    }, "tensor", "pool_avg");
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   } else {
     LOG(ERROR) << "Unrecognized pool_type: " << pool_type;
     return x;
@@ -192,7 +249,11 @@ inline bool find_height_width(const std::string& layout,
 *        Since pooling does not care about the factor size of dimensions
 *        other than `H` and `W`, one can pass `NCHWc` as well.
 * \param  count_include_pad Whether include padding in the calculation when pool_type is 'avg'
+<<<<<<< HEAD
 *        
+=======
+*
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 *
 * \return The output tensor in the same layout
 */

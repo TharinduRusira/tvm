@@ -9,9 +9,15 @@
 #include <string>
 #include <vector>
 #include <utility>
+<<<<<<< HEAD
 #include "./runtime/packed_func.h"
 #include "./schedule_pass.h"
 #include "./lowered_func.h"
+=======
+#include "runtime/packed_func.h"
+#include "schedule_pass.h"
+#include "lowered_func.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace tvm {
 using namespace tvm::runtime;
@@ -69,7 +75,11 @@ class TargetNode : public Node {
 class Target : public NodeRef {
  public:
   Target() {}
+<<<<<<< HEAD
   explicit Target(std::shared_ptr<Node> n) : NodeRef(n) {}
+=======
+  explicit Target(NodePtr<Node> n) : NodeRef(n) {}
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
   /*!
   * \brief Create a Target given a string
@@ -157,9 +167,15 @@ EXPORT Target rasp(const std::vector<std::string>& options =
 EXPORT Target mali(const std::vector<std::string>& options =
                    std::vector<std::string>());
 
+<<<<<<< HEAD
 /*! \return A target for Intel GPU */
 EXPORT Target intel_gpu(const std::vector<std::string>& options =
                    std::vector<std::string>());
+=======
+/*! \return A target for Intel Graphics */
+EXPORT Target intel_graphics(const std::vector<std::string>& options =
+                             std::vector<std::string>());
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 /*! \return A target for stackvm */
 EXPORT Target stackvm(const std::vector<std::string>& options =
@@ -241,7 +257,11 @@ class BuildConfigNode : public Node {
 class BuildConfig : public ::tvm::NodeRef {
  public:
   BuildConfig() {}
+<<<<<<< HEAD
   explicit BuildConfig(std::shared_ptr<::tvm::Node> n) : NodeRef(n) {}
+=======
+  explicit BuildConfig(NodePtr<::tvm::Node> n) : NodeRef(n) {}
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
   const BuildConfigNode* operator->() const {
     return static_cast<const BuildConfigNode*>(node_.get());
@@ -335,7 +355,11 @@ class GenericFuncNode;
 class GenericFunc : public NodeRef {
  public:
   GenericFunc() {}
+<<<<<<< HEAD
   explicit GenericFunc(std::shared_ptr<Node> n) : NodeRef(n) {}
+=======
+  explicit GenericFunc(NodePtr<Node> n) : NodeRef(n) {}
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
   /*!
    * \brief Set the default function implementaiton.

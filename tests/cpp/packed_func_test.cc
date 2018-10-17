@@ -38,6 +38,31 @@ TEST(PackedFunc, Node) {
   CHECK(t.same_as(x));
 }
 
+TEST(PackedFunc, NDArray) {
+  using namespace tvm;
+  using namespace tvm::runtime;
+  auto x = NDArray::Empty(
+      {}, String2TVMType("float32"),
+      TVMContext{kDLCPU, 0});
+  reinterpret_cast<float*>(x->data)[0] = 10.0f;
+  CHECK(x.use_count() == 1);
+
+  PackedFunc forward([&](TVMArgs args, TVMRetValue* rv) {
+      *rv = args[0];
+    });
+
+  NDArray ret = PackedFunc([&](TVMArgs args, TVMRetValue* rv) {
+      NDArray y = args[0];
+      DLTensor* ptr = args[0];
+      CHECK(ptr == x.operator->());
+      CHECK(x.same_as(y));
+      CHECK(x.use_count() == 2);
+      *rv = forward(y);
+    })(x);
+  CHECK(ret.use_count() == 2);
+  CHECK(ret.same_as(x));
+}
+
 TEST(PackedFunc, str) {
   using namespace tvm;
   using namespace tvm::runtime;
@@ -108,6 +133,29 @@ TEST(PackedFunc, Type) {
   CHECK(get_type("int32").operator Type() == Int(32));
   CHECK(get_type("float").operator Type() == Float(32));
   CHECK(get_type2("float32x2").operator Type() == Float(32, 2));
+}
+
+TEST(TypedPackedFunc, HighOrder) {
+  using namespace tvm;
+  using namespace tvm::runtime;
+  using Int1Func = TypedPackedFunc<int(int)>;
+  using Int2Func = TypedPackedFunc<int(int, int)>;
+  using BindFunc = TypedPackedFunc<Int1Func(Int2Func, int value)>;
+  BindFunc ftyped;
+  ftyped = [](Int2Func f1, int value) -> Int1Func {
+    auto binded = [f1, value](int x) {
+      return f1(value, x);
+    };
+    Int1Func x(binded);
+    return x;
+  };
+  auto add = [](int x, int y) { return x + y; };
+  CHECK_EQ(ftyped(Int2Func(add), 1)(2), 3);
+  PackedFunc f = ftyped(Int2Func(add), 1);
+  CHECK_EQ(f(3).operator int(), 4);
+  // call the type erased version.
+  Int1Func f1 = ftyped.packed()(Int2Func(add), 1);
+  CHECK_EQ(f1(3), 4);
 }
 
 // new namespoace

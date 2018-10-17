@@ -9,12 +9,21 @@ For us to begin with, keras should be installed.
 Tensorflow is also required since it's used as the default backend of keras.
 
 A quick solution is to install via pip
+<<<<<<< HEAD
 ```
 pip install -U keras --user
 ```
 ```
 pip install -U tensorflow --user
 ```
+=======
+
+.. code-block:: bash
+
+    pip install -U keras --user
+    pip install -U tensorflow --user
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 or please refer to official site
 https://keras.io/#installation
 """
@@ -45,7 +54,11 @@ weights_url = ''.join(['https://github.com/fchollet/deep-learning-models/release
 weights_file = 'resnet50_weights.h5'
 download(weights_url, weights_file)
 keras_resnet50 = keras.applications.resnet50.ResNet50(include_top=True, weights=None,
+<<<<<<< HEAD
 	input_shape=(224,224,3), classes=1000)
+=======
+                                                      input_shape=(224, 224, 3), classes=1000)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 keras_resnet50.load_weights('resnet50_weights.h5')
 
 ######################################################################
@@ -56,8 +69,13 @@ from PIL import Image
 from matplotlib import pyplot as plt
 from keras.applications.resnet50 import preprocess_input
 img_url = 'https://github.com/dmlc/mxnet.js/blob/master/data/cat.png?raw=true'
+<<<<<<< HEAD
 download(img_url, 'cat.jpg')
 img = Image.open('cat.jpg').resize((224, 224))
+=======
+download(img_url, 'cat.png')
+img = Image.open('cat.png').resize((224, 224))
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 plt.imshow(img)
 plt.show()
 # input preprocess
@@ -75,8 +93,13 @@ sym, params = nnvm.frontend.from_keras(keras_resnet50)
 # compile the model
 target = 'cuda'
 shape_dict = {'input_1': data.shape}
+<<<<<<< HEAD
 with nnvm.compiler.build_config(opt_level=2):
 	graph, lib, params = nnvm.compiler.build(sym, target, shape_dict, params=params)
+=======
+with nnvm.compiler.build_config(opt_level=3):
+    graph, lib, params = nnvm.compiler.build(sym, target, shape_dict, params=params)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 ######################################################################
 # Execute on TVM
@@ -91,14 +114,23 @@ m.set_input(**params)
 # execute
 m.run()
 # get outputs
+<<<<<<< HEAD
 out_shape = (1000,)
 tvm_out = m.get_output(0, tvm.nd.empty(out_shape, 'float32')).asnumpy()
 top1_tvm = np.argmax(tvm_out)
+=======
+tvm_out = m.get_output(0)
+top1_tvm = np.argmax(tvm_out.asnumpy()[0])
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 #####################################################################
 # Look up synset name
 # -------------------
+<<<<<<< HEAD
 # Look up prdiction top 1 index in 1000 class synset.
+=======
+# Look up prediction top 1 index in 1000 class synset.
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 synset_url = ''.join(['https://gist.githubusercontent.com/zhreshold/',
                       '4d0b62f3d01426887599d4f7ede23ee5/raw/',
                       '596b27d23537e5a1b5751d2b0481ef172f58b539/',

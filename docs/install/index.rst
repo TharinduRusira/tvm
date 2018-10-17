@@ -1,5 +1,6 @@
 Installation
 ============
+<<<<<<< HEAD
 This page gives instructions on how to build and install the tvm package from
 scratch on various systems. It consists of two steps:
 
@@ -143,3 +144,16 @@ Install Contrib Libraries
    :maxdepth: 1
 
    nnpack
+=======
+To install TVM, please read :ref:`install-from-source`.
+If you are interested in deploying to mobile/embedded devices,
+you do not need to install the entire tvm stack on your device,
+instead, you only need the runtime, please read :ref:`deploy-and-integration`.
+If you would like to quickly try out TVM or do demo/tutorials, checkout :ref:`docker-images`
+
+.. toctree::
+   :maxdepth: 2
+
+   from_source
+   docker
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

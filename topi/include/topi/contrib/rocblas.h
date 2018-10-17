@@ -39,7 +39,11 @@ inline Tensor rocblas_matmul(const Tensor& lhs,
         pack_buffer(outs[0]),
         transa,
         transb });
+<<<<<<< HEAD
     }, "C", "")[0];
+=======
+    }, "C", "", {})[0];
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
 }  // namespace contrib

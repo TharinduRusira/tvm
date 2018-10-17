@@ -12,7 +12,11 @@
 #include <utility>
 #include <iostream>
 #include <string>
+<<<<<<< HEAD
 #include "./base.h"
+=======
+#include "base.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace nnvm {
 
@@ -53,11 +57,25 @@ class Tuple {
     this->assign(init.begin(), init.end());
   }
   /*!
+<<<<<<< HEAD
+=======
+   * \brief constructor from vector
+   * \param init the vector
+   */
+  inline Tuple(std::vector<ValueType> init) {  // NOLINT(runtime/explicit)
+    this->assign(init.begin(), init.end());
+  }
+  /*!
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
    * \brief move constructor from Tuple
    * \param src the source shape
    */
 
+<<<<<<< HEAD
   inline Tuple(Tuple<ValueType>&& src) { // NOLINT(*)
+=======
+  inline Tuple(Tuple<ValueType>&& src) {   // NOLINT(runtime/explicit)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     this->swap(src);
   }
   /*!

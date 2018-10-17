@@ -28,12 +28,13 @@ def test_target_dispatch():
     with tvm.target.create("cuda"):
         assert mygeneric(1) == 3
 
-    with tvm.target.rasp():
+    with tvm.target.arm_cpu():
         assert mygeneric(1) == 11
 
     with tvm.target.create("metal"):
         assert mygeneric(1) == 3
 
+<<<<<<< HEAD
     assert tvm.target.current_target() == None
 
 
@@ -48,6 +49,23 @@ def test_target_string_parse():
 
 
     assert tvm.target.intel_gpu().device_name == "intel_gpu"
+=======
+    assert tvm.target.current_target() is None
+
+
+def test_target_string_parse():
+    target = tvm.target.create("cuda -model=unknown -libs=cublas,cudnn")
+
+    assert target.target_name == "cuda"
+    assert target.options == ['-model=unknown', '-libs=cublas,cudnn']
+    assert target.keys == ['cuda', 'gpu']
+    assert target.libs == ['cublas', 'cudnn']
+    assert str(target) == str(tvm.target.cuda(options="-libs=cublas,cudnn"))
+
+    assert tvm.target.intel_graphics().device_name == "intel_graphics"
+    assert tvm.target.mali().device_name == "mali"
+    assert tvm.target.arm_cpu().device_name == "arm_cpu"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 if __name__ == "__main__":
     test_target_dispatch()

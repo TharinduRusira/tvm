@@ -1,15 +1,28 @@
+<<<<<<< HEAD
 # pylint: disable=invalid-name,unused-variable,invalid-name
+=======
+# pylint: disable=invalid-name,unused-variable,invalid-name,unused-argument
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 """Conv2D schedule on x86"""
 import tvm
 from .. import generic, tag
 from .. import nn
 from ..nn.util import infer_pad, infer_stride
 from ..nn.conv2d import conv2d, conv2d_NCHWc, conv2d_alter_layout, \
+<<<<<<< HEAD
                         _get_workload, _get_schedule, Workload
+=======
+    _get_workload, _get_workload_int8, _get_schedule, _get_schedule_NCHWc, \
+    _get_schedule_NCHWc_int8, _get_alter_layout_schedule, Workload
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 from . import conv2d_avx_1x1, conv2d_avx_common
 from .conv2d_avx_common import AVXConvCommonFwd
 from .conv2d_avx_1x1 import AVXConv1x1Fwd
+<<<<<<< HEAD
+=======
+from .check_targets import check_skylake
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 @_get_schedule.register("cpu")
 def _get_schedule_conv(wkl):
@@ -99,6 +112,101 @@ def _get_schedule_conv(wkl):
     sch = _SCHEDULES_AVX[idx]
     return sch
 
+<<<<<<< HEAD
+=======
+def _get_schedule_conv_int8(wkl):
+    _WORKLOADS_AVX = [
+        ## Following are for INT8 kernels
+        Workload('uint8', 'int32', 56, 56, 64, 64, 3, 3, 1, 1, 1, 1),
+        Workload('uint8', 'int32', 56, 56, 64, 64, 1, 1, 0, 0, 1, 1),
+        Workload('uint8', 'int32', 56, 56, 64, 128, 3, 3, 1, 1, 2, 2),
+        Workload('uint8', 'int32', 56, 56, 64, 128, 1, 1, 0, 0, 2, 2),
+        Workload('uint8', 'int32', 28, 28, 128, 128, 3, 3, 1, 1, 1, 1),
+        Workload('uint8', 'int32', 28, 28, 128, 256, 3, 3, 1, 1, 2, 2),
+        Workload('uint8', 'int32', 28, 28, 128, 256, 1, 1, 0, 0, 2, 2),
+        Workload('uint8', 'int32', 14, 14, 256, 256, 3, 3, 1, 1, 1, 1),
+        Workload('uint8', 'int32', 14, 14, 256, 512, 3, 3, 1, 1, 2, 2),
+        Workload('uint8', 'int32', 14, 14, 256, 512, 1, 1, 0, 0, 2, 2),
+        Workload('uint8', 'int32', 7, 7, 512, 512, 3, 3, 1, 1, 1, 1),
+        # workloads of resnet34_v1 on imagenet, no extra workload required
+        # workloads of resnet50_v1 on imagenet
+        Workload('uint8', 'int32', 56, 56, 64, 256, 1, 1, 0, 0, 1, 1),
+        Workload('uint8', 'int32', 56, 56, 256, 64, 1, 1, 0, 0, 1, 1),
+        Workload('uint8', 'int32', 56, 56, 256, 128, 1, 1, 0, 0, 2, 2),
+        Workload('uint8', 'int32', 28, 28, 128, 512, 1, 1, 0, 0, 1, 1),
+        Workload('uint8', 'int32', 56, 56, 256, 512, 1, 1, 0, 0, 2, 2),
+        Workload('uint8', 'int32', 28, 28, 512, 128, 1, 1, 0, 0, 1, 1),
+        Workload('uint8', 'int32', 28, 28, 512, 256, 1, 1, 0, 0, 2, 2),
+        Workload('uint8', 'int32', 14, 14, 256, 1024, 1, 1, 0, 0, 1, 1),
+        Workload('uint8', 'int32', 28, 28, 512, 1024, 1, 1, 0, 0, 2, 2),
+        Workload('uint8', 'int32', 14, 14, 1024, 256, 1, 1, 0, 0, 1, 1),
+        Workload('uint8', 'int32', 14, 14, 1024, 512, 1, 1, 0, 0, 2, 2),
+        Workload('uint8', 'int32', 7, 7, 512, 2048, 1, 1, 0, 0, 1, 1),
+        Workload('uint8', 'int32', 14, 14, 1024, 2048, 1, 1, 0, 0, 2, 2),
+        Workload('uint8', 'int32', 7, 7, 2048, 512, 1, 1, 0, 0, 1, 1),
+    ]
+
+    fp32_vec_len = 8
+    target = tvm.target.current_target(allow_none=False)
+    if check_skylake(target):
+        fp32_vec_len = 16
+
+    _SCHEDULES_AVX = [
+        # Following are for INT8 operations
+        # workloads of resnet18_v1 on imagenet
+        AVXConvCommonFwd(fp32_vec_len, fp32_vec_len, 28, False),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 1, 28),
+        AVXConvCommonFwd(fp32_vec_len, fp32_vec_len, 28, False),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 1, 28),
+        AVXConvCommonFwd(fp32_vec_len, fp32_vec_len, 28, False),
+        AVXConvCommonFwd(fp32_vec_len, fp32_vec_len, 14, False),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 14),
+        AVXConvCommonFwd(fp32_vec_len, fp32_vec_len, 14, True),
+        AVXConvCommonFwd(fp32_vec_len, fp32_vec_len, 7, True),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 1, 7),
+        AVXConvCommonFwd(fp32_vec_len, fp32_vec_len, 7, True),
+        # workloads of resnet34_v1 on imagenet, no extra workload required
+        # workloads of resnet50_v1 on imagenet
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 28),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 28),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 28),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 28),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 28),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 28),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 14),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 14),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 14),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 14),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 7),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 7),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 7),
+        AVXConv1x1Fwd(fp32_vec_len, fp32_vec_len, 2, 7),
+        # workloads of resnet101_v1 on imagenet, no extra workload required
+        # workloads of resnet152_v1 on imagenet, no extra workload required
+        # workloads of resnet18_v2 on imagenet, no extra workload required
+        # workloads of resnet34_v2 on imagenet, no extra workload required
+    ]
+
+    if wkl not in _WORKLOADS_AVX:
+        if wkl.hkernel == 1 and wkl.wkernel == 1:
+            return conv2d_avx_1x1._get_default_schedule(wkl, fp32_vec_len)
+        return conv2d_avx_common._get_default_schedule(wkl, fp32_vec_len)
+    idx = _WORKLOADS_AVX.index(wkl)
+    sch = _SCHEDULES_AVX[idx]
+    return sch
+
+@_get_schedule_NCHWc.register("cpu")
+def _get_schedule_NCHWc_x86(wkl, layout, out_layout):
+    return _get_schedule_conv(wkl)
+
+@_get_schedule_NCHWc_int8.register("cpu")
+def _get_schedule_NCHWc_x86_int8(wkl, layout, out_layout):
+    return _get_schedule_conv_int8(wkl)
+
+@_get_alter_layout_schedule.register("cpu")
+def _get_alter_layout_schedule_x86(wkl):
+    return _get_schedule_conv(wkl)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 @conv2d.register("cpu")
 def _declaration_conv(data, kernel, stride, padding, layout, out_dtype):
@@ -109,11 +217,17 @@ def _declaration_conv(data, kernel, stride, padding, layout, out_dtype):
     out_dtype = data.dtype if out_dtype is None else out_dtype
     target = tvm.target.current_target(allow_none=False)
     wkl = _get_workload(data, kernel, stride, padding, out_dtype)
+<<<<<<< HEAD
     if 'avx' in str(target) and layout == 'NCHW':
         sch = _get_schedule(wkl)
         return _AVX_SCH_TO_DECL_FUNC[type(sch)](data, kernel, stride, padding, layout, out_dtype)
     elif layout == 'NCHW':
         return nn.conv2d_nchw(data, kernel, stride, padding, out_dtype)
+=======
+    if layout == 'NCHW':
+        sch = _get_schedule(wkl)
+        return _AVX_SCH_TO_DECL_FUNC[type(sch)](data, kernel, stride, padding, layout, out_dtype)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     elif layout == 'HWCN':
         return nn.conv2d_hwcn(data, kernel, stride, padding, out_dtype)
     elif layout == 'NHWC':
@@ -139,7 +253,11 @@ def _alter_conv2d_layout(attrs, inputs, tinfos):
     stride = ast.literal_eval(attrs['strides'])
 
     wkl = _get_workload(data, kernel, stride, padding, data.dtype)
+<<<<<<< HEAD
     sch = _get_schedule_conv(wkl)
+=======
+    sch = _get_alter_layout_schedule(wkl)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     is_kernel_1x1 = isinstance(sch, AVXConv1x1Fwd)
     ic_bn, oc_bn = sch.ic_bn, sch.oc_bn
 
@@ -156,12 +274,20 @@ def _alter_conv2d_layout(attrs, inputs, tinfos):
     return sym.contrib.conv2d_NCHWc(*copy_inputs, **new_attrs)
 
 
+<<<<<<< HEAD
 @conv2d_NCHWc.register("cpu")
 def _declaration_conv_NCHWc(data, kernel, num_filter, kernel_size, stride, padding, out_dtype):
+=======
+
+@conv2d_NCHWc.register("cpu")
+def _declaration_conv_NCHWc(data, kernel, num_filter, kernel_size, stride,
+                            padding, layout, out_layout, out_dtype):
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     _AVX_SCH_TO_DECL_FUNC = {
         AVXConvCommonFwd: conv2d_avx_common._declaration_conv_NCHWc,
         AVXConv1x1Fwd: conv2d_avx_1x1._declaration_conv_NCHWc
     }
+<<<<<<< HEAD
     n, ic_chunk, h, w, ic_block = [x.value for x in data.shape]
     ic = ic_chunk * ic_block
     kh, kw = kernel_size
@@ -169,6 +295,31 @@ def _declaration_conv_NCHWc(data, kernel, num_filter, kernel_size, stride, paddi
                         tvm.placeholder((num_filter, ic, kh, kw), dtype=out_dtype),
                         stride, padding, out_dtype)
     sch = _get_schedule(wkl)
+=======
+
+    # Use int8 schedules if the input data is of int8 dtype
+    if data.dtype == 'uint8':
+        _AVX_SCH_TO_DECL_FUNC = {
+            AVXConvCommonFwd: conv2d_avx_common._declaration_conv_NCHWc_int8,
+            AVXConv1x1Fwd: conv2d_avx_1x1._declaration_conv_NCHWc_int8
+        }
+
+    n, ic_chunk, h, w, ic_block = [x.value for x in data.shape]
+    ic = ic_chunk * ic_block
+    kh, kw = kernel_size
+    if data.dtype == 'uint8':
+        wkl = _get_workload_int8(tvm.placeholder((n, ic, h, w), dtype=data.dtype),
+                                 tvm.placeholder((num_filter, ic, kh, kw),
+                                                 dtype=kernel.dtype),
+                                 stride, padding, out_dtype)
+        sch = _get_schedule_NCHWc_int8(wkl, layout, out_layout)
+    else:
+        wkl = _get_workload(tvm.placeholder((n, ic, h, w), dtype=data.dtype),
+                            tvm.placeholder((num_filter, ic, kh, kw),
+                                            dtype=kernel.dtype),
+                            stride, padding, out_dtype)
+        sch = _get_schedule_NCHWc(wkl, layout, out_layout)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     return _AVX_SCH_TO_DECL_FUNC[type(sch)](wkl, sch, data, kernel)
 
 
@@ -181,6 +332,7 @@ def schedule_conv2d(outs):
     }
     s = tvm.create_schedule([x.op for x in outs])
     target = tvm.target.current_target(allow_none=False)
+<<<<<<< HEAD
 
     def default_schedule(op):
         """NCHW conv2d schedule for non imagenet workloads"""
@@ -207,6 +359,9 @@ def schedule_conv2d(outs):
         s[C].unroll(rx)
         s[C].unroll(ry)
         s[C].vectorize(wi)
+=======
+    scheduled_ops = []
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     def traverse(op):
         """Traverse operators from computation graph"""
@@ -214,6 +369,7 @@ def schedule_conv2d(outs):
         if tag.is_broadcast(op.tag):
             if op not in s.outputs:
                 s[op].compute_inline()
+<<<<<<< HEAD
             else: # inject custom schedule
                 if len(op.axis) == 4 and 'avx' not in str(target): # schedule bias + bn + relu
                     n, c, h, w = op.axis
@@ -253,6 +409,37 @@ def schedule_conv2d(outs):
                     default_schedule(op)
             else:
                 default_schedule(op)
+=======
+            for tensor in op.input_tensors:
+                if tensor.op.input_tensors and tensor.op not in scheduled_ops:
+                    traverse(tensor.op)
+
+        if 'conv2d_nchw' in op.tag:
+            output = op.output(0)
+            conv_out = op.input_tensors[0]
+            kernel_vec = conv_out.op.input_tensors[1]
+            kernel = kernel_vec.op.input_tensors[0]
+            if isinstance(kernel.op, tvm.tensor.ComputeOp) and "dilate" in kernel.op.tag:
+                s[kernel].compute_inline()
+            data_vec = conv_out.op.input_tensors[0]
+            data = data_vec.op.input_tensors[0]
+            data_pad = None
+            if isinstance(data.op, tvm.tensor.ComputeOp) and "pad" in data.op.tag:
+                data_pad = data
+                data = data_pad.op.input_tensors[0]
+            padding = infer_pad(data, data_pad)
+            if data_pad is None:
+                stride = infer_stride(data, kernel, output)
+            else:
+                stride = infer_stride(data_pad, kernel, output)
+
+            wkl = _get_workload(data, kernel, stride, padding, output.dtype)
+            sch = _get_schedule(wkl)
+            _AVX_SCH_TO_SCH_FUNC[type(sch)](s, data, data_pad, data_vec,
+                                            kernel, kernel_vec, conv_out, output, outs[0])
+
+        scheduled_ops.append(op)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     traverse(outs[0].op)
     return s
@@ -263,6 +450,10 @@ def schedule_conv2d_nhwc(outs):
     """Create schedule for tensors"""
     s = tvm.create_schedule([x.op for x in outs])
     output_op = outs[0].op
+<<<<<<< HEAD
+=======
+    scheduled_ops = []
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     def traverse(op):
         """Traverse operators from computation graph"""
@@ -277,7 +468,11 @@ def schedule_conv2d_nhwc(outs):
                     s[op].parallel(fused)
                     s[op].vectorize(c)
             for tensor in op.input_tensors:
+<<<<<<< HEAD
                 if tensor.op.input_tensors:
+=======
+                if tensor.op.input_tensors and tensor.op not in scheduled_ops:
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
                     traverse(tensor.op)
 
         if 'conv2d_nhwc' in op.tag:
@@ -306,11 +501,17 @@ def schedule_conv2d_nhwc(outs):
                 fused = s[C].fuse(n, h, w)
                 s[C].parallel(fused)
 
+<<<<<<< HEAD
+=======
+        scheduled_ops.append(op)
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     traverse(output_op)
     return s
 
 
 @generic.schedule_conv2d_NCHWc.register(["cpu"])
+<<<<<<< HEAD
 def schedule_conv2d_NCHWc(num_filter, kernel_size, stride, padding, outs):
     """Create schedule for tensors"""
     _AVX_SCH_TO_SCH_FUNC = {
@@ -318,6 +519,13 @@ def schedule_conv2d_NCHWc(num_filter, kernel_size, stride, padding, outs):
         AVXConv1x1Fwd: conv2d_avx_1x1._schedule_conv_NCHWc
     }
     s = tvm.create_schedule([x.op for x in outs])
+=======
+def schedule_conv2d_NCHWc(num_filter, kernel_size, stride, padding,
+                          layout, out_layout, outs):
+    """Create schedule for tensors"""
+    s = tvm.create_schedule([x.op for x in outs])
+    scheduled_ops = []
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     def traverse(op):
         """Traverse operators from computation graph"""
@@ -326,7 +534,11 @@ def schedule_conv2d_NCHWc(num_filter, kernel_size, stride, padding, outs):
             if op not in s.outputs:
                 s[op].compute_inline()
             for tensor in op.input_tensors:
+<<<<<<< HEAD
                 if tensor.op.input_tensors:
+=======
+                if tensor.op.input_tensors and tensor.op not in scheduled_ops:
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
                     traverse(tensor.op)
 
         if 'conv2d_NCHWc' in op.tag:
@@ -340,6 +552,7 @@ def schedule_conv2d_NCHWc(num_filter, kernel_size, stride, padding, outs):
                 data_pad = data
                 data = data_pad.op.input_tensors[0]
 
+<<<<<<< HEAD
             n, ic_chunk, h, w, ic_block = [x.value for x in data.shape]
             ic = ic_chunk * ic_block
             original_data = tvm.placeholder((n, ic, h, w), dtype=conv_out.dtype)
@@ -352,5 +565,39 @@ def schedule_conv2d_NCHWc(num_filter, kernel_size, stride, padding, outs):
             _AVX_SCH_TO_SCH_FUNC[type(sch)](s, wkl, sch, data_vec,
                                             kernel, conv_out, outs[0])
 
+=======
+            _AVX_SCH_TO_SCH_FUNC = {
+                AVXConvCommonFwd: conv2d_avx_common._schedule_conv_NCHWc,
+                AVXConv1x1Fwd: conv2d_avx_1x1._schedule_conv_NCHWc
+            }
+
+            # Use int8 schedules if the input data is of int8 dtype
+            if data.dtype == 'uint8':
+                _AVX_SCH_TO_SCH_FUNC = {
+                    AVXConvCommonFwd: conv2d_avx_common._schedule_conv_NCHWc_int8,
+                    AVXConv1x1Fwd: conv2d_avx_1x1._schedule_conv_NCHWc_int8
+                }
+
+            n, ic_chunk, h, w, ic_block = [x.value for x in data.shape]
+            ic = ic_chunk * ic_block
+            original_data = tvm.placeholder((n, ic, h, w), dtype=data.dtype)
+
+            kh, kw = kernel_size
+            original_kernel = tvm.placeholder((num_filter, ic, kh, kw),
+                                              dtype=kernel.dtype)
+
+            if data.dtype == 'uint8':
+                wkl = _get_workload_int8(original_data, original_kernel,
+                                         stride, padding, conv_out.dtype)
+                sch = _get_schedule_NCHWc_int8(wkl, layout, out_layout)
+            else:
+                wkl = _get_workload(original_data, original_kernel, stride, padding, conv_out.dtype)
+                sch = _get_schedule_NCHWc(wkl, layout, out_layout)
+            _AVX_SCH_TO_SCH_FUNC[type(sch)](s, wkl, sch, data_vec,
+                                            kernel, conv_out, outs[0])
+
+        scheduled_ops.append(op)
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     traverse(outs[0].op)
     return s

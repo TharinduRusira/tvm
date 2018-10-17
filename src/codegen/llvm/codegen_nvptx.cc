@@ -4,10 +4,9 @@
  * \brief NVPTX code generator.
  */
 #ifdef TVM_LLVM_VERSION
-#if TVM_CUDA_RUNTIME
 
 #include <tvm/runtime/device_api.h>
-#include "./codegen_llvm.h"
+#include "codegen_llvm.h"
 #include "../build_common.h"
 #include "../../pass/ir_util.h"
 #include "../../runtime/cuda/cuda_module.h"
@@ -122,6 +121,20 @@ class CodeGenNVPTX : public CodeGenLLVM {
     // Additional optimization hook to tweak the builder.
   }
 
+  void Optimize() final {
+    for (auto& f : *module_) {
+      auto fname = static_cast<std::string>(f.getName());
+      if (fname.substr(0, 4) != "__nv") continue;
+      // This is to strip off unused __nv_* functions from the final module
+      // The one that is actually used will be inlined at call site
+      // Adapted from Halide's runtime linker
+      if (!f.isDeclaration() && !f.hasFnAttribute(llvm::Attribute::NoInline)) {
+        f.setLinkage(llvm::GlobalValue::AvailableExternallyLinkage);
+      }
+    }
+    CodeGenLLVM::Optimize();
+  }
+
  protected:
   void InitTarget(llvm::TargetMachine* tm) final {
     // Maximum vector lane = float4
@@ -180,8 +193,7 @@ runtime::Module BuildNVPTX(Array<LoweredFunc> funcs, std::string target) {
       }
       mlib->setTargetTriple(tm->getTargetTriple().str());
       mlib->setDataLayout(tm->createDataLayout());
-      // TODO(tqchen) libdevice linking not yet working.
-      // cg->AddLinkModule(std::move(mlib));
+      cg->AddLinkModule(std::move(mlib));
     }
   }
   std::unique_ptr<llvm::Module> module = cg->Finish();
@@ -215,5 +227,4 @@ TVM_REGISTER_API("codegen.build_nvptx")
 
 }  // namespace codegen
 }  // namespace tvm
-#endif   // TVM_CUDA_RUNTIME
 #endif  // TVM_LLVM_VERSION

@@ -3,7 +3,7 @@
  * \file intrin_rule_cuda.cc
  * \brief CUDA intrinsic rules.
  */
-#include "./intrin_rule.h"
+#include "intrin_rule.h"
 
 namespace tvm {
 namespace codegen {
@@ -55,6 +55,24 @@ struct CUDAShuffle {
   }
 };
 
+<<<<<<< HEAD
+=======
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.cuda.floor")
+.set_body(DispatchExtern<CUDAMath>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.cuda.ceil")
+.set_body(DispatchExtern<CUDAMath>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.cuda.trunc")
+.set_body(DispatchExtern<CUDAMath>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.cuda.fabs")
+.set_body(DispatchExtern<CUDAMath>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.cuda.round")
+.set_body(DispatchExtern<CUDAMath>);
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 TVM_REGISTER_GLOBAL("tvm.intrin.rule.cuda.exp")
 .set_body(DispatchExtern<CUDAFastMath>);
 

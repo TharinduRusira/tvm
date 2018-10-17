@@ -46,6 +46,7 @@ def residual_unit(data, num_filter, stride, dim_match, name, bottle_neck=True, b
         Workspace used in convolution operator
     """
     if bottle_neck:
+<<<<<<< HEAD
         # the same as https://github.com/facebook/fb.resnet.torch#notes, a bit difference with origin paper
         bn1 = mx.sym.BatchNorm(data=data, fix_gamma=False, eps=2e-5, momentum=bn_mom, name=name + '_bn1')
         act1 = mx.sym.Activation(data=bn1, act_type='relu', name=name + '_relu1')
@@ -54,6 +55,15 @@ def residual_unit(data, num_filter, stride, dim_match, name, bottle_neck=True, b
         bn2 = mx.sym.BatchNorm(data=conv1, fix_gamma=False, eps=2e-5, momentum=bn_mom, name=name + '_bn2')
         act2 = mx.sym.Activation(data=bn2, act_type='relu', name=name + '_relu2')
         conv2 = mx.sym.Convolution(data=act2, num_filter=int(num_filter*0.25), kernel=(3,3), stride=stride, pad=(1,1),
+=======
+        bn1 = mx.sym.BatchNorm(data=data, fix_gamma=False, eps=2e-5, momentum=bn_mom, name=name + '_bn1')
+        act1 = mx.sym.Activation(data=bn1, act_type='relu', name=name + '_relu1')
+        conv1 = mx.sym.Convolution(data=act1, num_filter=int(num_filter*0.25), kernel=(1,1), stride=stride, pad=(0,0),
+                                   no_bias=True, workspace=workspace, name=name + '_conv1')
+        bn2 = mx.sym.BatchNorm(data=conv1, fix_gamma=False, eps=2e-5, momentum=bn_mom, name=name + '_bn2')
+        act2 = mx.sym.Activation(data=bn2, act_type='relu', name=name + '_relu2')
+        conv2 = mx.sym.Convolution(data=act2, num_filter=int(num_filter*0.25), kernel=(3,3), stride=(1,1), pad=(1,1),
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
                                    no_bias=True, workspace=workspace, name=name + '_conv2')
         bn3 = mx.sym.BatchNorm(data=conv2, fix_gamma=False, eps=2e-5, momentum=bn_mom, name=name + '_bn3')
         act3 = mx.sym.Activation(data=bn3, act_type='relu', name=name + '_relu3')

@@ -16,7 +16,11 @@ namespace top {
 struct ConcatenateParam : public dmlc::Parameter<ConcatenateParam> {
   int axis;
   DMLC_DECLARE_PARAMETER(ConcatenateParam) {
+<<<<<<< HEAD
     DMLC_DECLARE_FIELD(axis).set_lower_bound(0).set_default(1)
+=======
+    DMLC_DECLARE_FIELD(axis).set_default(1)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     .describe("the axis to be concated.");
   }
 };
@@ -48,6 +52,35 @@ struct SplitParam : public dmlc::Parameter<SplitParam> {
   }
 };
 
+<<<<<<< HEAD
+=======
+
+struct TakeParam : public dmlc::Parameter<TakeParam> {
+  dmlc::optional<int> axis;
+
+  DMLC_DECLARE_PARAMETER(TakeParam) {
+    DMLC_DECLARE_FIELD(axis).set_default(dmlc::optional<int>())
+        .describe("the axis over which to select values.");
+  }
+};
+
+struct StridedSliceParam : public dmlc::Parameter<StridedSliceParam> {
+  // numpy convention, only support indices, not support list.
+  Tuple<int64_t> begin;
+  Tuple<int64_t> end;
+  Tuple<int64_t> stride;
+
+  DMLC_DECLARE_PARAMETER(StridedSliceParam) {
+    DMLC_DECLARE_FIELD(begin)
+        .describe("Indices for begin of slice");
+    DMLC_DECLARE_FIELD(end)
+        .describe("Indices for end of the slice");
+    DMLC_DECLARE_FIELD(stride).set_default(Tuple<int64_t>())
+        .describe("Stride values of the slice");
+  }
+};
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 enum TypeFlag {
   kFloat32 = 0,
   kFloat64 = 1,
@@ -259,6 +292,19 @@ struct ClipParam : public dmlc::Parameter<ClipParam> {
   }
 };
 
+<<<<<<< HEAD
+=======
+struct SliceLikeParam : public dmlc::Parameter<SliceLikeParam> {
+  Tuple<int> axis;
+  DMLC_DECLARE_PARAMETER(SliceLikeParam) {
+    DMLC_DECLARE_FIELD(axis).set_default(Tuple<int>())
+      .describe("List of axes on which input data will be sliced according to the "
+                "corresponding size of the second input. By default will slice "
+                "on all axes. Negative axes are supported.");
+  }
+};
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }  // namespace top
 }  // namespace nnvm
 

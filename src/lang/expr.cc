@@ -5,6 +5,7 @@
 #include <tvm/base.h>
 #include <tvm/expr.h>
 #include <tvm/ir.h>
+#include <tvm/ir_operator.h>
 #include <ir/IRPrinter.h>
 #include <memory>
 
@@ -13,18 +14,22 @@ namespace tvm {
 using HalideIR::IR::RangeNode;
 
 Range::Range(Expr begin, Expr end)
-    : Range(std::make_shared<RangeNode>(
+    : Range(make_node<RangeNode>(
           begin,
           is_zero(begin) ? end : (end - begin))) {
 }
 
 Range Range::make_by_min_extent(Expr min, Expr extent) {
+<<<<<<< HEAD
   return Range(std::make_shared<HalideIR::IR::RangeNode>(min, extent));
+=======
+  return Range(make_node<HalideIR::IR::RangeNode>(min, extent));
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
 IterVar IterVarNode::make(Range dom, Var var,
                           IterVarType t, std::string thread_tag) {
-  std::shared_ptr<IterVarNode> n = std::make_shared<IterVarNode>();
+  NodePtr<IterVarNode> n = make_node<IterVarNode>();
   n->dom = dom;
   n->var = var;
   n->iter_type = t;
@@ -47,6 +52,13 @@ std::ostream& operator<<(std::ostream& os, const NodeRef& n) {  // NOLINT(*)
   return os;
 }
 
+<<<<<<< HEAD
+=======
+void Dump(const NodeRef& n) {
+  std::cerr << n << "\n";
+}
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 Var var(const std::string& name_hint, Type t) {
   return Var(name_hint, t);
 }
@@ -74,6 +86,7 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
 
 TVM_REGISTER_NODE_TYPE(ArrayNode);
 TVM_REGISTER_NODE_TYPE(MapNode);
+TVM_REGISTER_NODE_TYPE(StrMapNode);
 TVM_REGISTER_NODE_TYPE(RangeNode);
 TVM_REGISTER_NODE_TYPE(IterVarNode);
 

@@ -70,6 +70,19 @@ def test_empty_array():
     tvm.convert(myfunc)(x)
 
 
+<<<<<<< HEAD
+=======
+def test_ctx():
+    def test_ctx_func(ctx):
+        assert tvm.gpu(7) == ctx
+        return tvm.cpu(0)
+    x = test_ctx_func(tvm.gpu(7))
+    assert x == tvm.cpu(0)
+    x = tvm.opencl(10)
+    x = tvm._api_internal._context_test(x, x.device_type, x.device_id)
+    assert x == tvm.opencl(10)
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 if __name__ == "__main__":
     test_empty_array()
     test_get_global()
@@ -77,3 +90,4 @@ if __name__ == "__main__":
     test_convert()
     test_return_func()
     test_byte_array()
+    test_ctx()

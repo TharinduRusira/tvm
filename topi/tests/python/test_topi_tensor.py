@@ -11,7 +11,11 @@ def verify_elemwise_sum(num_args, dtype):
     for i in range(num_args):
         tvm_placeholders.append(
             tvm.placeholder(shape, name="data"+str(i), dtype=dtype))
+<<<<<<< HEAD
     esum = topi.elemwise_sum(tvm_placeholders, num_args=num_args)
+=======
+    esum = topi.elemwise_sum(tvm_placeholders)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     s = tvm.create_schedule([esum.op])
 
     @memoize("topi.tests.test_topi_elemwise_sum")
@@ -69,6 +73,7 @@ def verify_full(shape, dtype, fill_value):
         check_device(device)
 
 
+<<<<<<< HEAD
 def verify_comparator(shape, dtype, out_type='int8'):
     A = tvm.placeholder(shape, dtype, name="A")
     B = tvm.placeholder(shape, dtype, name="B")
@@ -107,6 +112,8 @@ def verify_comparator(shape, dtype, out_type='int8'):
     for device in ["llvm"]:
         check_device(device)
 
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def test_elemwise_sum():
     verify_elemwise_sum(1, "float32")
     verify_elemwise_sum(5, "float32")
@@ -118,6 +125,7 @@ def test_full():
     verify_full((10,), "int32", 7)
 
 
+<<<<<<< HEAD
 def test_comparator():
     verify_comparator((3,4,5), "float32")
     verify_comparator((7,), "int32")
@@ -127,3 +135,8 @@ if __name__ == "__main__":
     test_elemwise_sum()
     test_full()
     test_comparator()
+=======
+if __name__ == "__main__":
+    test_elemwise_sum()
+    test_full()
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

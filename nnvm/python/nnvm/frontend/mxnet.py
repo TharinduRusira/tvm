@@ -56,6 +56,11 @@ def _pooling(inputs, attrs):
         new_attrs['strides'] = attrs.get('stride', (1, 1))
         new_attrs['padding'] = attrs.get('pad', (0, 0))
         new_attrs['ceil_mode'] = (attrs.get('pooling_convention', 'valid') == 'full')
+<<<<<<< HEAD
+=======
+        if pool_type == 'avg':
+            new_attrs['count_include_pad'] = attrs.get('count_include_pad', True)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     return _get_nnvm_op(op_name)(*inputs, **new_attrs)
 
 def _batch_norm(inputs, attrs):
@@ -71,7 +76,11 @@ def _batch_norm(inputs, attrs):
     new_attrs['axis'] = attrs.get('axis', 1)
     new_attrs['epsilon'] = attrs.get('eps', 0.001)
     new_attrs['center'] = True
+<<<<<<< HEAD
     new_attrs['scale'] = True
+=======
+    new_attrs['scale'] = not _parse_bool_str(attrs, 'fix_gamma', default="False")
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     return _get_nnvm_op(op_name)(*inputs, **new_attrs)
 
 def _concat(inputs, attrs):
@@ -151,9 +160,16 @@ def _dropout(inputs, attrs):
 
 def _leaky_relu(inputs, attrs):
     act_type = _required_attr(attrs, 'act_type')
+<<<<<<< HEAD
     if act_type in ['leaky']:
         op_name, new_attrs = 'leaky_relu', {}
         new_attrs['alpha'] = attrs.get('slope', 0.25)
+=======
+    if act_type in ['leaky', 'prelu']:
+        op_name, new_attrs = act_type, {}
+        if act_type == 'leaky':
+            new_attrs['alpha'] = attrs.get('slope', 0.25)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         sym = _get_nnvm_op(op_name)(*inputs, **new_attrs)
     elif act_type == 'elu':
         slope = attrs.get('slope', 0.25)
@@ -187,12 +203,30 @@ def _reshape(inputs, attrs):
     return _get_nnvm_op(op_name)(*inputs, **new_attrs)
 
 def _split(inputs, attrs):
+<<<<<<< HEAD
     if _parse_bool_str(attrs, 'squeeze_axis'):
         _raise_not_supported('squeeze_axis', 'split')
     op_name, new_attrs = 'split', {}
     new_attrs['indices_or_sections'] = _required_attr(attrs, 'num_outputs')
     new_attrs['axis'] = attrs.get('axis', 1)
     return _get_nnvm_op(op_name)(*inputs, **new_attrs)
+=======
+    op_name, new_attrs = 'split', {}
+    axis = attrs.get('axis', 1)
+    new_attrs['indices_or_sections'] = _required_attr(attrs, 'num_outputs')
+    new_attrs['axis'] = axis
+    outputs = _get_nnvm_op(op_name)(*inputs, **new_attrs)
+    if _parse_bool_str(attrs, 'squeeze_axis'):
+        squeeze_attrs = {'axis': axis}
+        outputs = _sym.Group([_get_nnvm_op('squeeze')(o, **squeeze_attrs) for o in outputs])
+    return outputs
+
+def _softmax_activation(inputs, attrs):
+    op_name, new_attrs = 'softmax', {}
+    mode = attrs.get('mode', 'instance')
+    new_attrs['axis'] = 0 if mode == 'instance' else 1
+    return _get_nnvm_op(op_name)(inputs[0], **new_attrs)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 def _softmax_output(inputs, attrs):
     op_name, new_attrs = 'softmax', {}
@@ -211,6 +245,58 @@ def _clip(inputs, attrs):
     new_attrs['a_max'] = _required_attr(attrs, 'a_max')
     return _get_nnvm_op(op_name)(*inputs, **new_attrs)
 
+<<<<<<< HEAD
+=======
+def _contrib_multibox_detection(inputs, attrs):
+    clip = _parse_bool_str(attrs, 'clip', default='True')
+    threshold = attrs.get('threshold') or 0.01
+    nms_threshold = attrs.get('nms_threshold') or 0.5
+    force_suppress = _parse_bool_str(attrs, 'force_suppress', default='False')
+    variances = tuple([float(x.strip()) for x in attrs.get('variances').strip('()').split(',')]) \
+        if attrs.get('variances') is not None else (0.1, 0.1, 0.2, 0.2)
+    nms_topk = attrs.get('nms_topk') or -1
+    new_attrs0 = {'clip': clip, 'threshold': float(threshold), 'variances': variances}
+    new_attrs1 = {'nms_threshold': float(nms_threshold), 'force_suppress': force_suppress,
+                  'nms_topk': int(nms_topk)}
+    data, valid_count = _get_nnvm_op('multibox_transform_loc')(inputs[0], inputs[1],
+                                                               inputs[2], **new_attrs0)
+    return _get_nnvm_op('nms')(data, valid_count, **new_attrs1)
+
+def _elemwise_sum(inputs, _):
+    new_attrs = {'num_args':len(inputs)}
+    return _get_nnvm_op('elemwise_sum')(*inputs, **new_attrs)
+
+def _crop_like(inputs, attrs):
+    new_attrs = {}
+    offsets = \
+        tuple([float(x.strip()) for x in attrs.get('offsets').strip('()').split(',')]) \
+            if attrs.get('offsets') is not None else (0, 0)
+    if offsets != (0, 0):
+        raise RuntimeError("Currently only supports offsets to be zero.")
+    center_crop = _parse_bool_str(attrs, 'center_crop', default="False")
+    if center_crop:
+        raise RuntimeError("center crop is not supported.")
+    if len(inputs) < 2:
+        raise RuntimeError("Only support crop_like pattern.")
+    new_attrs["axis"] = [2, 3]
+    return _get_nnvm_op('slice_like')(inputs[0], inputs[1], **new_attrs)
+
+
+def _expand_dims(inputs, attrs):
+    op_name, new_attrs = "expand_dims", {}
+    new_attrs['axis'] = _required_attr(attrs, 'axis')
+    return _get_nnvm_op(op_name)(*inputs, **new_attrs)
+
+def _lrn(inputs, attrs):
+    op_name, new_attrs = "lrn", {}
+    new_attrs['alpha'] = attrs.get('alpha', 0.0001)
+    new_attrs['beta'] = attrs.get('beta', 0.75)
+    new_attrs['bias'] = attrs.get('knorm', 2)
+    # NCHW format and normalization along channel axis
+    new_attrs['axis'] = 1
+    new_attrs['size'] = _required_attr(attrs, 'nsize')
+    return _get_nnvm_op(op_name)(*inputs, **new_attrs)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 _identity_list = ['__add_scalar__', '__add_symbol__', '__div_scalar__',
                   '__div_symbol__', '__mul_scalar__', '__mul_symbol__',
@@ -220,15 +306,28 @@ _identity_list = ['__add_scalar__', '__add_symbol__', '__div_scalar__',
                   'broadcast_sub', 'broadcast_to', 'cast', 'elemwise_add',
                   'elemwise_div', 'elemwise_mul', 'elemwise_sub', 'exp',
                   'flatten', 'log', 'log_softmax', 'max', 'min', 'negative',
+<<<<<<< HEAD
                   'relu', 'sigmoid', 'softmax', 'sum', 'tanh', 'transpose']
 
 _convert_map = {
+=======
+                  'relu', 'sigmoid', 'slice_like', 'softmax', 'sum', 'tanh',
+                  'transpose']
+
+_convert_map = {
+    '_copy'         : _rename('copy'),
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     '_div_scalar'   : _rename('__div_scalar__'),
     '_minus_scalar' : _rename('__sub_scalar__'),
     '_mul_scalar'   : _rename('__mul_scalar__'),
     '_plus_scalar'  : _rename('__add_scalar__'),
     '_rdiv_scalar'  : _rename('__rdiv_scalar__'),
     '_rminus_scalar': _rename('__rsub_scalar__'),
+<<<<<<< HEAD
+=======
+    '_contrib_MultiBoxPrior' : _rename('multibox_prior'),
+    '_contrib_MultiBoxDetection' : _contrib_multibox_detection,
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     'Activation'    : _activations,
     'BatchNorm'     : _batch_norm,
     'BatchNorm_v1'  : _batch_norm,
@@ -236,6 +335,10 @@ _convert_map = {
     'Concat'        : _concat,
     'Convolution'   : _conv2d,
     'Convolution_v1': _conv2d,
+<<<<<<< HEAD
+=======
+    'Crop'          : _crop_like,
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     'Deconvolution' : _conv2d_transpose,
     'Dropout'       : _dropout,
     'Flatten'       : _rename('flatten'),
@@ -247,14 +350,26 @@ _convert_map = {
     'SliceChannel'  : _split,
     'split'         : _split,
     'Softmax'       : _rename('softmax'),
+<<<<<<< HEAD
     'SoftmaxOutput' : _softmax_output,
+=======
+    'SoftmaxActivation' : _softmax_activation,
+    'SoftmaxOutput' : _softmax_output,
+    'add_n'         : _elemwise_sum,
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     'concat'        : _concat,
     'max_axis'      : _rename('max'),
     'min_axis'      : _rename('min'),
     'reshape'       : _reshape,
     'sum_axis'      : _rename('sum'),
     'UpSampling'    : _upsampling,
+<<<<<<< HEAD
     'clip'          : _clip
+=======
+    'clip'          : _clip,
+    'expand_dims'   : _expand_dims,
+    'LRN'           : _lrn
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
 def _convert_symbol(op_name, inputs, attrs,

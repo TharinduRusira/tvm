@@ -2,7 +2,7 @@
 """Generic nn operators"""
 from __future__ import absolute_import as _abs
 import tvm
-
+from .. import cpp
 
 def _default_schedule(outs, auto_inline):
     """Default schedule for llvm."""
@@ -55,11 +55,17 @@ def schedule_conv2d_nhwc(outs):
 
 
 @tvm.target.generic_func
+<<<<<<< HEAD
 def schedule_conv2d_NCHWc(num_filter, kernel_size, strides, padding, outs):
+=======
+def schedule_conv2d_NCHWc(num_filter, kernel_size, strides,
+                          padding, layout, out_layout, outs):
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     """Schedule for conv2d_NCHW[x]c
 
     Parameters
     ----------
+<<<<<<< HEAD
     num_filter: int
                 The number of filter, i.e., the output channel.
     kernel_size: tuple of int
@@ -70,6 +76,94 @@ def schedule_conv2d_NCHWc(num_filter, kernel_size, strides, padding, outs):
              (pad_of_height, pad_of_width)
     outs: Array of Tensor
           The computation graph description of conv2d_NCHWc
+=======
+    num_filter : int
+        The number of filter, i.e., the output channel.
+
+    kernel_size : tuple of int
+        (kernel_height, kernel_width)
+
+    strides : tuple of int
+        (stride_of_height, stride_of_width)
+
+    padding : tuple of int
+        (pad_of_height, pad_of_width)
+
+    layout : str
+        Input data layout
+
+    out_layout : str
+        Output data layout
+
+    outs : Array of Tensor
+        The computation graph description of conv2d_NCHWc
+        in the format of an array of tensors.
+
+    Returns
+    -------
+    sch : Schedule
+        The computation schedule for the op.
+    """
+    return _default_schedule(outs, False)
+
+
+@tvm.target.generic_func
+def schedule_conv2d_winograd_weight_transform(outs):
+    """Schedule for weight transformation of winograd
+
+    Parameters
+    ----------
+    outs: Array of Tensor
+          The computation graph description of this operator
+          in the format of an array of tensors.
+
+    Returns
+    -------
+    sch: Schedule
+        The computation schedule for the op.
+    """
+    # Typically this is computed in nnvm PreCompute pass
+    # so we make a schedule here for cpu llvm
+    s = tvm.create_schedule([x.op for x in outs])
+    output = outs[0]
+    _, G = s[output].op.input_tensors
+    s[G].compute_inline()
+    eps, nu, co, ci = s[output].op.axis
+    r_kh, r_kw = s[output].op.reduce_axis
+    s[output].reorder(co, ci, r_kh, r_kw, eps, nu)
+    for axis in [r_kh, r_kw, eps, nu]:
+        s[output].unroll(axis)
+    s[output].parallel(co)
+    return s
+
+
+@tvm.target.generic_func
+def schedule_conv2d_winograd_without_weight_transform(outs):
+    """Schedule for winograd without weight transformation
+
+    Parameters
+    ----------
+    outs: Array of Tensor
+          The computation graph description of this operator
+          in the format of an array of tensors.
+
+    Returns
+    -------
+    sch: Schedule
+        The computation schedule for the op.
+    """
+    return _default_schedule(outs, False)
+
+
+@tvm.target.generic_func
+def schedule_conv2d_NCHWc_int8_prepacked(outs):
+    """Schedule for conv2d NCHWc int8 with prepacked data and kernel
+
+    Parameters
+    ----------
+    outs: Array of Tensor
+          The computation graph description of this operator
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
           in the format of an array of tensors.
 
     Returns
@@ -132,7 +226,45 @@ def schedule_depthwise_conv2d_nhwc(outs):
     """
     return _default_schedule(outs, False)
 
+@tvm.target.generic_func
+def schedule_bitserial_conv2d_nchw(outs):
+    """Schedule for bitserial_conv2d_nchw
 
+    Parameters
+    ----------
+    outs: Array of Tensor
+          The computation graph description of bitserial_conv2d_nchw
+          in the format of an array of tensors.
+
+    Returns
+    -------
+    sch: Schedule
+        The computation schedule for the op.
+    """
+    return _default_schedule(outs, False)
+
+
+<<<<<<< HEAD
+=======
+@tvm.target.generic_func
+def schedule_bitserial_conv2d_nhwc(outs):
+    """Schedule for bitserial_conv2d_nhwc
+
+    Parameters
+    ----------
+    outs: Array of Tensor
+          The computation graph description of bitserial_conv2d_nchw
+          in the format of an array of tensors.
+
+    Returns
+    -------
+    sch: Schedule
+        The computation schedule for the op.
+    """
+    return _default_schedule(outs, False)
+
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 @tvm.target.override_native_generic_func("schedule_reduce")
 def schedule_reduce(outs):
     """Schedule for reduction
@@ -188,7 +320,11 @@ def schedule_dense(outs):
 
 
 @tvm.target.override_native_generic_func("schedule_pool")
+<<<<<<< HEAD
 def schedule_pool(outs):
+=======
+def schedule_pool(outs, layout):
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     """Schedule for pool
 
     Parameters
@@ -196,6 +332,9 @@ def schedule_pool(outs):
     outs: Array of Tensor
           The computation graph description of pool
           in the format of an array of tensors.
+
+    layout: str
+        Data layout.
 
     Returns
     -------
@@ -273,17 +412,31 @@ def schedule_lrn(outs):
     sch: Schedule
         The computation schedule for the op.
     """
+<<<<<<< HEAD
     return _default_schedule(outs, False)
 
 
 @tvm.target.generic_func
 def schedule_l2norm(outs):
     """Schedule for l2norm
+=======
+    target = tvm.target.current_target(allow_none=False)
+    cpp_target = cpp.TEST_create_target(target.target_name)
+    return cpp.generic.default_schedule(cpp_target, outs, False)
+
+@tvm.target.generic_func
+def schedule_l2_normalize(outs):
+    """Schedule for l2 normalize
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     Parameters
     ----------
     outs: Array of Tensor
+<<<<<<< HEAD
           The computation graph description of l2norm
+=======
+          The computation graph description of l2 normalize
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
           in the format of an array of tensors.
 
     Returns
@@ -291,4 +444,10 @@ def schedule_l2norm(outs):
     sch: Schedule
         The computation schedule for the op.
     """
+<<<<<<< HEAD
     return _default_schedule(outs, False)
+=======
+    target = tvm.target.current_target(allow_none=False)
+    cpp_target = cpp.TEST_create_target(target.target_name)
+    return cpp.generic.default_schedule(cpp_target, outs, False)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

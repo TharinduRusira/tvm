@@ -4,11 +4,15 @@
  * \brief Interface code with TVM graph runtime.
 */
 #include <dmlc/memory_io.h>
+<<<<<<< HEAD
 #include <tvm/runtime/packed_func.h>
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/runtime/registry.h>
 #include <tvm/runtime/serializer.h>
 #include "./graph_runtime.h"
+=======
+#include "graph_runtime.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace nnvm {
 namespace compiler {
@@ -37,6 +41,7 @@ NNVM_REGISTER_OP(tvm_op)
     return param.num_outputs;
   });
 
+<<<<<<< HEAD
 bool SaveDLTensor(dmlc::Stream* strm, DLTensor* tensor) {
   uint64_t header = kTVMNDArrayMagic, reserved = 0;
   strm->Write(header);
@@ -112,6 +117,8 @@ DLTensor* LoadDLTensor(dmlc::Stream* strm) {
   }
   return ret;
 }
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 TVM_REGISTER_GLOBAL("nnvm.compiler._save_param_dict")
 .set_body([](TVMArgs args, TVMRetValue *rv) {
@@ -136,7 +143,11 @@ TVM_REGISTER_GLOBAL("nnvm.compiler._save_param_dict")
       uint64_t sz = static_cast<uint64_t>(arrays.size());
       fo->Write(sz);
       for (size_t i = 0; i < sz; ++i) {
+<<<<<<< HEAD
         SaveDLTensor(fo, arrays[i]);
+=======
+        tvm::runtime::SaveDLTensor(fo, arrays[i]);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
       }
     }
     TVMByteArray arr;
@@ -149,11 +160,17 @@ TVM_REGISTER_GLOBAL("nnvm.compiler._save_param_dict")
 TVM_REGISTER_GLOBAL("nnvm.compiler._load_param_dict")
 .set_body([](TVMArgs args, TVMRetValue *rv) {
     std::string bytes = args[0];
+<<<<<<< HEAD
     std::vector<DLTensor*> data;
     std::vector<std::string> names;
     dmlc::MemoryStringStream memstrm(&bytes);
     dmlc::Stream* strm = &memstrm;
 
+=======
+    std::vector<std::string> names;
+    dmlc::MemoryStringStream memstrm(&bytes);
+    dmlc::Stream* strm = &memstrm;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     uint64_t header, reserved;
     CHECK(strm->Read(&header))
         << "Invalid parameters file format";
@@ -168,6 +185,7 @@ TVM_REGISTER_GLOBAL("nnvm.compiler._load_param_dict")
     size_t size = static_cast<size_t>(sz);
     CHECK(size == names.size())
         << "Invalid parameters file format";
+<<<<<<< HEAD
     for (size_t i = 0; i < size; ++i) {
       data.push_back(LoadDLTensor(strm));
     }
@@ -186,5 +204,20 @@ TVM_REGISTER_GLOBAL("nnvm.compiler._load_param_dict")
     };
     *rv = PackedFunc(packed);
   });
+=======
+    tvm::Array<NDArrayWrapper> ret;
+    for (size_t i = 0; i < size; ++i) {
+      tvm::runtime::NDArray temp;
+      temp.Load(strm);
+      auto n = tvm::make_node<NDArrayWrapperNode>();
+      n->name = std::move(names[i]);
+      n->array = temp;
+      ret.push_back(NDArrayWrapper(n));
+    }
+    *rv = ret;
+  });
+
+TVM_REGISTER_NODE_TYPE(NDArrayWrapperNode);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }  // namespace compiler
 }  // namespace nnvm

@@ -33,7 +33,11 @@ def test_matmul():
 
     def verify(A, B, D, s, target="metal"):
         if not tvm.get_global_func("tvm.contrib.mps.matmul", True):
+<<<<<<< HEAD
             print("skip because extern function is not avalable")
+=======
+            print("skip because extern function is not available")
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
             return
         ctx = tvm.metal(0)
         f = tvm.build(s, [A, B, D], "metal")
@@ -64,7 +68,11 @@ def test_conv2d():
 
     def verify(A, B, C, target="llvm"):
         if not tvm.get_global_func("tvm.contrib.mps.conv2d", True):
+<<<<<<< HEAD
             print("skip because extern function is not avalable")
+=======
+            print("skip because extern function is not available")
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
             return
         ctx = tvm.metal(0)
         f = tvm.build(s1, [A, B, C], "metal")

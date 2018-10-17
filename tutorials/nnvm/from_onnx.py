@@ -8,9 +8,17 @@ This article is an introductory tutorial to deploy ONNX models with NNVM.
 For us to begin with, onnx module is required to be installed.
 
 A quick solution is to install protobuf compiler, and
+<<<<<<< HEAD
 ```bash
 pip install onnx --user
 ```
+=======
+
+.. code-block:: bash
+
+    pip install onnx --user
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 or please refer to offical site.
 https://github.com/onnx/onnx
 """
@@ -44,7 +52,11 @@ model_url = ''.join(['https://gist.github.com/zhreshold/',
                      'super_resolution_0.2.onnx'])
 download(model_url, 'super_resolution.onnx', True)
 # now you have super_resolution.onnx on disk
+<<<<<<< HEAD
 onnx_model = onnx.load('super_resolution.onnx')
+=======
+onnx_model = onnx.load_model('super_resolution.onnx')
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 # we can load the graph as NNVM compatible model
 sym, params = nnvm.frontend.from_onnx(onnx_model)
 
@@ -69,7 +81,12 @@ target = 'cuda'
 # assume first input name is data
 input_name = sym.list_input_names()[0]
 shape_dict = {input_name: x.shape}
+<<<<<<< HEAD
 graph, lib, params = nnvm.compiler.build(sym, target, shape_dict, params=params)
+=======
+with nnvm.compiler.build_config(opt_level=3):
+    graph, lib, params = nnvm.compiler.build(sym, target, shape_dict, params=params)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 ######################################################################
 # Execute on TVM

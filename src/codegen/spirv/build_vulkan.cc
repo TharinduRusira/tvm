@@ -3,6 +3,7 @@
  * \file build_vulkan.cc
  * \brief Build SPIRV block
  */
+<<<<<<< HEAD
 #if TVM_VULKAN_RUNTIME
 
 // Use libspirv for parsing and validating code.
@@ -11,6 +12,14 @@
 #include <tvm/ir_pass.h>
 
 #include "./codegen_spirv.h"
+=======
+// Use libspirv for parsing and validating code.
+#include <libspirv.h>
+#include <dmlc/memory_io.h>
+#include <tvm/ir_pass.h>
+
+#include "codegen_spirv.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include "../build_common.h"
 #include "../../runtime/vulkan/vulkan_module.h"
 
@@ -92,4 +101,7 @@ TVM_REGISTER_API("codegen.build_vulkan")
 
 }  // namespace codegen
 }  // namespace tvm
+<<<<<<< HEAD
 #endif  // TVM_VULKAN_RUNTIME
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

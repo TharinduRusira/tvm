@@ -2,6 +2,7 @@
  *  Copyright (c) 2017 by Contributors
  * \file vulkan_device_api.cc
  */
+<<<<<<< HEAD
 #include "./vulkan_common.h"
 
 #if TVM_VULKAN_RUNTIME
@@ -10,6 +11,12 @@
 #include <dmlc/thread_local.h>
 #include <cstring>
 
+=======
+#include <tvm/runtime/registry.h>
+#include <dmlc/thread_local.h>
+#include <cstring>
+#include "vulkan_common.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace tvm {
 namespace runtime {
@@ -77,6 +84,10 @@ void VulkanWorkspace::GetAttr(
     case kMaxClockRate: return;
     case kMultiProcessorCount: return;
     case kExist: break;
+<<<<<<< HEAD
+=======
+    case kMaxThreadDimensions: break;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   }
 }
 
@@ -352,7 +363,11 @@ VulkanCommandPool::~VulkanCommandPool() {
       vkFreeCommandBuffers(device_, cmd_pool_, 1, &(ring_[i].cmd_buffer));
       ring_[i].cmd_buffer = nullptr;
     }
+<<<<<<< HEAD
     if (ring_[i].fence != nullptr) {
+=======
+    if (ring_[i].fence != VK_NULL_HANDLE) {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
       vkDestroyFence(device_, ring_[i].fence, nullptr);
     }
   }
@@ -379,10 +394,17 @@ VulkanCommandBuffer* VulkanCommandPool::Alloc(
   }
   VULKAN_CHECK_ERROR(res);
   vkResetFences(device_, 1, (&e->fence));
+<<<<<<< HEAD
   if (e->descriptor_set != nullptr) {
     VULKAN_CALL(vkFreeDescriptorSets(
         device_, descriptor_pool_, 1, &(e->descriptor_set)));
     e->descriptor_set = nullptr;
+=======
+  if (e->descriptor_set != VK_NULL_HANDLE) {
+    VULKAN_CALL(vkFreeDescriptorSets(
+        device_, descriptor_pool_, 1, &(e->descriptor_set)));
+    e->descriptor_set = VK_NULL_HANDLE;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   }
   if (dlayout != nullptr) {
     VkDescriptorSetAllocateInfo alloc_info;
@@ -428,6 +450,7 @@ VulkanThreadEntry::StagingBuffer(int device_id, size_t size) {
     if (buf.host_addr != nullptr) {
       vkUnmapMemory(buf.device, buf.memory);
     }
+<<<<<<< HEAD
     if (buf.memory != nullptr) {
       vkFreeMemory(buf.device, buf.memory, nullptr);
     }
@@ -437,6 +460,17 @@ VulkanThreadEntry::StagingBuffer(int device_id, size_t size) {
     buf.host_addr = nullptr;
     buf.memory = nullptr;
     buf.buffer = nullptr;
+=======
+    if (buf.memory != VK_NULL_HANDLE) {
+      vkFreeMemory(buf.device, buf.memory, nullptr);
+    }
+    if (buf.buffer != VK_NULL_HANDLE) {
+      vkDestroyBuffer(buf.device, buf.buffer, nullptr);
+    }
+    buf.host_addr = nullptr;
+    buf.memory = VK_NULL_HANDLE;
+    buf.buffer = VK_NULL_HANDLE;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   }
   const VulkanContext& vctx =
       VulkanWorkspace::Global()->context_[device_id];
@@ -444,7 +478,11 @@ VulkanThreadEntry::StagingBuffer(int device_id, size_t size) {
   if (buf.device == nullptr) {
     buf.device = vctx.device;
   }
+<<<<<<< HEAD
   if (buf.memory == nullptr) {
+=======
+  if (buf.memory == VK_NULL_HANDLE) {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     // allocate the stagging buffer memory if necessary
     VkBufferCreateInfo info;
     info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -482,10 +520,17 @@ VulkanThreadEntry::~VulkanThreadEntry() {
     if (buf.host_addr != nullptr) {
       vkUnmapMemory(buf.device, buf.memory);
     }
+<<<<<<< HEAD
     if (buf.memory != nullptr) {
       vkFreeMemory(buf.device, buf.memory, nullptr);
     }
     if (buf.buffer != nullptr) {
+=======
+    if (buf.memory != VK_NULL_HANDLE) {
+      vkFreeMemory(buf.device, buf.memory, nullptr);
+    }
+    if (buf.buffer != VK_NULL_HANDLE) {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
       vkDestroyBuffer(buf.device, buf.buffer, nullptr);
     }
   }
@@ -693,5 +738,8 @@ TVM_REGISTER_GLOBAL("device_api.vulkan")
 }  // namespace vulkan
 }  // namespace runtime
 }  // namespace tvm
+<<<<<<< HEAD
 
 #endif  // TVM_VULKAN_RUNTIME
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
