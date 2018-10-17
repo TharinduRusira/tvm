@@ -5,9 +5,8 @@ import time
 from topi.util import get_const_tuple
 import math
 import topi.testing
-import wc as mdl 
-import xlwt
 import argparse
+import tvm
 
 import logging
 import sys
@@ -22,37 +21,6 @@ _3x3_layers ={
     'vgg4_2':[64,512,512,28,28,3,1,1],'vgg5_2':[64,512,512,14,14,3,1,1],'alex3':[128,384,192,13,13,3,1,1],
     'alex4':[128,256,384,13,13,3,1,1],'alex5':[128,256,256,13,13,3,1,1],
     'overfeat3':[64,512,256,12,12,3,1,1], 'overfeat4':[64,1024,512,12,12,3,1,1], 'overfeat5':[64,1024,1024,12,12,3,1,1], 'resnet1':[1,64,64,56,56,3,1,1]}
-
-     
-'''
-Workload('float32', 'float32', 56, 56, 64, 64, 1, 1, 0, 0, 1, 1),
-Workload('float32', 'float32', 56, 56, 64, 128, 3, 3, 1, 1, 2, 2),
-Workload('float32', 'float32', 56, 56, 64, 128, 1, 1, 0, 0, 2, 2),
-Workload('float32', 'float32', 28, 28, 128, 128, 3, 3, 1, 1, 1, 1),
-Workload('float32', 'float32', 28, 28, 128, 256, 3, 3, 1, 1, 2, 2),
-Workload('float32', 'float32', 28, 28, 128, 256, 1, 1, 0, 0, 2, 2),
-Workload('float32', 'float32', 14, 14, 256, 256, 3, 3, 1, 1, 1, 1),
-Workload('float32', 'float32', 14, 14, 256, 512, 3, 3, 1, 1, 2, 2),
-Workload('float32', 'float32', 14, 14, 256, 512, 1, 1, 0, 0, 2, 2),
-Workload('float32', 'float32', 7, 7, 512, 512, 3, 3, 1, 1, 1, 1),
-# workloads of resnet34_v1 on imagenet, no extra workload required
-# workloads of resnet50_v1 on imagenet
-Workload('float32', 'float32', 56, 56, 64, 256, 1, 1, 0, 0, 1, 1),
-Workload('float32', 'float32', 56, 56, 256, 64, 1, 1, 0, 0, 1, 1),
-Workload('float32', 'float32', 56, 56, 256, 128, 1, 1, 0, 0, 2, 2),
-Workload('float32', 'float32', 28, 28, 128, 512, 1, 1, 0, 0, 1, 1),
-Workload('float32', 'float32', 56, 56, 256, 512, 1, 1, 0, 0, 2, 2),
-Workload('float32', 'float32', 28, 28, 512, 128, 1, 1, 0, 0, 1, 1),
-Workload('float32', 'float32', 28, 28, 512, 256, 1, 1, 0, 0, 2, 2),
-Workload('float32', 'float32', 14, 14, 256, 1024, 1, 1, 0, 0, 1, 1),
-Workload('float32', 'float32', 28, 28, 512, 1024, 1, 1, 0, 0, 2, 2),
-Workload('float32', 'float32', 14, 14, 1024, 256, 1, 1, 0, 0, 1, 1),
-Workload('float32', 'float32', 14, 14, 1024, 512, 1, 1, 0, 0, 2, 2),
-Workload('float32', 'float32', 7, 7, 512, 2048, 1, 1, 0, 0, 1, 1),
-Workload('float32', 'float32', 14, 14, 1024, 2048, 1, 1, 0, 0, 2, 2),
-Workload('float32', 'float32', 7, 7, 2048, 512, 1, 1, 0, 0, 1, 1),
-'''
-
 
 # The sizes of inputs and filters
 batch = _3x3_layers[layer][0]
@@ -76,152 +44,60 @@ padding = pad_height
 output_width = ((input_width + 2 * pad_width - kernel_width) // stride_width) + 1
 output_height = ((input_height + 2 * pad_height - kernel_height) // stride_height) + 1
 
-def generate_variants(func, tf):
+def convolution():
+  # Algorithm
+  # Algorithm
+  output_width = ((input_width + 2 * pad_width - kernel_width) // stride_width) + 1
+  output_height = ((input_height + 2 * pad_height - kernel_height) // stride_height) + 1
+
+  adims = (batch, in_channel, input_height + 2*pad_height, input_width+ 2*pad_width)
+  wdims = (out_channel, in_channel, kernel_height,kernel_width)
+  bdims = (batch,output_height, output_width, out_channel)
+
+  A = tvm.placeholder(adims, name='A')
+  W = tvm.placeholder(wdims, name='W')
+  rco = tvm.reduce_axis((0, in_channel), name='rc')
+  ry = tvm.reduce_axis((0, kernel_height), name='ry')
+  rx = tvm.reduce_axis((0, kernel_width), name='rx')
+
+  # Compute the convolution
+  B = tvm.compute(bdims,
+        lambda n, k, h, w: tvm.sum(
+            A[n, rc, h + ry, w + rx] * W[k, rc, ry, rx],
+      axis=[rco,ry, rx]),
+  name='B')
+
   s = tvm.create_schedule(func.op)
   print(type(s))
   #print(tvm.lower(s, [A, W,func], simple_mode=True))
   n,ko,h,w,ki  = s[func].op.axis
   rco,ry,rx,rci = s[func].op.reduce_axis
+  cfg = autotvm.get_config()
+
+  #get h range
+  h_list = []
+  for i in range(2,input_height):
+    if input_height%i == 0:
+      h_list.append(i)
+  #get w range
+  w_list = []
+  for j in range(2,input_width):
+    if input_width%j == 0:
+      w_list.append()
 
 
-  wo = None
-  wi = None
-  wi_o = None
-  wi_i = None
-  hi_o = None
-  hi_i = None
-  ho = None
-  hi = None
-  rco_o = None
-  rco_i = None
-  w_tile = None
-  h_tile = None
+  tvm.define_knob("tile_h", h_list)
+  tvm.define_knob("tile_w", w_list)
+  tvm.define_knob("orders", [(nko, ho, wo, rco, hi, wi, rx, ry, rci, ki), (nko, wo, ho, rco, wi, hi, rx, ry, rci, ki)])
 
+  nko = s[func].fuse(n,ko)
 
-  if(tf['W'] < output_width):
-      wo, wi= s[func].split(w, factor=tf['W'])
-  else:
-      wo = None
-      wi = w
-  if(tf['H'] < output_height):  
-      ho, hi= s[func].split(h, factor=tf['H'])     
-  else:
-      ho = None
-      hi = h
-  if tf['CC']//vlen < in_channel//vlen:
-      rco_o, rco_i= s[func].split(rco, factor=tf['CC']//vlen) # might cause problem
-  else:
-      rco_o = None
-      rco_i = rco
+  ho, hi = s[func].split(h, cfg['tile_h'].val)
+  wo, wi = s[func].split(w, cfg['tile_w'].val)
+  s[func].reorder(cfg['orders'].val) 
 
-  #rci_o, rci_i = s[func].split(rci, factor=2)
-  rci_o = None
-  rci_i = rci   
-
-  
-
-  
-  w_threshold = min(tf['W'],14)
- 
-     
-
- 
-  while tf['W'] % w_threshold != 0:
-     w_threshold = w_threshold-1
-
-
-  h_threshold  = min(tf['H'], math.floor(28/w_threshold))
- 
-  while tf['H'] % h_threshold != 0:
-     h_threshold = h_threshold-1
-
-
-
-  
-  if(tf['W'] < output_width):
-    if w_threshold < tf['W'] and w_threshold > 1:
-        wi_o, wi_i = s[func].split(wi, factor=w_threshold)
-        w_unroll = wi_i
-        #w_tile = wi_o
-    elif w_threshold == 1:
-        w_unroll  = None
-        
-        wi_o = wi
-        wi_i = None
-        #w = None
-    elif w_threshold == tf['W']:
-        wi_i = wi
-        w_unroll = wi_i
-        wi_o = None
-        #wi = None
-    
-  elif w_threshold > 1 and w_threshold < tf['W']:
-    wi_o, wi_i = s[func].split(w, factor=w_threshold)  
-    w_unroll = wi_i
-    #w_tile = wo
-
-  elif w_threshold == 1:
-    w_unroll  = None
-    wi_o = w
-    wi_i = None
-    w_o = None
-  elif tf['W'] == w_threshold and tf['W'] == output_width:
-    
-    w_o = None
-    wi_o = None
-    wi_i = w        
-    w_unroll = wi_i
-
-
-  if(tf['H'] < output_height):
-    if h_threshold < tf['H'] and h_threshold > 1:
-        hi_o, hi_i = s[func].split(hi, factor=h_threshold)
-        h_unroll = hi_i
-        #h_tile = hi_o
-    elif h_threshold == 1:
-        h_unroll  = None
-        hi_o = hi
-        hi_i = None
-        #w = None
-    elif h_threshold == tf['H']:
-        hi_i = hi
-        h_unroll = hi_i
-        hi_o = None
-        #wi = None
- 
-  elif h_threshold > 1 and h_threshold < tf['H']:
-    hi_o, hi_i = s[func].split(h, factor=h_threshold)
-    h_unroll = hi_i
-    #w_tile = wo
- 
-  elif h_threshold == 1:
-    h_unroll  = None
-    hi_o = hi
-    hi_i = None
-    h_o = None
-  elif tf['H'] == h_threshold and tf['H'] == output_height:
-     
-    h_o = None
-    hi_o = None
-    hi_i = h
-    h_unroll = hi_i
-
-  
-  order = [n,ko]
-  for i in [rco_o,ho,wo,rco_i,hi_o,wi_o,ry,rx,rci_o,rci_i,hi_i,wi_i,ki]:
-     if i != None:
-         order.append(i) 
-      
-  s[func].reorder(*order)   
-  s[func].vectorize(ki)
-  par = s[func].fuse(n, ko)
-  s[func].parallel(par)
-  if w_unroll != None:
-      s[func].unroll(w_unroll)
-  if h_unroll != None:
-      s[func].unroll(h_unroll)
-  #s[func].unroll(rci_i)
-  
+  #fixed 
+  s[func].unroll(rci)
 
   return [s]
 
@@ -250,128 +126,23 @@ def compile_and_run(s, A,W,B,A1,W1):
         gflops = gflops/1e9/t
         print("Time is : {0:.6f}".format(t))
         print("GFLOPS  : {0:.3f} ".format( gflops))
-  return 0, gflops                                                  
-        
-
+  return 0, gflops
 def driver():
-    # Algorithm
-    #output_width = ((input_width + 2 * pad_width - kernel_width) // stride_width) + 1
-    #output_height = ((input_height + 2 * pad_height - kernel_height) // stride_height) + 1
-    
-    adims = (batch, in_channel, input_height + 2*pad_height, input_width+ 2*pad_width)
-    wdims = (out_channel, in_channel, kernel_height,kernel_width)
-    bdims = (batch,output_height, output_width, out_channel)
-    
-    A = tvm.placeholder(adims, name='A')
-    W = tvm.placeholder(wdims, name='W')
+    #tuner
+    task = autotvm.task.create(convolution,target='llvm')
+    print(task.config_space)
 
-    rco = tvm.reduce_axis((0, in_channel), name='rc')
-    ry = tvm.reduce_axis((0, kernel_height), name='ry')
-    rx = tvm.reduce_axis((0, kernel_width), name='rx')
+    logging.getLogger('autotvm').setLevel(logging.DEBUG)
+    logging.getLogger('autotvm').addHandler(logging.StreamHandler(sys.stdout))
 
-    # Compute the convolution
-    B = tvm.compute(bdims,
-          lambda n, k, h, w: tvm.sum(
-              A[n, rc, h + ry, w + rx] * W[k, rc, ry, rx],
-        axis=[rco,ry, rx]),
-    name='B')
+    measure_option = autotvm.measure_option(builder='local', 
+      runner=autotvm.LocalRunner(number=5)
+      )
+    tuner = autotvm.tuner.RandomTuner(task)
+    tuner.tune(n_trials = 20,
+      measure_option=measure_option,
+      callbacks=[autotvm.callback.log_to_file(convolution.log)])
 
-    
-    indir = '/homes/tharindu/tvm/topi/tests/python'
-    book = xlwt.Workbook(encoding="utf-8")
-    sheet1 = book.add_sheet("Sheet 1")
-    row1=0
-    row2=0
-    sheet1.write(0,0,"Layer")
-    sheet1.write(0,1,"Rank")
-    sheet1.write(0,2,"FLOPS")
-    sheet1.write(0,3,"TVM_FLOPS")
-    sheet1.write(0,4,"Cost")
-    sheet1.write(0,5,"Factors")
-    sheet1.write(0,6,"order")
-    sheet1.write(0,7,"total")
-    sheet1.write(0,8,"input")
-    sheet1.write(0,9,"output")
-    sheet1.write(0,10,"weight")
-    sheet1.write(0,11,"n")
-    sheet1.write(0,12,"k")
-    sheet1.write(0,13,"h")
-    sheet1.write(0,14,"w")
-    sheet1.write(0,15,"c")
-    row1= row1 + 1
-    
-    v = [batch,out_channel,in_channel,int(output_height),int(output_width), kernel_height, stride_height, pad_height]
-    lb = mdl.init(v)
-    conv_configs = mdl.tile_and_footprint_analysis(lb, search_harder=False, output_volume_multiplier=1)
-    
-    which_loads = {'output':2, 'input':4, 'weight':3, 'total':5}
-    idx = which_loads['total']
-    loads_ = sorted(conv_configs, key=lambda x: x[idx])
-    total_fp_ = loads_[0][5]
-    
-
-    no_dups = [0]
-    for i in range(len(loads_)):
-      if loads_[i][5] == total_fp_:
-          continue
-      else:
-          no_dups.append(i)
-          total_fp_ = loads_[i][5]
- 
-    no_dups.append(len(loads_))
- 
-    counter=1
- 
-    for i in range(min(1,len(no_dups)-1)):
-        best_flops = -1
-        best_flops_tvm = -1
-        for config in range(no_dups[i+1] - no_dups[i]):
-            variants =  generate_variants(B, loads_[no_dups[i] + config][1] )
-            skip = False
-            for net in variants:
- 
-                fflops_tvm, fflops = compile_and_run(net,A,W,B,A1,W1)
-                
-                if fflops_tvm > best_flops_tvm:
-                  best_flops_tvm = fflops_tvm
-                if fflops > best_flops:
-                  best_flops = fflops
-                  best_cost = loads_[no_dups[i] + config][which_loads['total']]
-                  input_cost = loads_[no_dups[i] + config][which_loads['input']]
-                  output_cost = loads_[no_dups[i] + config][which_loads['output']]
-                  weight_cost = loads_[no_dups[i] + config][which_loads['weight']]
-                  t = loads_[no_dups[i] + config][6]
-                  n1 = loads_[no_dups[i] + config][7]
-                  k = loads_[no_dups[i] + config][8]
-                  h = loads_[no_dups[i] + config][9]
-                  w = loads_[no_dups[i] + config][10]
-                  c = loads_[no_dups[i] + config][11]
-                  order = str(loads_[no_dups[i] + config][0])
-                  params = str(loads_[no_dups[i] + config][1])
-                  break
-
-            sheet1.write(row1,0,layer)
-            sheet1.write(row1,1,counter)
-            sheet1.write(row1,2,best_flops)
-            sheet1.write(row1,3,best_flops_tvm)
-            sheet1.write(row1,4,best_cost)
-            sheet1.write(row1,5,params)
- 
-            sheet1.write(row1,6,order)
-            sheet1.write(row1,7,t)
-            sheet1.write(row1,8,input_cost)
-            sheet1.write(row1,9,output_cost)
-            sheet1.write(row1,10,weight_cost)
-            sheet1.write(row1,11, n1)
- 
-            sheet1.write(row1,12,k)
-            sheet1.write(row1,13,h)
-            sheet1.write(row1,14,w)
-            sheet1.write(row1,15,str(c))
-            row1 = row1 + 1
-            counter = counter + 1
-            book.save( layer +".xls")
- 
 if __name__ == "__main__":
     driver()
 

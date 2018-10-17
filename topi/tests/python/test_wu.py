@@ -15,8 +15,17 @@ def wu1(A, W, B):
     return B
  
 
-layer = 'l'
-_3x3_layers = {'l':[1,32,16,12,12,3,1,1]}
+parser = argparse.ArgumentParser()
+parser.add_argument("-d", nargs=1, type=str, default=["alex4"])
+args = parser.parse_args()
+layer = args.d[0]
+_3x3_layers ={
+    'vgg2_1':[64,128,64,112,112,3,1,1],'vgg3_1':[64,256,128,56,56,3,1,1], 'vgg3_2':[64,256,256,56,56,3,1,1], 'vgg4_1':[64,512,256,28,28,3,1,1],
+    'vgg4_2':[64,512,512,28,28,3,1,1],'vgg5_2':[64,512,512,14,14,3,1,1],'alex3':[128,384,192,13,13,3,1,1],
+    'alex4':[128,256,384,13,13,3,1,1],'alex5':[128,256,256,13,13,3,1,1],
+    'overfeat3':[64,512,256,12,12,3,1,1], 'overfeat4':[64,1024,512,12,12,3,1,1], 'overfeat5':[64,1024,1024,12,12,3,1,1], 'resnet1':[1,64,64,56,56,3,1,1], 'test':[2, 32,32,12,12,3,1,1]}
+
+
 batch = _3x3_layers[layer][0]           #N
 in_channel = _3x3_layers[layer][2]      #C
 out_channel = _3x3_layers[layer][1]     #K
@@ -70,6 +79,4 @@ func(a1, w1, b1)
 b_ref = wu1(a1.asnumpy(), w1.asnumpy(), np.zeros(grad_weight_dims1, dtype=grad_weight1.dtype))
 
 np.testing.assert_allclose(b1.asnumpy(), b_ref, rtol=1e-5)
-
-
 
