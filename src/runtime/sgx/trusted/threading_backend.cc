@@ -53,6 +53,16 @@ ThreadGroup::ThreadGroup(int num_workers,
                          bool exclude_worker0)
   : impl_(new ThreadGroup::Impl(num_workers, worker_callback, exclude_worker0)) {}
 void ThreadGroup::Join() {}
+<<<<<<< HEAD
+=======
+int ThreadGroup::Configure(AffinityMode mode, int nthreads, bool exclude_worker0) {
+  int max_conc = MaxConcurrency();
+  if (!nthreads || ntheads > max_conc) {
+    return max_conc;
+  }
+  return nthreads;
+}
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 ThreadGroup::~ThreadGroup() { delete impl_; }
 
 void Yield() {}

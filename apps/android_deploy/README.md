@@ -2,14 +2,30 @@
 
 This folder contains Android Demo app that allows us to show how to deploy model using TVM runtime api on a Android phone.
 
+<<<<<<< HEAD
 You will need [JDK](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html), [Android SDK](https://developer.android.com/studio/index.html), [Android NDK](https://developer.android.com/ndk) and an Android device to use this.
+=======
+You will need [JDK](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html), [Android SDK](https://developer.android.com/studio/index.html), [Android NDK](https://developer.android.com/ndk) and an Android device to use this. Make sure the `ANDROID_HOME` variable already points to your Android SDK folder or set it using `export ANDROID_HOME=[Path to your Android SDK, e.g., ~/Android/sdk]`. We use [Gradle](https://gradle.org) to build. Please follow [the installation instruction](https://gradle.org/install) for your operating system.
+
+Alternatively, you may execute Docker image we provide wich contains the required packages. Use the command below to build the image and enter interactive session. Note, that building with OpenCL was not tested from Docker.
+
+```bash
+./docker/build.sh demo_android -it bash
+(docker) $ echo $ANDROID_HOME
+(docker) /opt/android-sdk-linux
+```
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 ## Build and Installation
 
 ### Build APK
 
+<<<<<<< HEAD
 We use [Gradle](https://gradle.org) to build. Please follow [the installation instruction](https://gradle.org/install) for your operating system.
 
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 Before you build the Android application, please refer to [TVM4J Installation Guide](https://github.com/dmlc/tvm/blob/master/jvm/README.md) and install tvm4j-core to your local maven repository. You can find tvm4j dependency declare in `app/build.gradle`. Modify it if it is necessary.
 
 ```
@@ -48,7 +64,10 @@ USE_OPENCL = 0
 Now use Gradle to compile JNI, resolve Java dependencies and build the Android application together with tvm4j. Run following script to generate the apk file.
 
 ```bash
+<<<<<<< HEAD
 export ANDROID_HOME=[Path to your Android SDK, e.g., ~/Android/sdk]
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 cd apps/android_deploy
 gradle clean build
 ```
@@ -99,7 +118,11 @@ If everything goes well, you will find compile tools in `/opt/android-toolchain-
 
 ### Place compiled model on Android application assets folder
 
+<<<<<<< HEAD
 Follow instruction to get compiled version model for android target [here.](https://tvm.ai/deploy/android.html)
+=======
+Follow instruction to get compiled version model for android target [here.](http://docs.tvm.ai/deploy/android.html)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 Copied these compiled model deploy_lib.so, deploy_graph.json and deploy_param.params to apps/android_deploy/app/src/main/assets/ and modify TVM flavor changes on [java](https://github.com/dmlc/tvm/blob/master/apps/android_deploy/app/src/main/java/ml/dmlc/tvm/android/demo/MainActivity.java#L81)
 

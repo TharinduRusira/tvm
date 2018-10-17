@@ -5,6 +5,8 @@ import tvm
 import topi
 from topi.util import get_const_tuple
 
+from common import get_all_backend
+
 def verify_relu(m, n):
     A = tvm.placeholder((m, n), name='A')
     B = topi.nn.relu(A)
@@ -27,7 +29,11 @@ def verify_relu(m, n):
         foo(a, b)
         np.testing.assert_allclose(b.asnumpy(), b_np, rtol=1e-5)
 
+<<<<<<< HEAD
     for device in ['cuda', 'opencl', 'metal', 'rocm', 'vulkan']:
+=======
+    for device in get_all_backend():
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         check_device(device)
 
 
@@ -46,16 +52,26 @@ def verify_leaky_relu(m, alpha):
     np.testing.assert_allclose(b.asnumpy(), b_np, rtol=1e-5)
 
 
+<<<<<<< HEAD
 def verify_prelu(x, w):
+=======
+def verify_prelu(x, w, axis, weight_reshape):
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     X = tvm.placeholder((x), name='X')
     W = tvm.placeholder((w), name='W')
     x_np = np.random.uniform(low=-1.0, high=1.0, size=get_const_tuple(X.shape)).astype(X.dtype)
     w_np = np.random.uniform(low=-1.0, high=1.0, size=get_const_tuple(W.shape)).astype(W.dtype)
 
     def _prelu_numpy(x, W):
+<<<<<<< HEAD
         return (x < 0) * (x *W.reshape(3, 1, 1)) + (x>=0) * x
 
     B = topi.nn.prelu(X, W)
+=======
+        return (x < 0) * (x *W.reshape(weight_reshape)) + (x>=0) * x
+
+    B = topi.nn.prelu(X, W, axis)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     s = tvm.create_schedule([B.op])
 
     ctx = tvm.cpu(0)
@@ -71,13 +87,23 @@ def verify_prelu(x, w):
 def test_relu():
     verify_relu(10, 128)
 
+def test_schedule_big_array():
+    verify_relu(1024 * 100 , 512)
+
+
 def test_leaky_relu():
     verify_leaky_relu(100, 0.1)
 
 def test_prelu():
+<<<<<<< HEAD
     verify_prelu((1, 3, 2, 2), (3,))
+=======
+    verify_prelu((1, 3, 2, 2), (3,), 1, (3, 1, 1))
+    verify_prelu((1, 3, 2, 2), (2,), 2, (2, 1))
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 if __name__ == "__main__":
+    test_schedule_big_array()
     test_relu()
     test_leaky_relu()
     test_prelu()

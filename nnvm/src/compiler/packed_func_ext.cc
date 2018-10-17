@@ -9,7 +9,11 @@
 #include <nnvm/compiler/packed_func_ext.h>
 #include <nnvm/compiler/op_attr_types.h>
 #include <tvm/runtime/c_runtime_api.h>
+<<<<<<< HEAD
 #include "./node_attr.h"
+=======
+#include "node_attr.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include "compile_engine.h"
 
 namespace tvm {
@@ -96,7 +100,11 @@ TVM_REGISTER_GLOBAL("nnvm._register_compute")
                         const Array<Tensor>& out_info)
         -> Array<Tensor> {
       TVMRetValue ret = (*f)(GetAttrDict(attrs), inputs, out_info);
+<<<<<<< HEAD
       if ((*ret.ptr<std::shared_ptr<tvm::Node> >())->derived_from<tvm::TensorNode>()) {
+=======
+      if ((*ret.ptr<::tvm::NodePtr<tvm::Node> >())->derived_from<tvm::TensorNode>()) {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         return {ret.operator Tensor()};
       } else {
         return ret;

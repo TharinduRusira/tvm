@@ -12,7 +12,11 @@
 #include <nnvm/op_attr_types.h>
 #include <nnvm/compiler/op_attr_types.h>
 #include <nnvm/top/nn.h>
+<<<<<<< HEAD
 #include "./nn_common.h"
+=======
+#include "nn_common.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include "../op_common.h"
 #include "../elemwise_op_common.h"
 #include "topi/nn/dense.h"
@@ -345,7 +349,11 @@ NNVM_REGISTER_OP(softmax)
 .set_num_outputs(1)
 .set_attr<FInferShape>("FInferShape", ElemwiseShape<1, 1>)
 .set_attr<FInferType>("FInferType", ElemwiseType<1, 1>)
+<<<<<<< HEAD
 .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseArbitraryLayout<1, 1>)
+=======
+.set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutCopyToOut<1, 1>)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 .set_support_level(1)
 .set_attr<FTVMCompute>(
   "FTVMCompute", [](const NodeAttrs& attrs,
@@ -404,13 +412,22 @@ NNVM_REGISTER_OP(log_softmax)
 .set_num_outputs(1)
 .set_attr<FInferShape>("FInferShape", ElemwiseShape<1, 1>)
 .set_attr<FInferType>("FInferType", ElemwiseType<1, 1>)
+<<<<<<< HEAD
 .set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseArbitraryLayout<1, 1>)
+=======
+.set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseFixedLayoutCopyToOut<1, 1>)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 .set_attr<FTVMCompute>(
   "FTVMCompute", [](const NodeAttrs& attrs,
                     const Array<Tensor>& inputs,
                     const Array<Tensor>& out_info) {
     const SoftmaxParam& param = nnvm::get<SoftmaxParam>(attrs.parsed);
+<<<<<<< HEAD
     CHECK_EQ(param.axis, -1) << "Currently only axis=-1 is supported";
+=======
+    CHECK(param.axis == -1 || param.axis == static_cast<int32_t>(inputs[0].ndim()) - 1)
+        << "log_softmax currently only works on last dimension";
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     return Array<Tensor>{ topi::nn::log_softmax(inputs[0]) };
   })
 .set_attr<FGradient>(
@@ -563,7 +580,11 @@ where :math:`*` is an channelwise multiplication for each sample in the
                     const Array<Tensor>& inputs,
                     const Array<Tensor>& out_info) {
     const PReLUParam& param = nnvm::get<PReLUParam>(attrs.parsed);
+<<<<<<< HEAD
     return Array<Tensor>{ topi::prelu<float>(inputs[0], inputs[1], param.axis)};
+=======
+    return Array<Tensor>{ topi::prelu(inputs[0], inputs[1], param.axis)};
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   })
 .set_support_level(4);
 
@@ -712,5 +733,55 @@ the input array by output[n, c, h, w, C] = data[n, C*16+c, h, w]
 })
 .set_support_level(1);
 
+<<<<<<< HEAD
+=======
+DMLC_REGISTER_PARAMETER(LRNParam);
+
+inline bool LRNInferShape(const nnvm::NodeAttrs& attrs,
+                          std::vector<TShape>* in_shape,
+                          std::vector<TShape>* out_shape) {
+  TShape dshape = (*in_shape)[0];
+  TShape oshape = dshape;
+
+  NNVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, 0, oshape);
+  return true;
+}
+
+NNVM_REGISTER_OP(lrn)
+.describe(R"code(LRN layer)code" NNVM_ADD_FILELINE)
+.add_argument("data", "4D Tensor", "Input data.")
+.set_attr_parser(ParamParser<LRNParam>)
+.set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<LRNParam>)
+.set_num_inputs(1)
+.set_num_outputs(1)
+.set_attr<FInferShape>("FInferShape", LRNInferShape)
+.set_attr<FInferType>("FInferType", ElemwiseType<1, 1>)
+.set_support_level(1);
+
+DMLC_REGISTER_PARAMETER(L2NormalizeParam);
+
+inline bool L2NormalizeInferShape(const nnvm::NodeAttrs& attrs,
+                                  std::vector<TShape>* in_shape,
+                                  std::vector<TShape>* out_shape) {
+  TShape dshape = (*in_shape)[0];
+  TShape oshape = dshape;
+
+  NNVM_ASSIGN_OUTPUT_SHAPE(attrs, *out_shape, 0, oshape);
+  return true;
+}
+
+NNVM_REGISTER_OP(l2_normalize)
+.describe(R"code(L2NORMALIZE layer)code" NNVM_ADD_FILELINE)
+.add_argument("data", "4D Tensor", "Input data.")
+.set_attr_parser(ParamParser<L2NormalizeParam>)
+.set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<L2NormalizeParam>)
+.set_num_inputs(1)
+.set_num_outputs(1)
+.set_attr<FInferShape>("FInferShape", L2NormalizeInferShape)
+.set_attr<FInferType>("FInferType", ElemwiseType<1, 1>)
+.set_attr<FCorrectLayout>("FCorrectLayout", ElemwiseArbitraryLayout<1, 1>)
+.set_support_level(1);
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }  // namespace top
 }  // namespace nnvm

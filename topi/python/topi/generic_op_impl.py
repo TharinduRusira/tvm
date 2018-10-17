@@ -3,10 +3,17 @@
 from __future__ import absolute_import as _abs
 import tvm
 from . import broadcast as _broadcast
+<<<<<<< HEAD
 from . import tag
 
 
 def _make_bop(elementwise_bop, broadcast_bop, orig_bop):
+=======
+from . import math as _math
+
+
+def _make_bop(broadcast_bop, orig_bop):
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     """Make a specific overloaded binary operator of Tensor when applicable;
     apply the original operator if it is not supposed to be overloaded.
 
@@ -23,9 +30,12 @@ def _make_bop(elementwise_bop, broadcast_bop, orig_bop):
 
     Parameters
     ----------
+<<<<<<< HEAD
     elementwise_bop : operator function
         Operator for element-wise tensor-scalar operation, for rule (2).
 
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     broadcast_bop : operator function
         Operator for broadcast tensor-tensor operation, for rule (1).
 
@@ -66,6 +76,7 @@ def _make_bop(elementwise_bop, broadcast_bop, orig_bop):
               tvm.Expr (otherwise)
             The result of {op} operation.
         """
+<<<<<<< HEAD
 
         def _get_rank(x):
             """Get the rank of a value.
@@ -96,6 +107,11 @@ def _make_bop(elementwise_bop, broadcast_bop, orig_bop):
         else:
             raise AssertionError("Cannot reach this line.")
 
+=======
+        if not isinstance(lhs, tvm.tensor.Tensor) and not isinstance(rhs, tvm.tensor.Tensor):
+            return orig_bop(lhs, rhs)
+        return broadcast_bop(lhs, rhs)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     _tensor_bop_impl.__doc__ = _tensor_bop_impl.__doc__.format(op=name)
     return _tensor_bop_impl
 
@@ -106,6 +122,7 @@ def _bind_generic_ops():
     __op_priority__ = 1
     if __op_priority__ > tvm.generic.__op_priority__:
         tvm.generic.__op_priority__ = __op_priority__
+<<<<<<< HEAD
         tvm.generic.add = _make_bop(lambda x, y: x + y,
                                     _broadcast.broadcast_add,
                                     tvm.generic.add)
@@ -119,5 +136,12 @@ def _bind_generic_ops():
                                        _broadcast.broadcast_div,
                                        tvm.generic.divide)
 
+=======
+        tvm.generic.add = _make_bop(_broadcast.add, tvm.generic.add)
+        tvm.generic.subtract = _make_bop(_broadcast.subtract, tvm.generic.subtract)
+        tvm.generic.multiply = _make_bop(_broadcast.multiply, tvm.generic.multiply)
+        tvm.generic.divide = _make_bop(_broadcast.divide, tvm.generic.divide)
+        tvm.generic.cast = _math.cast
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 _bind_generic_ops()

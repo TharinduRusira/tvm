@@ -148,7 +148,11 @@ def download_image():
     from PIL import Image
 
     url = "https://github.com/dmlc/mxnet.js/blob/master/data/cat.png?raw=true"
+<<<<<<< HEAD
     img_name = "cat.jpg"
+=======
+    img_name = "cat.png"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     gluon.utils.download(url, img_name)
     image = Image.open(img_name).resize((224, 224))
@@ -326,7 +330,12 @@ if run_deploy_local and opengl_enabled:
 def deploy_rpc():
     """Runs the demo that deploys a model remotely through RPC.
     """
+<<<<<<< HEAD
     from tvm.contrib import rpc, util, emscripten
+=======
+    from tvm import rpc
+    from tvm.contrib import util, emscripten
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     # As usual, load the resnet18 model.
     net, params, data_shape, out_shape = load_mxnet_resnet()

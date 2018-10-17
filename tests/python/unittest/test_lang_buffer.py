@@ -41,6 +41,17 @@ def test_buffer_access_ptr_offset():
     assert tvm.ir_pass.Equal(offset, tvm.call_extern('int32', "test_call", 200 + v))
     assert aptr.args[4].value == Buffer.READ | Buffer.WRITE
 
+<<<<<<< HEAD
+=======
+def test_buffer_vload():
+    m = tvm.var('m')
+    n = tvm.var('n')
+    Ab = tvm.decl_buffer((m, n), tvm.float32, elem_offset=100)
+    load = Ab.vload([2, 3])
+    offset = tvm.ir_pass.Simplify(load.index)
+    assert tvm.ir_pass.Equal(offset, n * 2 + 103)
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def test_buffer_index_merge_mult_mod():
     m = tvm.var('m')
     n = tvm.var('n')
@@ -76,4 +87,8 @@ if __name__ == "__main__":
     test_buffer()
     test_buffer_access_ptr()
     test_buffer_access_ptr_offset()
+<<<<<<< HEAD
+=======
+    test_buffer_vload()
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     test_buffer_index_merge_mult_mod()

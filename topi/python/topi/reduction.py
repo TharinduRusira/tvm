@@ -1,9 +1,7 @@
 # pylint: disable=redefined-builtin,consider-using-enumerate,no-member
 """Reduce operators"""
 from __future__ import absolute_import as _abs
-import tvm
-from . import tag
-from .util import ravel_index
+from . import cpp
 
 def _get_real_axis(ndim, axis):
     if axis is None:
@@ -26,68 +24,13 @@ def _get_real_axis(ndim, axis):
     return real_axis
 
 
-def get_reduce_out_shape(src_shape, axis=None, keepdims=False):
-    """Get the output shape for the reduction OPs
-
-    Parameters
-    ----------
-    src_shape : tuple of int or tvm.expr.IntImm
-
-    axis : None or int or tuple of int
-
-    keepdims : bool
-
-    Returns
-    -------
-    dst_shape : tuple of int or tvm.expr.IntImm
-    """
-    real_axis = _get_real_axis(len(src_shape), axis)
-    if keepdims:
-        dst_shape = [src_shape[i] if i in real_axis else 1 for i in range(len(src_shape))]
-    else:
-        dst_shape = []
-        for i in range(len(src_shape)):
-            if i not in real_axis:
-                dst_shape.append(src_shape[i])
-    return dst_shape
-
-
-def _argmax_comp(lhs, rhs):
-    """Compare function of argmax"""
-    idx = tvm.make.Select((lhs[1] >= rhs[1]), lhs[0], rhs[0])
-    val = tvm.make.Select((lhs[1] >= rhs[1]), lhs[1], rhs[1])
-    return idx, val
-
-
-def _argmax_init(idx_typ, val_typ):
-    """Initial ind and val of argmax"""
-    return tvm.const(-1, idx_typ), tvm.min_value(val_typ)
-
-
-def _argmin_comp(lhs, rhs):
-    """Compare function of argmin"""
-    idx = tvm.make.Select((lhs[1] <= rhs[1]), lhs[0], rhs[0])
-    val = tvm.make.Select((lhs[1] <= rhs[1]), lhs[1], rhs[1])
-    return idx, val
-
-
-def _argmin_init(idx_typ, val_typ):
-    """Initial ind and val of argmax"""
-    return tvm.const(-1, idx_typ), tvm.max_value(val_typ)
-
-
-def _choose_idx(idx, _, *indices):
-    """Chose the idx from idx and val"""
-    return idx(*indices)
-
-
-def comm_reduce(data, axis=None, keepdims=False, func=tvm.sum, is_idx_reduce=False):
-    """Reducing the data
+def sum(data, axis=None, keepdims=False):
+    """Sum of array elements over a given axis or a list of axes
 
     Parameters
     ----------
     data : tvm.Tensor
-        The input data
+        The input tvm tensor
 
     axis : None or int or tuple of int
         Axis or axes along which a sum is performed.
@@ -96,16 +39,14 @@ def comm_reduce(data, axis=None, keepdims=False, func=tvm.sum, is_idx_reduce=Fal
 
     keepdims : bool
         If this is set to True, the axes which are reduced are left in the result as dimensions
-         with size one.
+        with size one.
         With this option, the result will broadcast correctly against the input array.
-
-    func : function
-        functions like tvm.sum, tvm.max, tvm.min
 
     Returns
     -------
     ret : tvm.Tensor
     """
+<<<<<<< HEAD
     ndim = len(data.shape)
     assert ndim != 0, "Reduce a dim-0 input is not supported!"
     real_axis = _get_real_axis(ndim, axis)
@@ -148,35 +89,11 @@ def comm_reduce(data, axis=None, keepdims=False, func=tvm.sum, is_idx_reduce=Fal
     else:
         out = tvm.compute(target_shape, _compute, name=data.name + "_red")
     return out
+=======
+    return cpp.sum(data, axis, keepdims)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 
-@tvm.tag_scope(tag=tag.COMM_REDUCE)
-def sum(data, axis=None, keepdims=False):
-    """Sum of array elements over a given axis or a list of axes
-
-    Parameters
-    ----------
-    data : tvm.Tensor
-        The input tvm tensor
-
-    axis : None or int or tuple of int
-        Axis or axes along which a sum is performed.
-        The default, axis=None, will sum all of the elements of the input array.
-        If axis is negative it counts from the last to the first axis.
-
-    keepdims : bool
-        If this is set to True, the axes which are reduced are left in the result as dimensions
-        with size one.
-        With this option, the result will broadcast correctly against the input array.
-
-    Returns
-    -------
-    ret : tvm.Tensor
-    """
-    return comm_reduce(data, axis=axis, keepdims=keepdims, func=tvm.sum)
-
-
-@tvm.tag_scope(tag=tag.COMM_REDUCE)
 def max(data, axis=None, keepdims=False):
     """Maximum of array elements over a given axis or a list of axes
 
@@ -199,10 +116,9 @@ def max(data, axis=None, keepdims=False):
     -------
     ret : tvm.Tensor
     """
-    return comm_reduce(data, axis=axis, keepdims=keepdims, func=tvm.max)
+    return cpp.max(data, axis, keepdims)
 
 
-@tvm.tag_scope(tag=tag.COMM_REDUCE)
 def min(data, axis=None, keepdims=False):
     """Minimum of array elements over a given axis or a list of axes
 
@@ -212,9 +128,15 @@ def min(data, axis=None, keepdims=False):
         The input tvm tensor
 
     axis : None or int or tuple of int
+<<<<<<< HEAD
+        Axis or axes along which the max operation is performed.
+        The default, axis=None, will find the max element from all of the elements of the input
+        array. If axis is negative it counts from the last to the first axis.
+=======
         Axis or axes along which a minimum operation is performed.
         The default, axis=None, will find the minimum element from all of the elements of the
         input array. If axis is negative it counts from the last to the first axis.
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     keepdims : bool
         If this is set to True, the axes which are reduced are left in the result as dimensions
@@ -225,10 +147,9 @@ def min(data, axis=None, keepdims=False):
     -------
     ret : tvm.Tensor
     """
-    return comm_reduce(data, axis=axis, keepdims=keepdims, func=tvm.min)
+    return cpp.min(data, axis, keepdims)
 
 
-@tvm.tag_scope(tag=tag.COMM_REDUCE_IDX)
 def argmax(data, axis=None, keepdims=False):
     """Returns the indices of the maximum values along an axis.
 
@@ -238,9 +159,15 @@ def argmax(data, axis=None, keepdims=False):
         The input tvm tensor
 
     axis : None or int or tuple of int
+<<<<<<< HEAD
+        Axis or axes along which a minimum operation is performed.
+        The default, axis=None, will find the minimum element from all of the elements of the
+        input array. If axis is negative it counts from the last to the first axis.
+=======
         Axis or axes along which a argmax operation is performed.
         The default, axis=None, will find the indices of the maximum element of the elements of
         the input array. If axis is negative it counts from the last to the first axis.
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     keepdims : bool
         If this is set to True, the axes which are reduced are left in the result as dimensions
@@ -251,11 +178,9 @@ def argmax(data, axis=None, keepdims=False):
     -------
     ret : tvm.Tensor
     """
-    _argmax = tvm.comm_reducer(fcombine=_argmax_comp, fidentity=_argmax_init, name='argmax')
-    return comm_reduce(data, axis=axis, keepdims=keepdims, func=_argmax, is_idx_reduce=True)
+    return cpp.argmax(data, axis, keepdims)
 
 
-@tvm.tag_scope(tag=tag.COMM_REDUCE_IDX)
 def argmin(data, axis=None, keepdims=False):
     """Returns the indices of the minimum values along an axis.
 
@@ -265,8 +190,13 @@ def argmin(data, axis=None, keepdims=False):
         The input tvm tensor
 
     axis : None or int or tuple of int
+<<<<<<< HEAD
+        Axis or axes along which a argmax operation is performed.
+        The default, axis=None, will find the indices of the maximum element of the elements of
+=======
         Axis or axes along which a argmin operation is performed.
         The default, axis=None, will find the indices of minimum element all of the elements of
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         the input array. If axis is negative it counts from the last to the first axis.
 
     keepdims : bool
@@ -278,5 +208,35 @@ def argmin(data, axis=None, keepdims=False):
     -------
     ret : tvm.Tensor
     """
-    _argmin = tvm.comm_reducer(fcombine=_argmin_comp, fidentity=_argmin_init, name='argmin')
-    return comm_reduce(data, axis=axis, keepdims=keepdims, func=_argmin, is_idx_reduce=True)
+    return cpp.argmin(data, axis, keepdims)
+
+
+def prod(data, axis=None, keepdims=False):
+    """Product of array elements over a given axis or a list of axes
+
+    Parameters
+    ----------
+    data : tvm.Tensor
+        The input tvm tensor
+
+    axis : None or int or tuple of int
+<<<<<<< HEAD
+        Axis or axes along which a argmin operation is performed.
+        The default, axis=None, will find the indices of minimum element all of the elements of
+        the input array. If axis is negative it counts from the last to the first axis.
+=======
+        Axis or axes along which a prod operation is performed.
+        The default, axis=None, will get the prod element over all of the elements of the
+        input array. If axis is negative it counts from the last to the first axis.
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
+
+    keepdims : bool
+        If this is set to True, the axes which are reduced are left in the result as dimensions
+        with size one.
+        With this option, the result will broadcast correctly against the input array.
+
+    Returns
+    -------
+    ret : tvm.Tensor
+    """
+    return cpp.prod(data, axis, keepdims)

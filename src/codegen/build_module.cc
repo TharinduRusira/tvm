@@ -32,7 +32,11 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
 */
 Target CreateTarget(const std::string& target_name,
                     const std::vector<std::string>& options) {
+<<<<<<< HEAD
   auto target = Target(std::make_shared<TargetNode>());
+=======
+  auto target = Target(make_node<TargetNode>());
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   auto t = static_cast<TargetNode*>(target.node_.get());
 
   t->target_name = target_name;
@@ -73,10 +77,17 @@ Target CreateTarget(const std::string& target_name,
     } else {
       t->device_type = kDLROCM;
     }
+<<<<<<< HEAD
     t->keys_array.push_back(ir::StringImm::make("rocm"));
     t->keys_array.push_back(ir::StringImm::make("gpu"));
     t->max_num_threads = 256;
     if (t->device_name == "intel_gpu") {
+=======
+    t->keys_array.push_back(ir::StringImm::make(target_name));
+    t->keys_array.push_back(ir::StringImm::make("gpu"));
+    t->max_num_threads = 256;
+    if (t->device_name == "intel_graphics") {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
       t->thread_warp_size = 16;
     }
   } else if (target_name == "metal" || target_name == "vulkan") {
@@ -88,13 +99,28 @@ Target CreateTarget(const std::string& target_name,
     t->keys_array.push_back(ir::StringImm::make(target_name));
     t->keys_array.push_back(ir::StringImm::make("gpu"));
     t->max_num_threads = 256;
+<<<<<<< HEAD
+=======
+  } else if (target_name == "sdaccel") {
+    t->device_type = kDLOpenCL;
+    t->keys_array.push_back(ir::StringImm::make("sdaccel"));
+    t->keys_array.push_back(ir::StringImm::make("hls"));
+  } else if (target_name == "aocl" || target_name == "aocl_sw_emu") {
+    t->device_type = kDLAOCL;
+    t->keys_array.push_back(ir::StringImm::make("aocl"));
+    t->keys_array.push_back(ir::StringImm::make("hls"));
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   } else if (target_name == "opengl") {
     t->device_type = kOpenGL;
     t->keys_array.push_back(ir::StringImm::make("opengl"));
   } else if (target_name == "stackvm") {
     t->device_type = kDLCPU;
   } else if (target_name == "ext_dev") {
+<<<<<<< HEAD
     t->device_type = kExtDev;
+=======
+    t->device_type = kDLExtDev;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   } else {
     LOG(ERROR) << "Unknown target name " << target_name;
     return target::stackvm();
@@ -192,11 +218,15 @@ Target Target::create(const std::string& target_str) {
     options.push_back(item);
   }
 
+<<<<<<< HEAD
   if (device_name == "rasp") {
     return target::rasp(options);
   } else {
     return CreateTarget(target_name, options);
   }
+=======
+  return CreateTarget(target_name, options);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
 /*! \brief Entry to hold the Target context stack. */
@@ -259,6 +289,7 @@ Target metal(const std::vector<std::string>& options) {
   return CreateTarget("metal", options);
 }
 
+<<<<<<< HEAD
 Target rasp(const std::vector<std::string>& options) {
   return CreateTarget("llvm", MergeOptions(options, {
     "-device=rasp",
@@ -268,15 +299,23 @@ Target rasp(const std::vector<std::string>& options) {
   }));
 }
 
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 Target mali(const std::vector<std::string>& options) {
   return CreateTarget("opencl", MergeOptions(options, {
     "-device=mali"
   }));
 }
 
+<<<<<<< HEAD
 Target intel_gpu(const std::vector<std::string>& options) {
   return CreateTarget("opencl", MergeOptions(options, {
     "-device=intel_gpu"
+=======
+Target intel_graphics(const std::vector<std::string>& options) {
+  return CreateTarget("opencl", MergeOptions(options, {
+    "-device=intel_graphics"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   }));
 }
 
@@ -480,7 +519,11 @@ runtime::Module build(const Array<LoweredFunc>& funcs,
 }
 
 BuildConfig build_config() {
+<<<<<<< HEAD
   return BuildConfig(std::make_shared<BuildConfigNode>());
+=======
+  return BuildConfig(make_node<BuildConfigNode>());
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
 /*! \brief Entry to hold the BuildConfig context stack. */
@@ -538,7 +581,11 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
 });
 
 struct GenericFunc::Manager {
+<<<<<<< HEAD
   std::unordered_map<std::string, std::shared_ptr<Node> > fmap;
+=======
+  std::unordered_map<std::string, NodePtr<Node> > fmap;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   // mutex
   std::mutex mutex;
 
@@ -556,7 +603,11 @@ GenericFunc GenericFunc::Get(const std::string& name) {
   std::lock_guard<std::mutex>(m->mutex);
   auto it = m->fmap.find(name);
   if (it == m->fmap.end()) {
+<<<<<<< HEAD
     auto f = std::make_shared<GenericFuncNode>();
+=======
+    auto f = make_node<GenericFuncNode>();
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     f->name_ = name;
     m->fmap[name] = f;
     return GenericFunc(f);
@@ -674,7 +725,11 @@ TVM_REGISTER_API("_BuildConfigGetAddLowerPassInfo")
 
 TVM_REGISTER_API("_GenericFuncCreate")
 .set_body([](TVMArgs args, TVMRetValue* ret) {
+<<<<<<< HEAD
   *ret = GenericFunc(std::make_shared<GenericFuncNode>());
+=======
+  *ret = GenericFunc(make_node<GenericFuncNode>());
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   });
 
 TVM_REGISTER_API("_GenericFuncGetGlobal")
@@ -729,11 +784,14 @@ TVM_REGISTER_API("_GetCurrentTarget")
 TVM_REGISTER_API("_EnterTargetScope")
 .set_body([](TVMArgs args, TVMRetValue* ret) {
   Target target = args[0];
+<<<<<<< HEAD
   auto current = Target::current_target();
   if (current.defined() && target->str() != current->str()) {
     LOG(WARNING) << "Overriding target " << current->str()
       << " with new target scope " << target->str();
   }
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   Target::EnterTargetScope(target);
   });
 

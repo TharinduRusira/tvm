@@ -42,6 +42,11 @@ def verify_reduce_map_ele(in_shape, axis, keepdims, type="sum"):
     elif type == "argmin":
         B = topi.cpp.argmin(A1, axis, keepdims)
         out_dtype = "int32"
+<<<<<<< HEAD
+=======
+    elif type == "prod":
+        B = topi.cpp.prod(A1, axis, keepdims)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     else:
         raise NotImplementedError
 
@@ -57,7 +62,11 @@ def verify_reduce_map_ele(in_shape, axis, keepdims, type="sum"):
         else:
             s = topi.cpp.cuda.schedule_reduce(target, [B])
 
+<<<<<<< HEAD
         foo = tvm.build(s, [A, B], device, name="sum")
+=======
+        foo = tvm.build(s, [A, B], device, name=type)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         # Test
         in_npy = np.random.uniform(size=in_shape).astype(np.float32)
         in_npy_map = np.sqrt(np.exp(in_npy)).astype(np.float32)
@@ -71,6 +80,11 @@ def verify_reduce_map_ele(in_shape, axis, keepdims, type="sum"):
             out_npy = _my_npy_argmax(in_npy_map, axis=axis, keepdims=keepdims)
         elif type == "argmin":
             out_npy = _my_npy_argmin(in_npy_map, axis=axis, keepdims=keepdims)
+<<<<<<< HEAD
+=======
+        elif type == "prod":
+            out_npy = in_npy_map.prod(axis=axis, keepdims=keepdims)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         else:
             raise NotImplementedError
         data_tvm = tvm.nd.array(in_npy, ctx=ctx)
@@ -99,6 +113,7 @@ def verify_reduce_map_ele(in_shape, axis, keepdims, type="sum"):
 
 def test_reduce_map():
     verify_reduce_map_ele(in_shape=(128, 24, 128, 24),
+<<<<<<< HEAD
                         axis=(1, 2, 3),
                         keepdims=True,
                         type="sum")
@@ -114,6 +129,31 @@ def test_reduce_map():
                         axis=(0, 2),
                         keepdims=False,
                         type="min")
+=======
+                          axis=(1, 2, 3),
+                          keepdims=True,
+                          type="sum")
+    verify_reduce_map_ele(in_shape=(128, 24 * 128 * 24),
+                          axis=(1,),
+                          keepdims=False,
+                          type="max")
+    verify_reduce_map_ele(in_shape=(32, 128, 24),
+                          axis=None,
+                          keepdims=True,
+                          type="sum")
+    verify_reduce_map_ele(in_shape=(128, 24, 128, 24),
+                          axis=(0, 2),
+                          keepdims=False,
+                          type="min")
+    verify_reduce_map_ele(in_shape=(128, 4, 4, 128),
+                          axis=(1, ),
+                          keepdims=True,
+                          type="prod")
+    verify_reduce_map_ele(in_shape=(4, 4),
+                          axis=(0, 1),
+                          keepdims=False,
+                          type="prod")
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     verify_reduce_map_ele(in_shape=(32, 128),
                           axis=1,
                           keepdims=True,

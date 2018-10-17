@@ -5,7 +5,10 @@ import ctypes
 from imp import new_module as _new_module
 from tvm._ffi.function import _init_api_prefix
 from tvm._ffi import libinfo
+<<<<<<< HEAD
 import tvm as _tvm
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 def _get_lib_names():
     if sys.platform.startswith('win32'):
@@ -35,7 +38,10 @@ def _create_module(name):
     return mod
 
 # pylint: disable-msg=C0103
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 nn = _create_module("nn")
 _init_api_prefix("topi.cpp.nn", "topi.nn")
 generic = _create_module("generic")
@@ -48,6 +54,7 @@ x86 = _create_module("x86")
 _init_api_prefix("topi.cpp.x86", "topi.x86")
 vision = _create_module("vision")
 _init_api_prefix("topi.cpp.vision", "topi.vision")
+<<<<<<< HEAD
 yolo2 = _create_module("vision.yolo2")
 _init_api_prefix("topi.cpp.vision.yolo2", "topi.vision.yolo2")
 
@@ -88,3 +95,9 @@ class Target(object):
         return ivec_get(self, idx)
 
 _tvm.register_extension(Target, Target)
+=======
+yolo = _create_module("vision.yolo")
+_init_api_prefix("topi.cpp.vision.yolo", "topi.vision.yolo")
+image = _create_module("image")
+_init_api_prefix("topi.cpp.image", "topi.image")
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

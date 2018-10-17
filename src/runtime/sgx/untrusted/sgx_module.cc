@@ -4,11 +4,18 @@
  * \brief SGX enclave module.
  */
 #include <dmlc/logging.h>
+<<<<<<< HEAD
+=======
+#include <sgx_urts.h>
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/runtime/device_api.h>
 #include <tvm/runtime/registry.h>
 #include <tvm/runtime/threading_backend.h>
+<<<<<<< HEAD
 #include <sgx_urts.h>
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -18,6 +25,10 @@
 #include <unordered_map>
 #include "../common.h"
 #include "../../file_util.h"
+<<<<<<< HEAD
+=======
+#include "./tvm_u.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace tvm {
 namespace runtime {
@@ -109,6 +120,7 @@ class SGXModuleNode : public ModuleNode {
     int func_id = exported->second;
     return PackedFunc([this, func_id](TVMArgs args, TVMRetValue* rv) {
         sgx::EnclaveContext ctx(this);
+<<<<<<< HEAD
         TVM_SGX_CHECKED_CALL(tvm_ecall_packed_func(eid_, func_id,
               args.values, args.type_codes, args.num_args, rv));
       });
@@ -118,6 +130,20 @@ class SGXModuleNode : public ModuleNode {
     std::function<void(int)> runner = [this, tg](int _worker_id) {
       this->GetFunction("__tvm_run_worker__",
                         std::shared_ptr<SGXModuleNode>(nullptr))(tg);
+=======
+        TVMValue ret_value;
+        int ret_type_code;
+        TVM_SGX_CHECKED_CALL(tvm_ecall_packed_func(eid_, func_id,
+              args.values, args.type_codes, args.num_args, &ret_value, &ret_type_code));
+        *rv = TVMArgValue(ret_value, ret_type_code);
+      });
+  }
+
+  void RunWorkers(int num_tasks) {
+    std::function<void(int)> runner = [this](int _worker_id) {
+      this->GetFunction("__tvm_run_worker__",
+                        std::shared_ptr<SGXModuleNode>(nullptr))();
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     };
     thread_group_.reset(new tvm::runtime::threading::ThreadGroup(
           num_tasks, runner, false /* include_main_thread */));
@@ -143,7 +169,11 @@ namespace sgx {
 
 TVM_REGISTER_GLOBAL("__sgx_thread_group_launch__")
 .set_body([](TVMArgs args, TVMRetValue* rv) {
+<<<<<<< HEAD
   EnclaveContext::GetModule()->RunWorkers(args[0], args[1]);
+=======
+  EnclaveContext::GetModule()->RunWorkers(args[0]);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 });
 
 TVM_REGISTER_GLOBAL("__sgx_thread_group_join__")
@@ -214,6 +244,7 @@ void* tvm_ocall_reserve_space(size_t num_bytes, size_t alignment) {
   return buf;
 }
 
+<<<<<<< HEAD
 void tvm_ocall_set_return(TVMRetValueHandle ret,
                            const TVMValue* value,
                            const int* type_code,
@@ -224,6 +255,8 @@ void tvm_ocall_set_return(TVMRetValueHandle ret,
   *rv = TVMArgValue(value[0], type_code[0]);
 }
 
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }  // extern "C"
 }  // namespace sgx
 

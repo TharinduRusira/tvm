@@ -3,9 +3,17 @@
  * \file matrix_op.cc
  * \brief Matrix operators
  */
+<<<<<<< HEAD
 #include <nnvm/op.h>
 #include <nnvm/node.h>
 #include <nnvm/op_attr_types.h>
+=======
+#include <topi/transform.h>
+#include <nnvm/op.h>
+#include <nnvm/node.h>
+#include <nnvm/op_attr_types.h>
+#include <nnvm/compiler/op_attr_types.h>
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include <nnvm/top/tensor.h>
 #include "../op_common.h"
 #include "../elemwise_op_common.h"
@@ -13,6 +21,11 @@
 namespace nnvm {
 namespace top {
 
+<<<<<<< HEAD
+=======
+using namespace nnvm::compiler;
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 DMLC_REGISTER_PARAMETER(MatMulParam);
 
 inline bool DotShape(const nnvm::NodeAttrs& attrs,
@@ -93,6 +106,18 @@ NNVM_REGISTER_OP(matmul)
 .set_attr<FInferShape>("FInferShape", DotShape)
 .set_attr<FInferType>("FInferType", ElemwiseType<2, 1>)
 .set_attr<FCorrectLayout>("FCorrectLayout", DotCorrectLayout)
+<<<<<<< HEAD
+=======
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+    const MatMulParam& param = nnvm::get<MatMulParam>(attrs.parsed);
+    return Array<Tensor>{
+      topi::matmul(inputs[0], inputs[1], param.transpose_a, param.transpose_b)
+    };
+  })
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 .set_attr<FGradient>(
   "FGradient", [](const NodePtr& n,
                   const std::vector<NodeEntry>& ograds) {

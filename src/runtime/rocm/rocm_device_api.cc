@@ -3,16 +3,14 @@
  * \file rocm_device_api.cc
  * \brief GPU specific API
  */
-#include <tvm/runtime/config.h>
 #include <tvm/runtime/device_api.h>
 
-#if TVM_ROCM_RUNTIME
 #include <dmlc/logging.h>
 #include <dmlc/thread_local.h>
 #include <tvm/runtime/registry.h>
 #include <hip/hip_runtime_api.h>
 #include <hsa/hsa.h>
-#include "./rocm_common.h"
+#include "rocm_common.h"
 
 namespace tvm {
 namespace runtime {
@@ -54,6 +52,10 @@ class ROCMDeviceAPI final : public DeviceAPI {
       case kDeviceName: return;
       case kMaxClockRate: return;
       case kMultiProcessorCount: return;
+<<<<<<< HEAD
+=======
+      case kMaxThreadDimensions: return;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     }
     *rv = value;
   }
@@ -162,4 +164,3 @@ TVM_REGISTER_GLOBAL("device_api.rocm")
 
 }  // namespace runtime
 }  // namespace tvm
-#endif  // TVM_ROCM_RUNTIME

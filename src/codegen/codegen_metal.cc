@@ -2,11 +2,13 @@
  *  Copyright (c) 2017 by Contributors
  * \file codegen_metal.cc
  */
-#include <tvm/runtime/config.h>
 #include <tvm/packed_func_ext.h>
 #include <vector>
 #include <string>
-#include "./codegen_metal.h"
+#include <algorithm>
+#include "codegen_metal.h"
+#include "build_common.h"
+#include "../runtime/metal/metal_module.h"
 #include "../runtime/thread_storage_scope.h"
 
 namespace tvm {
@@ -139,6 +141,9 @@ void CodeGenMetal::PrintType(Type t, std::ostream& os) {  // NOLINT(*)
         << "do not yet support vector types";
     os << "void*"; return;
   }
+  if (t == Bool()) {
+    os << "bool"; return;
+  }
   bool fail = false;
   if (t.is_float()) {
     switch (t.bits()) {
@@ -221,5 +226,29 @@ void CodeGenMetal::VisitExpr_(const Broadcast* op, std::ostream& os) {   // NOLI
   }
   os << ')';
 }
+
+runtime::Module BuildMetal(Array<LoweredFunc> funcs) {
+  using tvm::runtime::Registry;
+  bool output_ssa = false;
+  CodeGenMetal cg;
+  cg.Init(output_ssa);
+  for (LoweredFunc f : funcs) {
+    cg.AddFunction(f);
+  }
+  std::string code = cg.Finish();
+  std::string fmt = "metal";
+  std::string source = "";
+  if (const auto* f = Registry::Get("tvm_callback_metal_compile")) {
+    source = code;
+    code = (*f)(code).operator std::string();
+    fmt = "metallib";
+  }
+  return MetalModuleCreate(code, fmt, ExtractFuncInfo(funcs), source);
+}
+
+TVM_REGISTER_API("codegen.build_metal")
+.set_body([](TVMArgs args, TVMRetValue* rv) {
+    *rv = BuildMetal(args[0]);
+  });
 }  // namespace codegen
 }  // namespace tvm

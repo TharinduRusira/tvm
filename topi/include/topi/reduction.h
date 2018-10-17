@@ -6,16 +6,38 @@
 #ifndef TOPI_REDUCTION_H_
 #define TOPI_REDUCTION_H_
 
+<<<<<<< HEAD
+=======
+#include <algorithm>
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include <string>
 #include <set>
 #include <vector>
 #include <iterator>
 
+<<<<<<< HEAD
 #include "topi/tags.h"
+=======
+#include "topi/broadcast.h"
+#include "topi/elemwise.h"
+#include "topi/tags.h"
+#include "topi/transform.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include "topi/detail/ravel_unravel.h"
 #include "topi/detail/constant_utils.h"
 #include "tvm/tvm.h"
 
+<<<<<<< HEAD
+=======
+/*!
+ * \brief macro flag to enable some legacy behavior which requires
+ * reduction result to be at least 1d.
+ */
+#ifndef TOPI_REDUCE_ATLEAST1D
+#define TOPI_REDUCE_ATLEAST1D 0
+#endif
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 namespace topi {
 using namespace tvm;
 
@@ -92,6 +114,12 @@ inline Array<Expr> MakeReduceTargetShape(const std::vector<int>& real_axis,
       }
     }
   }
+<<<<<<< HEAD
+=======
+  if (target_shape.size() == 0 && TOPI_REDUCE_ATLEAST1D) {
+    target_shape.push_back(1);
+  }
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   return target_shape;
 }
 
@@ -99,6 +127,7 @@ inline Array<Expr> MakeReduceTargetShape(const std::vector<int>& real_axis,
  * \brief Create a reduction operation.
  *
  * \param data The input tensor.
+<<<<<<< HEAD
  * \param axis The axes along which the reduction is performed.
  * \param func The reduction function eg. tvm::sum
  * \param keepdims If this is set to true, the axes which are reduced are
@@ -120,11 +149,29 @@ inline Tensor CommReduce(const Tensor& data,
 
   auto compute = [ndim, keepdims, &real_axis, &reduce_axes, &func, &data]
   (const Array<Var>& indices) {
+=======
+ * \param func The reduction function eg. tvm::sum
+ * \param target_shape The output Tensor shape.
+ * \param reduce_axes The real axes along which the reduction is performed.
+ * \param squeeze_axes The real axes to squeeze. Unsqueezed, reduced axes will
+ *                     have shape 1 in the output tensor.
+ *
+ * \return The result tensor.
+ */
+inline Tensor DoCommReduce(const Tensor& data,
+                           FReduce func,
+                           const Array<Expr>& target_shape,
+                           const std::vector<int>& reduce_axes,
+                           const std::vector<int>& squeeze_axes) {
+  auto r_axes = MakeReduceAxes(reduce_axes, data);
+  auto compute = [&](const Array<Var>& indices) {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     Array<Expr> eval_range;
     Array<Var> eval_indices;
     int arg_counter = 0;
     int red_counter = 0;
 
+<<<<<<< HEAD
     for (size_t i = 0; i < ndim; ++i) {
       if (std::find(real_axis.begin(), real_axis.end(), i) != real_axis.end()) {
         // real_axis contains i
@@ -142,12 +189,57 @@ inline Tensor CommReduce(const Tensor& data,
     }
 
     return func(data(eval_range), reduce_axes);
+=======
+    for (size_t i = 0; i < data->shape.size(); ++i) {
+      bool squeeze_i = std::find(squeeze_axes.begin(), squeeze_axes.end(), i) != squeeze_axes.end();
+      if (std::find(reduce_axes.begin(), reduce_axes.end(), i) != reduce_axes.end()) {
+        // real_axis contains i
+        eval_range.push_back(r_axes[red_counter]);
+        eval_indices.push_back(r_axes[red_counter]->var);
+        red_counter++;
+        arg_counter += !squeeze_i;
+        continue;
+      }
+      eval_range.push_back(indices[arg_counter]);
+      arg_counter++;
+    }
+
+    return func(data(eval_range), r_axes);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   };
 
   return tvm::compute(target_shape, compute, data->op->name + "_red", kCommReduce);
 }
 
 /*!
+<<<<<<< HEAD
+=======
+ * \brief Create a reduction operation.
+ *
+ * \param data The input tensor.
+ * \param axis The axes along which the reduction is performed.
+ * \param func The reduction function eg. tvm::sum
+ * \param keepdims If this is set to true, the axes which are reduced are
+ * left in the result as dimensions with size one. This enables the result
+ * to broadcast correctly against the input array.
+ *
+ * \return The result tensor.
+ */
+inline Tensor CommReduce(const Tensor& data,
+                         const Array<Expr>& axis,
+                         FReduce func,
+                         bool keepdims = false) {
+  auto ndim = data->shape.size();
+  CHECK_NE(ndim, 0) << "Cannot reduce a 0 dim Tensor";
+  auto axis_val = detail::GetConstIntValues(axis, "axis");
+  auto real_axis = GetRealAxis(static_cast<int>(ndim), axis_val);
+  auto target_shape = MakeReduceTargetShape(real_axis, data, keepdims);
+  return DoCommReduce(data, func, target_shape, real_axis,
+      keepdims ? std::vector<int>() : real_axis);
+}
+
+/*!
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 * \brief Create an index reduction operation.
 *
 * \param data The input tensor.
@@ -238,8 +330,13 @@ inline FCommReduce MakeCommReducer(FCombine fcombine,
     for (size_t i = 0; i < exprs.size(); ++i) {
       auto dtype = exprs[i].type();
       dtypes.push_back(dtype);
+<<<<<<< HEAD
       lhs.push_back(var("lhs_" + std::to_string(i), dtype));
       rhs.push_back(var("rhs_" + std::to_string(i), dtype));
+=======
+      lhs.push_back(var(name + "_lhs_" + std::to_string(i), dtype));
+      rhs.push_back(var(name + "_rhs_" + std::to_string(i), dtype));
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     }
 
     auto result = fcombine(lhs, rhs);
@@ -265,6 +362,14 @@ inline Expr MaxOp(Expr source, Array<IterVar> axis) {
   return tvm::max(source, axis);  // NOLINT(*)
 }
 
+<<<<<<< HEAD
+=======
+/*! \brief Wrap tvm::prod to ensure we get the correct overload */
+inline Expr ProdOp(Expr source, Array<IterVar> axis) {
+  return tvm::prod(source, axis);  // NOLINT(*)
+}
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 /*!
 * \brief Creates an operation that sums array elements over a given axis
 *
@@ -281,6 +386,37 @@ inline Tensor sum(const Tensor& data, Array<Expr> axis, bool keepdims = false) {
   return CommReduce(data, axis, tvm::sum, keepdims);
 }
 
+<<<<<<< HEAD
+=======
+inline Tensor collapse_sum(const Tensor& data, Array<Expr> target_shape) {
+  CHECK_GE(data->shape.size(), target_shape.size());
+  auto ishape = detail::GetConstIntValues(data->shape, "ishape");
+  auto oshape = detail::GetConstIntValues(target_shape, "oshape");
+
+  std::vector<int> reduce_axes;
+  std::vector<int> squeeze_axes;
+  for (int i_ax = ishape.size() - 1,
+      o_ax = oshape.size() - 1; i_ax >= 0; --i_ax) {
+    if (o_ax >= 0 && ishape[i_ax] == oshape[o_ax]) {
+      --o_ax;
+      continue;
+    }
+    reduce_axes.push_back(i_ax);
+    if (o_ax < 0) {  // squeeze o_ax if was added during expansion
+      squeeze_axes.push_back(i_ax);
+    } else if (oshape[o_ax] == 1) {
+      --o_ax;
+    }
+  }
+
+  if (reduce_axes.size() == 0) return topi::identity(data, "tensor", kCommReduce);
+
+  std::reverse(reduce_axes.begin(), reduce_axes.end());
+  std::reverse(squeeze_axes.begin(), squeeze_axes.end());
+  return DoCommReduce(data, tvm::sum, target_shape, reduce_axes, squeeze_axes);
+}
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 /*!
 * \brief Creates an operation that finds the minimum of elements over
 * a given axis.
@@ -375,5 +511,24 @@ inline Tensor argmax(const Tensor& data, Array<Expr> axis, bool keepdims = false
   return CommReduceIdx(data, axis, func, keepdims);
 }
 
+<<<<<<< HEAD
+=======
+/*!
+* \brief Creates product operation over given axis.
+*
+* \param data The input tensor
+* \param axis The axis to do product over. If axis is empty, the
+* operation will do the product over all elements of the array.
+* \param keepdims If this is set to true, the axes which are reduced are
+* left in the result as dimensions with size one. This enables the result
+* to broadcast correctly against the input array.
+*
+* \return A Tensor whose op member is the prod operation
+*/
+inline Tensor prod(const Tensor& data, Array<Expr> axis, bool keepdims = false) {  // NOLINT(*)
+  return CommReduce(data, axis, ProdOp, keepdims);
+}
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }  // namespace topi
 #endif  // TOPI_REDUCTION_H_

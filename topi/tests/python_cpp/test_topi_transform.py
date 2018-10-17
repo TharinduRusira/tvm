@@ -206,6 +206,38 @@ def verify_take(src_shape, indices_src, axis=None):
     for device in ["llvm", "opencl"]:
         check_device(device)
 
+<<<<<<< HEAD
+=======
+def verify_where(condition, x, y):
+    dtype = "float32"
+    if len(condition.shape) == 1:
+        np_out = np.array([xv if c else yv for (c,xv,yv) in zip(condition,x,y)])
+    else:
+        np_out = np.where(condition, x, y)
+    A = tvm.placeholder(shape=condition.shape, dtype=dtype, name="condition")
+    B = tvm.placeholder(shape=x.shape, dtype=dtype, name="x")
+    C = tvm.placeholder(shape=y.shape, dtype=dtype, name="y")
+    out_tensor = topi.cpp.where(A, B, C)
+
+    def check_device(device):
+        ctx = tvm.context(device, 0)
+        if not ctx.exist:
+            print("Skip because %s is not enabled" % device)
+            return
+        print("Running on target: %s" % device)
+        with tvm.target.create(device):
+            s = topi.generic.schedule_injective(out_tensor)
+
+        foo = tvm.build(s, [A, B, C, out_tensor], device, name="where")
+        tvm_out = tvm.nd.empty(x.shape, ctx=ctx, dtype=dtype)
+        foo(tvm.nd.array(condition, ctx), tvm.nd.array(x, ctx),
+            tvm.nd.array(y, ctx), tvm_out)
+        np.testing.assert_allclose(tvm_out.asnumpy(), np_out)
+
+    for device in ["llvm", "nvptx", "cuda", "opencl", "metal", "rocm"]:
+        check_device(device)
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def verify_concatenate_split(shapes, axis, indices_or_sections):
     tensor_l_concatenate = []
     for i, shape in enumerate(shapes):
@@ -243,7 +275,11 @@ def verify_concatenate_broadcast(shapes, axis, rhs_shape):
     for i, shape in enumerate(shapes):
         tensor_l.append(tvm.placeholder(shape, name="A" + str(i)))
     out_tensor = topi.cpp.concatenate(tensor_l, axis)
+<<<<<<< HEAD
     C = topi.cpp.broadcast_add(out_tensor, B)
+=======
+    C = out_tensor + B
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     def check_device(device):
         ctx = tvm.context(device, 0)
         if not ctx.exist:
@@ -271,6 +307,10 @@ def verify_concatenate_broadcast(shapes, axis, rhs_shape):
     for device in ["llvm", "cuda", "opencl", "metal", "rocm"]:
         check_device(device)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def test_expand_dims():
     verify_expand_dims((3, 10), (3, 10, 1, 1), 2, 2)
     verify_expand_dims((3, 10), (1, 3, 10), -3, 1)
@@ -280,6 +320,10 @@ def test_tranpose():
     verify_tranpose((3, 10, 2), (1, 0, 2))
     verify_tranpose((3, 10, 5), (2, 0, 1))
     verify_tranpose((3, 10), None)
+<<<<<<< HEAD
+=======
+    verify_tranpose((3, 10, 5), (2, -3, 1))
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 
 def test_reshape():
@@ -309,6 +353,10 @@ def test_concatenate():
 
 def test_split():
     verify_split((2, 12, 3), 3, 1)
+<<<<<<< HEAD
+=======
+    verify_split((2, 12, 3), 3, -1)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     verify_split((2, 12, 3), [2, 4], 1)
     verify_split((10, 12, 24), [5, 7, 9], -1)
 
@@ -322,6 +370,21 @@ def test_take():
     verify_take((2,2), [[[1,0],[0,1]]], 1)
     verify_take((4,3,5,6), [[2,1,0,0]], -2)
 
+<<<<<<< HEAD
+=======
+def test_where():
+    shape = (10, 3, 7, 13)
+    condition = np.random.uniform(low=-1, high=1, size=shape).astype("float32")
+    x = np.random.uniform(size=shape).astype("float32")
+    y = np.random.uniform(size=shape).astype("float32")
+    verify_where(condition, x, y)
+    condition = np.random.uniform(low=-1, high=1, size=(shape[0],)).astype("float32")
+    x = np.random.uniform(size=shape).astype("float32")
+    y = np.random.uniform(size=shape).astype("float32")
+    verify_where(condition, x, y)
+
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def test_regression_1():
     verify_concatenate_split([(2, 3, 4), (2, 2, 4), (2, 5, 4)], 1, [3, 7])
     verify_concatenate_split([(3, 4), (2, 4), (3, 4)], 0, [1, 2, 3, 4])
@@ -338,5 +401,9 @@ if __name__ == "__main__":
     test_squeeze()
     test_split()
     test_take()
+<<<<<<< HEAD
+=======
+    test_where()
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     test_regression_1()
     test_regression_2()

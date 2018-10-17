@@ -10,3 +10,8 @@ In this part of documentation, we share the rationale for the specific choices m
    runtime
    nnvm_json_spec
    nnvm_overview
+<<<<<<< HEAD
+=======
+   hybrid_script
+   relay_add_op
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

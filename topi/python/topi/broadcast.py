@@ -1,86 +1,13 @@
-# pylint: disable=no-member,consider-using-enumerate
 """Broadcast operators"""
 from __future__ import absolute_import as _abs
+<<<<<<< HEAD
 import tvm
 from .import tag
 from .util import get_const_tuple, equal_const_int, get_const_int
+=======
+from .import cpp as _cpp
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
-def _get_bcast_info(original_shape, target_shape):
-    """Get the broadcasting info.
-
-    bcast_info = _get_bcast_info(original_shape, target_shape)
-    In bcast_info:
-      -1 means to the padding dim
-       0 means to to be the same as the original shape
-       1 means to the broadcasted dim
-
-    E.g
-    original: (2, 1, 5), target: (2, 4, 5) => bcast_info: (0, 1, 0)
-    original: (2, 5), target: (4, 2, 5) => bcast_info: (-1, 0, 0)
-    original: (1, 5), target: (4, 2, 5) => bcast_info: (-1, 1, 0)
-
-    Parameters
-    ----------
-    original_shape : tuple of tvm.expr.IntImm
-        The original shape before broadcasting
-
-    target_shape : tuple
-        The target shape
-
-    Returns
-    -------
-    bcast_info : list
-    """
-    assert len(target_shape) >= len(original_shape)
-    bcast_info = [-1 for _ in range(len(target_shape))]
-    original_shape = [original_shape[i] for i in range(len(original_shape))]
-    original_shape = original_shape[::-1]
-    target_shape = target_shape[::-1]
-    for i in range(len(original_shape)):
-        if equal_const_int(original_shape[i], target_shape[i]):
-            bcast_info[i] = 0
-        elif equal_const_int(original_shape[i], 1):
-            bcast_info[i] = 1
-        else:
-            raise ValueError("Original Shape: {} cannot be broadcast to  {}"
-                             .format(original_shape[::-1], target_shape[::-1]))
-    bcast_info = bcast_info[::-1]
-    return bcast_info
-
-
-def _get_binary_op_bcast_shape(lhs_shape, rhs_shape):
-    """Get the shape after binary broadcasting.
-
-    We will strictly follow the broadcasting rule in numpy.
-
-    Parameters
-    ----------
-    lhs_shape : tuple
-    rhs_shape : tuple
-
-    Returns
-    -------
-    ret_shape : tuple
-    """
-    ret_shape = []
-    if len(lhs_shape) > len(rhs_shape):
-        lhs_shape, rhs_shape = rhs_shape, lhs_shape
-    for ptr in range(len(rhs_shape)):
-        if ptr < len(lhs_shape):
-            l_val, r_val = lhs_shape[len(lhs_shape) - 1 - ptr], \
-                           rhs_shape[len(rhs_shape) - 1 - ptr]
-            assert(l_val == 1 or r_val == 1 or l_val == r_val),\
-                "Shape is NOT broadcastable, lhs=%s, rhs=%s"\
-                %(str(lhs_shape), str(rhs_shape))
-            ret_shape.append(max(l_val, r_val))
-        else:
-            ret_shape.append(rhs_shape[len(rhs_shape) - 1 - ptr])
-    ret_shape = ret_shape[::-1]
-    return ret_shape
-
-
-
-@tvm.tag_scope(tag=tag.BROADCAST)
 def broadcast_to(data, shape):
     """Broadcast the src to the target shape
 
@@ -90,13 +17,149 @@ def broadcast_to(data, shape):
     Parameters
     ----------
     data : tvm.Tensor
+        The input data
 
     shape : list or tuple
+        The target shape to be broadcasted.
 
     Returns
     -------
     ret : tvm.Tensor
     """
+    return _cpp.broadcast_to(data, shape)
+
+
+def add(lhs, rhs):
+    """Addition with auto-broadcasting
+
+    Parameters
+    ----------
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
+
+    Returns
+    -------
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
+    """
+    return _cpp.add(lhs, rhs)
+
+
+def subtract(lhs, rhs):
+    """Subtraction with auto-broadcasting
+
+    Parameters
+    ----------
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
+
+    Returns
+    -------
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
+    """
+    return _cpp.subtract(lhs, rhs)
+
+
+def multiply(lhs, rhs):
+    """Multiplication with auto-broadcasting
+
+    Parameters
+    ----------
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
+
+    Returns
+    -------
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
+    """
+    return _cpp.multiply(lhs, rhs)
+
+
+def divide(lhs, rhs):
+    """Division with auto-broadcasting
+
+    Parameters
+    ----------
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
+
+    Returns
+    -------
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
+    """
+    return _cpp.divide(lhs, rhs)
+
+
+def mod(lhs, rhs):
+    """Modulus with auto-broadcasting
+
+    Parameters
+    ----------
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
+
+    Returns
+    -------
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
+    """
+    return _cpp.mod(lhs, rhs)
+
+
+def maximum(lhs, rhs):
+    """Take element-wise maximum of two tensors with auto-broadcasting
+
+    Parameters
+    ----------
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
+
+    Returns
+    -------
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
+    """
+    return _cpp.maximum(lhs, rhs)
+
+
+def minimum(lhs, rhs):
+    """Take element-wise maximum of two tensors with auto-broadcasting
+
+    Parameters
+    ----------
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
+
+    Returns
+    -------
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
+    """
+<<<<<<< HEAD
     def _bcast_to_arg_eval(data, bcast_info, *indices):
         indices_tuple = []
         for i, ind in enumerate(indices):
@@ -118,128 +181,177 @@ def broadcast_to(data, shape):
 @tvm.tag_scope(tag=tag.BROADCAST)
 def broadcast_binary_op(lhs, rhs, func, name="bop"):
     """Binary operands that will automatically broadcast the inputs
-
-    We follows the numpy broadcasting rule.
-    See also https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html
-
-    Parameters
-    ----------
-    lhs : tvm.Tensor
-    rhs : tvm.Tensor
-    func : function
-
-    Returns
-    -------
-    ret : tvm.Tensor
-    """
-    def _inner_arg_eval(lhs, rhs, lhs_bcast_info, rhs_bcast_info, func, *indices):
-        lhs_indices = []
-        rhs_indices = []
-        for i, ind in enumerate(indices):
-            if lhs_bcast_info[i] == 0:
-                lhs_indices.append(ind)
-            elif lhs_bcast_info[i] == 1:
-                lhs_indices.append(0)
-            if rhs_bcast_info[i] == 0:
-                rhs_indices.append(ind)
-            elif rhs_bcast_info[i] == 1:
-                rhs_indices.append(0)
-        return func(lhs[tuple(lhs_indices)], rhs[tuple(rhs_indices)])
-    ret_shape = _get_binary_op_bcast_shape(get_const_tuple(lhs.shape), get_const_tuple(rhs.shape))
-    lhs_bcast_info = _get_bcast_info(original_shape=lhs.shape, target_shape=ret_shape)
-    rhs_bcast_info = _get_bcast_info(original_shape=rhs.shape, target_shape=ret_shape)
-    ret = tvm.compute(ret_shape,
-                      lambda *indices: _inner_arg_eval(lhs, rhs, lhs_bcast_info, rhs_bcast_info,
-                                                       func, *indices),
-                      name=lhs.name + "_" + rhs.name + "_" + name)
-    return ret
+=======
+    return _cpp.minimum(lhs, rhs)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 
-def broadcast_add(lhs, rhs):
-    """Binary addition with auto-broadcasting
+def power(lhs, rhs):
+    """Power with auto-broadcasting
 
     Parameters
     ----------
-    lhs : tvm.Tensor
-    rhs : tvm.Tensor
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
 
     Returns
     -------
-    ret : tvm.Tensor
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
     """
-    return broadcast_binary_op(lhs, rhs, lambda a, b: a + b, "add")
+    return _cpp.power(lhs, rhs)
 
 
-def broadcast_mul(lhs, rhs):
-    """Binary multiplication with auto-broadcasting
+def left_shift(lhs, rhs):
+    """Left shift with auto-broadcasting
 
     Parameters
     ----------
-    lhs : tvm.Tensor
-    rhs : tvm.Tensor
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
 
     Returns
     -------
-    ret : tvm.Tensor
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
     """
-    return broadcast_binary_op(lhs, rhs, lambda a, b: a * b, "mul")
+    return _cpp.left_shift(lhs, rhs)
 
 
-def broadcast_div(lhs, rhs):
-    """Binary division with auto-broadcasting
+def right_shift(lhs, rhs):
+    """Right shift with auto-broadcasting
 
     Parameters
     ----------
-    lhs : tvm.Tensor
-    rhs : tvm.Tensor
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
 
     Returns
     -------
-    ret : tvm.Tensor
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
     """
-    return broadcast_binary_op(lhs, rhs, lambda a, b: a / b, "div")
+    return _cpp.right_shift(lhs, rhs)
 
 
-def broadcast_sub(lhs, rhs):
-    """Binary subtraction with auto-broadcasting
+def greater(lhs, rhs):
+    """Compute (lhs>rhs) with auto-broadcasting
 
     Parameters
     ----------
-    lhs : tvm.Tensor
-    rhs : tvm.Tensor
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
 
     Returns
     -------
-    ret : tvm.Tensor
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
     """
-    return broadcast_binary_op(lhs, rhs, lambda a, b: a - b, "sub")
+    return _cpp.greater(lhs, rhs)
 
 
-def broadcast_maximum(lhs, rhs):
-    """Take element-wise maximum of two tensors with auto-broadcasting
+def less(lhs, rhs):
+    """Compute (lhs<rhs) with auto-broadcasting
 
     Parameters
     ----------
-    lhs : tvm.Tensor
-    rhs : tvm.Tensor
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
 
     Returns
     -------
-    ret : tvm.Tensor
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
     """
-    return broadcast_binary_op(lhs, rhs, tvm.max, "maximum")
+    return _cpp.less(lhs, rhs)
 
 
-def broadcast_minimum(lhs, rhs):
-    """Take element-wise minimum of two tensors with auto-broadcasting
+def equal(lhs, rhs):
+    """Compute (lhs==rhs) with auto-broadcasting
 
     Parameters
     ----------
-    lhs : tvm.Tensor
-    rhs : tvm.Tensor
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
 
     Returns
     -------
-    ret : tvm.Tensor
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
     """
-    return broadcast_binary_op(lhs, rhs, tvm.min, "minimum")
+    return _cpp.equal(lhs, rhs)
+
+
+def not_equal(lhs, rhs):
+    """Compute (lhs!=rhs) with auto-broadcasting
+
+    Parameters
+    ----------
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
+
+    Returns
+    -------
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
+    """
+    return _cpp.not_equal(lhs, rhs)
+
+
+def greater_equal(lhs, rhs):
+    """Compute (lhs>=rhs) with auto-broadcasting
+
+    Parameters
+    ----------
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
+
+    Returns
+    -------
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
+    """
+    return _cpp.greater_equal(lhs, rhs)
+
+
+def less_equal(lhs, rhs):
+    """Compute (lhs<=rhs) with auto-broadcasting
+
+    Parameters
+    ----------
+    lhs : tvm.Tensor or Expr
+        The left operand
+    rhs : tvm.Tensor or Expr
+        The right operand
+
+    Returns
+    -------
+    ret : tvm.Tensor or Expr
+        Returns Expr if both operands are Expr.
+        Otherwise returns Tensor.
+    """
+    return _cpp.less_equal(lhs, rhs)

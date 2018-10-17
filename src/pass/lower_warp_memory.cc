@@ -13,7 +13,11 @@
 #include <tvm/ir_visitor.h>
 #include <tvm/ir_pass.h>
 #include <unordered_set>
+<<<<<<< HEAD
 #include "./ir_util.h"
+=======
+#include "ir_util.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include "../arithmetic/compute_expr.h"
 #include "../runtime/thread_storage_scope.h"
 
@@ -93,7 +97,11 @@ class WarpStoreCoeffFinder : private IRVisitor {
         arith::DetectLinearEquation(index, {warp_index_});
     CHECK_EQ(m.size(), 2U)
         << "LowerWarpMemory failed due to store index=" << index;
+<<<<<<< HEAD
     int coeff;
+=======
+    int coeff = 0;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     Expr mcoeff = ir::Simplify(m[0]);
 
     CHECK(arith::GetConstInt(mcoeff, &coeff) && coeff > 0)
@@ -317,7 +325,11 @@ class WarpMemoryRewriter : private IRMutator {
 LoweredFunc
 LowerWarpMemory(LoweredFunc f, int warp_size) {
   CHECK_EQ(f->func_type, kDeviceFunc);
+<<<<<<< HEAD
   auto n = std::make_shared<LoweredFuncNode>(*f.operator->());
+=======
+  auto n = make_node<LoweredFuncNode>(*f.operator->());
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   n->body = WarpMemoryRewriter(warp_size).Rewrite(n->body);
   return LoweredFunc(n);
 }

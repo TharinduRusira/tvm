@@ -5,30 +5,45 @@ import topi
 import math
 from topi.util import get_const_tuple
 
+<<<<<<< HEAD
+=======
+from common import get_all_backend
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def verify_pool(n, ic, ih, kh, sh, padding, pool_type, ceil_mode, count_include_pad=True):
     iw = ih
     kw = kh
     sw = sh
-    ph, pw = padding
+    pt, pl, pb, pr = padding
+    layout = "NCHW"
     A = tvm.placeholder((n, ic, ih, iw), name='A')
     B = topi.nn.pool(A, kernel=[kh, kw], stride=[sh, sw], padding=padding,
+<<<<<<< HEAD
                      pool_type=pool_type, ceil_mode=ceil_mode, count_include_pad=count_include_pad)
+=======
+                     pool_type=pool_type, ceil_mode=ceil_mode,
+                     layout="NCHW", count_include_pad=count_include_pad)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     B = topi.nn.relu(B)
     dtype = A.dtype
 
     bshape = get_const_tuple(B.shape)
     ashape = get_const_tuple(A.shape)
     if ceil_mode:
-        assert bshape[2] == int(math.ceil(float(ashape[2] - kh + ph * 2) / sh) + 1)
-        assert bshape[3] == int(math.ceil(float(ashape[3] - kw + pw * 2) / sw) + 1)
+        assert bshape[2] == int(math.ceil(float(ashape[2] - kh + pt + pb) / sh) + 1)
+        assert bshape[3] == int(math.ceil(float(ashape[3] - kw + pl + pr) / sw) + 1)
     else:
-        assert bshape[2] == int(math.floor(float(ashape[2] - kh + ph * 2) / sh) + 1)
-        assert bshape[3] == int(math.floor(float(ashape[3] - kw + pw * 2) / sw) + 1)
-
+        assert bshape[2] == int(math.floor(float(ashape[2] - kh + pt + pb) / sh) + 1)
+        assert bshape[3] == int(math.floor(float(ashape[3] - kw + pl + pr) / sw) + 1)
 
     a_np = np.random.uniform(low=0.001, size=(n, ic, ih, iw)).astype(dtype)
+<<<<<<< HEAD
     pad_np = np.zeros(shape=(n, ic, ih+2*ph, iw+2*pw)).astype(dtype)
     no_zero = (range(n), range(ic), (range(ph, ih+ph)), (range(pw, iw+pw)))
+=======
+    pad_np = np.zeros(shape=(n, ic, ih+pt+pb, iw+pl+pr)).astype(dtype)
+    no_zero = (range(n), range(ic), (range(pt, ih+pt)), (range(pl, iw+pl)))
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     pad_np[np.ix_(*no_zero)] = a_np
     _, oc, oh, ow = get_const_tuple(B.shape)
     b_np = np.zeros(shape=(n, oc, oh, ow)).astype(dtype)
@@ -55,7 +70,11 @@ def verify_pool(n, ic, ih, kh, sh, padding, pool_type, ceil_mode, count_include_
             return
         print("Running on target: %s" % device)
         with tvm.target.create(device):
+<<<<<<< HEAD
             s = topi.generic.schedule_pool(B)
+=======
+            s = topi.generic.schedule_pool(B, layout)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
         a = tvm.nd.array(a_np, ctx)
         b = tvm.nd.array(np.zeros(get_const_tuple(B.shape), dtype=dtype), ctx)
@@ -63,6 +82,7 @@ def verify_pool(n, ic, ih, kh, sh, padding, pool_type, ceil_mode, count_include_
         f(a, b)
         np.testing.assert_allclose(b.asnumpy(), b_np, rtol=1e-5)
 
+<<<<<<< HEAD
     for device in ['cuda', 'opencl', 'metal', 'rocm', 'vulkan']:
         check_device(device)
 
@@ -75,7 +95,25 @@ def test_pool():
     verify_pool(1, 256, 32, 2, 2, [0, 0], 'max', False)
     verify_pool(1, 256, 31, 3, 3, [2, 1], 'max', False)
     verify_pool(1, 256, 31, 3, 3, [2, 1], 'max', True)
+=======
+    for device in get_all_backend():
+        check_device(device)
 
+def test_pool():
+    verify_pool(1, 256, 32, 2, 2, [0, 0, 0, 0], 'avg', False, True)
+    verify_pool(1, 256, 31, 3, 3, [1, 2, 1, 2], 'avg', False, True)
+    verify_pool(1, 256, 32, 2, 2, [1, 2, 1, 2], 'avg', False, False)
+    verify_pool(1, 256, 31, 4, 4, [3, 3, 3, 3], 'avg', False, False)
+    verify_pool(1, 256, 31, 4, 4, [0, 0, 0, 0], 'avg', False, False)
+    verify_pool(1, 256, 32, 2, 2, [0, 0, 0, 0], 'max', False)
+    verify_pool(1, 256, 31, 3, 3, [2, 1, 2, 1], 'max', False)
+    verify_pool(1, 256, 31, 3, 3, [2, 1, 2, 1], 'max', True)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
+
+    verify_pool(1, 256, 31, 3, 3, [2, 1, 0, 3], 'avg', False, True)
+    verify_pool(1, 256, 32, 2, 2, [0, 3, 2, 1], 'avg', False, False)
+    verify_pool(1, 256, 31, 3, 3, [1, 0, 3, 2], 'max', False)
+    verify_pool(1, 256, 31, 3, 3, [3, 2, 1, 0], 'max', True)
 
 
 def verify_global_pool(n, c, h, w, pool_type):
@@ -104,7 +142,11 @@ def verify_global_pool(n, c, h, w, pool_type):
         f(a, b)
         np.testing.assert_allclose(b.asnumpy(), b_np, rtol=1e-5)
 
+<<<<<<< HEAD
     for device in ['cuda', 'opencl', 'metal', 'rocm', 'vulkan']:
+=======
+    for device in get_all_backend():
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         check_device(device)
 
 def test_global_pool():

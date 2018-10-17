@@ -16,7 +16,11 @@ def test_matmul_add():
             print("skip because %s is not enabled..." % target)
             return
         if not tvm.get_global_func("tvm.contrib.rocblas.matmul", True):
+<<<<<<< HEAD
             print("skip because extern function is not avalable")
+=======
+            print("skip because extern function is not available")
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
             return
         ctx = tvm.rocm(0)
         f = tvm.build(s, [A, B, C], target)

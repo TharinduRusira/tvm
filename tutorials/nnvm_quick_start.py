@@ -1,12 +1,22 @@
 """
+<<<<<<< HEAD
+=======
+.. _tutorial-nnvm-quick-start:
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 Quick Start Tutorial for Compiling Deep Learning Models
 =======================================================
 **Author**: `Yao Wang <https://github.com/kevinthesun>`_
 
 This example shows how to build a neural network with NNVM python frontend and
+<<<<<<< HEAD
 generate runtime library for Nvidia GPU and Raspberry Pi with TVM.
 To run this notebook, you need to install tvm and nnvm.
 Notice that you need to build tvm with cuda and llvm.
+=======
+generate runtime library for Nvidia GPU with TVM.
+Notice that you need to build TVM with cuda and llvm enabled.
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 """
 
 ######################################################################
@@ -20,10 +30,20 @@ Notice that you need to build tvm with cuda and llvm.
 #
 # In this tutorial, we'll choose cuda and llvm as target backends.
 # To begin with, let's import NNVM and TVM.
+<<<<<<< HEAD
 import tvm
 import nnvm.compiler
 import nnvm.testing
 
+=======
+
+import numpy as np
+
+import nnvm.compiler
+import nnvm.testing
+import tvm
+from tvm.contrib import graph_runtime
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 ######################################################################
 # Define Neural Network in NNVM
@@ -31,7 +51,12 @@ import nnvm.testing
 # First, let's define a neural network with nnvm python frontend.
 # For simplicity, we'll use pre-defined resnet-18 network in NNVM.
 # Parameters are initialized with Xavier initializer.
+<<<<<<< HEAD
 # NNVM also supports other model formats such as MXNet, CoreML and ONNX.
+=======
+# NNVM also supports other model formats such as MXNet, CoreML, ONNX and 
+# Tensorflow.
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #
 # In this tutorial, we assume we will do inference on our device
 # and the batch size is set to be 1. Input images are RGB color
@@ -44,7 +69,12 @@ image_shape = (3, 224, 224)
 data_shape = (batch_size,) + image_shape
 out_shape = (batch_size, num_class)
 
+<<<<<<< HEAD
 net, params = nnvm.testing.resnet.get_workload(batch_size=batch_size, image_shape=image_shape)
+=======
+net, params = nnvm.testing.resnet.get_workload(
+    layers=18, batch_size=batch_size, image_shape=image_shape)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 print(net.debug_str())
 
 ######################################################################
@@ -52,10 +82,15 @@ print(net.debug_str())
 # -----------
 # Next step is to compile the model using the NNVM/TVM pipeline.
 # Users can specify the optimization level of the compilation.
+<<<<<<< HEAD
 # Currently this value can be 0 to 2, which corresponds to
 # "SimplifyInference", "OpFusion" and "PrecomputePrune" respectively.
 # In this example we set optimization level to be 0
 # and use Raspberry Pi as compile target.
+=======
+# Currently this value can be 0 to 3. The optimization passes include
+# operator fusion, pre-computation, layout transformation and so on.
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #
 # :any:`nnvm.compiler.build` returns three components: the execution graph in
 # json format, the TVM module library of compiled functions specifically
@@ -66,6 +101,7 @@ print(net.debug_str())
 #
 # We'll first compile for Nvidia GPU. Behind the scene, `nnvm.compiler.build`
 # first does a number of graph-level optimizations, e.g. pruning, fusing, etc.,
+<<<<<<< HEAD
 # then registers the operators (i.e. the nodes of the optmized graphs) to
 # TVM implementations to generate a `tvm.module`.
 # To generate the module library, TVM will first transfer the HLO IR into the lower
@@ -73,11 +109,21 @@ print(net.debug_str())
 # Then the machine code will be generated as the module library.
 
 opt_level = 0
+=======
+# then registers the operators (i.e. the nodes of the optimized graphs) to
+# TVM implementations to generate a `tvm.module`.
+# To generate the module library, TVM will first transfer the High level IR
+# into the lower intrinsic IR of the specified target backend, which is CUDA
+# in this example. Then the machine code will be generated as the module library.
+
+opt_level = 3
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 target = tvm.target.cuda()
 with nnvm.compiler.build_config(opt_level=opt_level):
     graph, lib, params = nnvm.compiler.build(
         net, target, shape={"data": data_shape}, params=params)
 
+<<<<<<< HEAD
 ######################################################################
 # Save Compiled Module
 # ----------------------------
@@ -88,6 +134,44 @@ from tvm.contrib import util
 
 temp = util.tempdir()
 path_lib = temp.relpath("deploy_lib.so")
+=======
+#####################################################################
+# Run the generate library
+# ------------------------
+# Now we can create graph runtime and run the module on Nvidia GPU.
+
+# create random input
+ctx = tvm.gpu()
+data = np.random.uniform(-1, 1, size=data_shape).astype("float32")
+# create module
+module = graph_runtime.create(graph, lib, ctx)
+# set input and parameters
+module.set_input("data", data)
+module.set_input(**params)
+# run
+module.run()
+# get output
+out = module.get_output(0, tvm.nd.empty(out_shape))
+# convert to numpy
+out.asnumpy()
+
+# Print first 10 elements of output
+print(out.asnumpy().flatten()[0:10])
+
+######################################################################
+# Save and Load Compiled Module
+# -----------------------------
+# We can also save the graph, lib and parameters into files and load them
+# back in deploy environment.
+
+####################################################
+
+# save the graph, lib and params into separate files
+from tvm.contrib import util
+
+temp = util.tempdir()
+path_lib = temp.relpath("deploy_lib.tar")
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 lib.export_library(path_lib)
 with open(temp.relpath("deploy_graph.json"), "w") as fo:
     fo.write(graph.json())
@@ -95,6 +179,7 @@ with open(temp.relpath("deploy_param.params"), "wb") as fo:
     fo.write(nnvm.compiler.save_param_dict(params))
 print(temp.listdir())
 
+<<<<<<< HEAD
 ######################################################################
 # Deploy locally to Nvidia GPU
 # ------------------------------
@@ -187,3 +272,17 @@ print(out.asnumpy()[0][0:10])
 if not use_rasp:
     # terminate the local server
     server.terminate()
+=======
+####################################################
+
+# load the module back.
+loaded_json = open(temp.relpath("deploy_graph.json")).read()
+loaded_lib = tvm.module.load(path_lib)
+loaded_params = bytearray(open(temp.relpath("deploy_param.params"), "rb").read())
+input_data = tvm.nd.array(np.random.uniform(size=data_shape).astype("float32"))
+
+module = graph_runtime.create(loaded_json, loaded_lib, ctx)
+module.load_params(loaded_params)
+module.run(data=input_data)
+out = module.get_output(0).asnumpy()
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

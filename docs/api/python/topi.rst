@@ -9,6 +9,14 @@ List of operators
 
    topi.identity
    topi.negative
+<<<<<<< HEAD
+=======
+   topi.floor
+   topi.ceil
+   topi.trunc
+   topi.round
+   topi.abs
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
    topi.exp
    topi.tanh
    topi.log
@@ -27,8 +35,11 @@ List of operators
    topi.take
    topi.full
    topi.full_like
+<<<<<<< HEAD
    topi.greater
    topi.less
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
    topi.nn.relu
    topi.nn.leaky_relu
    topi.nn.dilate
@@ -44,7 +55,11 @@ List of operators
    topi.max
    topi.sum
    topi.min
+   topi.argmax
+   topi.argmin
+   topi.prod
    topi.broadcast_to
+<<<<<<< HEAD
    topi.broadcast_add
    topi.broadcast_sub
    topi.broadcast_mul
@@ -53,6 +68,25 @@ List of operators
    topi.broadcast_minimum
 
 
+=======
+   topi.add
+   topi.subtract
+   topi.multiply
+   topi.divide
+   topi.mod
+   topi.maximum
+   topi.minimum
+   topi.power
+   topi.greater
+   topi.less
+   topi.equal
+   topi.not_equal
+   topi.greater_equal
+   topi.less_equal
+   topi.image.resize
+
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 List of schedules
 ~~~~~~~~~~~~~~~~~
 .. autosummary::
@@ -67,6 +101,14 @@ topi
 ~~~~
 .. autofunction:: topi.negative
 .. autofunction:: topi.identity
+<<<<<<< HEAD
+=======
+.. autofunction:: topi.floor
+.. autofunction:: topi.ceil
+.. autofunction:: topi.trunc
+.. autofunction:: topi.round
+.. autofunction:: topi.abs
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 .. autofunction:: topi.exp
 .. autofunction:: topi.tanh
 .. autofunction:: topi.log
@@ -85,12 +127,17 @@ topi
 .. autofunction:: topi.take
 .. autofunction:: topi.full
 .. autofunction:: topi.full_like
+<<<<<<< HEAD
 .. autofunction:: topi.greater
 .. autofunction:: topi.less
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 .. autofunction:: topi.max
 .. autofunction:: topi.sum
 .. autofunction:: topi.min
+.. autofunction:: topi.prod
 .. autofunction:: topi.broadcast_to
+<<<<<<< HEAD
 .. autofunction:: topi.broadcast_add
 .. autofunction:: topi.broadcast_sub
 .. autofunction:: topi.broadcast_mul
@@ -98,6 +145,18 @@ topi
 .. autofunction:: topi.broadcast_maximum
 .. autofunction:: topi.broadcast_minimum
 
+=======
+.. autofunction:: topi.add
+.. autofunction:: topi.subtract
+.. autofunction:: topi.multiply
+.. autofunction:: topi.divide
+.. autofunction:: topi.mod
+.. autofunction:: topi.maximum
+.. autofunction:: topi.minimum
+.. autofunction:: topi.power
+.. autofunction:: topi.greater
+.. autofunction:: topi.less
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 topi.nn
 ~~~~~~~
@@ -113,6 +172,10 @@ topi.nn
 .. autofunction:: topi.nn.conv2d_hwcn
 .. autofunction:: topi.nn.depthwise_conv2d_nchw
 .. autofunction:: topi.nn.depthwise_conv2d_nhwc
+
+topi.image
+~~~~~~~~~~
+.. autofunction:: topi.image.resize
 
 
 topi.generic

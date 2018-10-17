@@ -40,11 +40,11 @@ def find_lib_path(name=None, search_path=None, optional=False):
         dll_path.extend([p.strip() for p in os.environ['DYLD_LIBRARY_PATH'].split(":")])
 
     # Pip lib directory
-    dll_path.append(os.path.join(ffi_dir, "../"))
+    dll_path.append(os.path.join(ffi_dir, ".."))
     # Default cmake build directory
     dll_path.append(os.path.join(source_dir, "build"))
     dll_path.append(os.path.join(source_dir, "build", "Release"))
-    # Default mkae build directory
+    # Default make build directory
     dll_path.append(os.path.join(source_dir, "lib"))
 
     dll_path.append(install_lib_dir)
@@ -100,5 +100,12 @@ def find_lib_path(name=None, search_path=None, optional=False):
 
 
 # current version
+<<<<<<< HEAD
 # We use the version of the incoming release for code that is under development
 __version__ = "0.4.0"
+=======
+# We use the version of the incoming release for code
+# that is under development.
+# The following line is set by tvm/python/update_version.py
+__version__ = "0.5.dev"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

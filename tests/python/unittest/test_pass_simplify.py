@@ -53,7 +53,10 @@ def test_canonical():
     assert (tvm.ir_pass.Equal(ret1, ret2))
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     test_modular()
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     test_bound()
     test_basic()
     test_simplify()

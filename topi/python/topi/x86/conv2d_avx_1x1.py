@@ -3,11 +3,20 @@
 from __future__ import absolute_import as _abs
 from collections import namedtuple
 import tvm
+<<<<<<< HEAD
+=======
+import topi
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 from ..util import get_const_tuple
 from ..nn.conv2d import _get_schedule, _get_workload
 from ..nn.util import infer_pad, infer_stride
 from ..nn.pad import pad
+<<<<<<< HEAD
+=======
+from .tensor_intrin import dot_16x1x16_int8_int8_int32
+from .check_targets import check_skylake
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 AVXConv1x1Fwd = namedtuple('AVXConv1x1Fwd', ['ic_bn', 'oc_bn', 'oh_factor', 'ow_factor'])
 
@@ -56,7 +65,11 @@ def _declaration_conv(data, kernel, stride, padding, layout, out_dtype):
     out_height = (in_height + 2 * HPAD - kernel_height) // HSTR + 1
     out_width = (in_width + 2 * WPAD - kernel_width) // WSTR + 1
 
+<<<<<<< HEAD
     DOPAD = (HPAD != 0 and WPAD != 0)
+=======
+    DOPAD = (HPAD != 0 or WPAD != 0)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     if DOPAD:
         data_pad = pad(data, (0, 0, HPAD, WPAD), name="data_pad")
     else:
@@ -95,7 +108,11 @@ def _schedule_conv(s, data, data_pad, data_vec, kernel, kernel_vec, conv_out, ou
     sch = _get_schedule(wkl)
 
     HPAD, WPAD = wkl.hpad, wkl.wpad
+<<<<<<< HEAD
     DOPAD = (HPAD != 0 and WPAD != 0)
+=======
+    DOPAD = (HPAD != 0 or WPAD != 0)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     A, W = data, kernel_vec
     A0, A1 = data_pad, data_vec
@@ -163,7 +180,11 @@ def _declaration_conv_NCHWc(wkl, sch, data, kernel):
     out_height = (wkl.height + 2 * HPAD - wkl.hkernel) // HSTR + 1
     out_width = (wkl.width + 2 * WPAD - wkl.wkernel) // WSTR + 1
 
+<<<<<<< HEAD
     DOPAD = (HPAD != 0 and WPAD != 0)
+=======
+    DOPAD = (HPAD != 0 or WPAD != 0)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     if DOPAD:
         data_pad = pad(data, (0, 0, HPAD, WPAD, 0), name="data_pad")
     else:
@@ -229,3 +250,120 @@ def _schedule_conv_NCHWc(s, wkl, sch, data, kernel, conv_out, last):
         s[O].parallel(parallel_axis)
 
     return s
+<<<<<<< HEAD
+=======
+
+
+def _declaration_conv_NCHWc_int8(wkl, sch, data, kernel):
+    """ Declaration for int8 conv"""
+    out_dtype = wkl.out_dtype
+    HPAD, WPAD = wkl.hpad, wkl.wpad
+    HSTR, WSTR = wkl.hstride, wkl.wstride
+
+    batch_size = data.shape[0]
+    out_height = (wkl.height + 2 * HPAD - wkl.hkernel) // HSTR + 1
+    out_width = (wkl.width + 2 * WPAD - wkl.wkernel) // WSTR + 1
+
+    DOPAD = (HPAD != 0 or WPAD != 0)
+    if DOPAD:
+        data_pad = pad(data, (0, 0, HPAD, WPAD, 0), name="data_pad")
+    else:
+        data_pad = data
+
+    oshape = (batch_size, wkl.out_filter//sch.oc_bn, out_height, out_width, sch.oc_bn)
+
+    # Intel performs dot product of 2 "4" Int8 values
+    n_elems = 4
+    assert sch.ic_bn%n_elems == 0
+    ic_outer = tvm.reduce_axis((0, wkl.in_filter//(sch.ic_bn)), name='ic_outer')
+    ic_f_inner = tvm.reduce_axis((0, sch.ic_bn//n_elems), name='ic_f_inner')
+    ic_s_inner = tvm.reduce_axis((0, n_elems), name='ic_s_inner')
+
+    # Reshaping kernel as the last 2 dimensions are 1x1 (k_h x k_w)
+    k_shape = kernel.shape
+    kernel = topi.reshape(kernel, (k_shape[0], k_shape[1], k_shape[2], k_shape[3],
+                                   k_shape[4] * k_shape[5] * k_shape[6]))
+
+    conv = tvm.compute(oshape, lambda n, oc_chunk, oh, ow, oc_block:
+                       tvm.sum(data_pad[n, ic_outer, oh*HSTR, ow*WSTR,
+                                        ic_f_inner * n_elems + ic_s_inner].astype(out_dtype) *
+                               kernel[oc_chunk, ic_outer, ic_f_inner,
+                                      oc_block, ic_s_inner].astype(out_dtype),
+                               axis=[ic_outer, ic_f_inner, ic_s_inner]),
+                       name='conv2d_NCHWc_int8',
+                       tag="conv2d_NCHWc_int8")
+
+
+    return conv
+
+
+def _schedule_conv_NCHWc_int8(s, wkl, sch, data, kernel, conv_out, last):
+    """
+    Defines the schedule for INT8 for intel machines
+    Uses the Intel intrinsics to use INT8 operations
+    More details - https://software.intel.com/en-us/articles/
+    lower-numerical-precision-deep-learning-inference-and-training
+    """
+
+    target = tvm.target.current_target(allow_none=False)
+    int32_lanes = -1
+    if check_skylake(target):
+        int32_lanes = 16
+    else:
+        return s
+    assert int32_lanes != -1
+
+    # schedule data
+    A = data
+    if isinstance(s[A].op, tvm.tensor.ComputeOp):
+        batch, ic_chunk, ih, iw, ic_block = s[A].op.axis
+        parallel_axis = s[A].fuse(ic_chunk, ih)
+        s[A].parallel(parallel_axis)
+
+    C, O = conv_out, last
+    CC = s.cache_write(C, 'global')
+
+    batch, oc_chunk, oh, ow, oc_block = s[C].op.axis
+    oh_outer, oh_inner = s[C].split(oh, factor=sch.oh_factor)
+    ow_outer, ow_inner = s[C].split(ow, factor=sch.ow_factor)
+    s[C].reorder(oc_chunk, oh_outer, ow_outer, oh_inner, ow_inner, oc_block)
+    s[C].vectorize(oc_block)
+
+    parallel_axis = s[C].fuse(oc_chunk, oh_outer)
+    s[CC].compute_at(s[C], parallel_axis)
+    if C == O:
+        s[C].parallel(parallel_axis)
+
+    _, oc_chunk, oh, ow, oc_block = s[CC].op.axis
+    ic_outer, ic_f_inner, ic_s_inner = s[CC].op.reduce_axis
+
+    # Skylake and future processors have 16 vector lanes
+    assert sch.oc_bn % int32_lanes == 0
+
+    oc_f_inner, oc_s_inner = s[CC].split(oc_block, factor=int32_lanes)
+
+    oh_outer, oh_inner = s[CC].split(oh, factor=sch.oh_factor)
+    ow_outer, ow_inner = s[CC].split(ow, factor=sch.ow_factor)
+
+    s[CC].reorder(oc_chunk, oh_outer, ow_outer, ic_outer, ic_f_inner, oh_inner,
+                  ow_inner, oc_f_inner, oc_s_inner, ic_s_inner)
+    s[CC].fuse(oc_chunk, oh_outer)
+
+    pc = dot_16x1x16_int8_int8_int32()
+    s[CC].tensorize(oc_s_inner, pc)
+    s[CC].unroll(ow_inner)
+    s[CC].unroll(oh_inner)
+
+    if C != O:
+        batch, oc_chunk, oh, ow, oc_block = s[O].op.axis
+        oh_outer, oh_inner = s[O].split(oh, factor=sch.oh_factor)
+        ow_outer, ow_inner = s[O].split(ow, factor=sch.ow_factor)
+        s[O].reorder(oc_chunk, oh_outer, ow_outer, oh_inner, ow_inner, oc_block)
+
+        parallel_axis = s[O].fuse(oc_chunk, oh_outer)
+        s[C].compute_at(s[O], parallel_axis)
+        s[O].vectorize(oc_block)
+        s[O].parallel(parallel_axis)
+
+    return s
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

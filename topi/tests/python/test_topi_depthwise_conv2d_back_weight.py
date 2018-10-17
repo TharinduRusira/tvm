@@ -80,6 +80,10 @@ def verify_depthwise_conv2d_back_weight(batch, in_channel, in_h, channel_multipl
     check_device("metal")
     check_device("rocm")
     check_device("vulkan")
+<<<<<<< HEAD
+=======
+    check_device("nvptx")
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 def test_topi_depthwise_conv2d_backward_weight_nhwc():
     verify_depthwise_conv2d_back_weight(16, 256, 56, 1, 3, 1, 1)

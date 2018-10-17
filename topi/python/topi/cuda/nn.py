@@ -4,8 +4,12 @@ from __future__ import absolute_import as _abs
 
 import tvm
 from .. import generic
+<<<<<<< HEAD
 from .. import tag
 from .reduction import _schedule_reduce
+=======
+from .. import cpp
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 @generic.schedule_lrn.register(["cuda"])
 def schedule_lrn(outs):
@@ -22,6 +26,7 @@ def schedule_lrn(outs):
     sch: Schedule
         The computation schedule for the op.
     """
+<<<<<<< HEAD
     outs = [outs] if isinstance(outs, tvm.tensor.Tensor) else outs
     s = tvm.create_schedule([x.op for x in outs])
     num_thread = 64
@@ -48,11 +53,24 @@ def schedule_lrn(outs):
 @generic.schedule_l2norm.register(["cuda"])
 def schedule_l2norm(outs):
     """Schedule for L2norm
+=======
+    target = tvm.target.current_target(allow_none=False)
+    cpp_target = cpp.TEST_create_target(target.target_name)
+    return cpp.cuda.schedule_lrn(cpp_target, outs)
+
+@generic.schedule_l2_normalize.register(["cuda"])
+def schedule_l2_normalize(outs):
+    """Schedule for L2 normalize
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     Parameters
     ----------
     outs: Array of Tensor
+<<<<<<< HEAD
           The computation graph description of L2norm
+=======
+          The computation graph description of L2 normalize
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
           in the format of an array of tensors.
 
     Returns
@@ -60,6 +78,7 @@ def schedule_l2norm(outs):
     sch: Schedule
         The computation schedule for the op.
     """
+<<<<<<< HEAD
     outs = [outs] if isinstance(outs, tvm.tensor.Tensor) else outs
     s = tvm.create_schedule([x.op for x in outs])
 
@@ -89,3 +108,8 @@ def schedule_l2norm(outs):
     s[l2norm].bind(xto, thread_x)
 
     return s
+=======
+    target = tvm.target.current_target(allow_none=False)
+    cpp_target = cpp.TEST_create_target(target.target_name)
+    return cpp.cuda.schedule_l2_normalize(cpp_target, outs)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

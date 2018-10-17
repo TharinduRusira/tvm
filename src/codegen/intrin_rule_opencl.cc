@@ -3,11 +3,26 @@
  * \file intrin_rule_opencl.cc
  * \brief OpenCL intrinsic rules.
  */
-#include "./intrin_rule.h"
+#include "intrin_rule.h"
 
 namespace tvm {
 namespace codegen {
 namespace intrin {
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.opencl.floor")
+.set_body(DispatchExtern<Direct>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.opencl.ceil")
+.set_body(DispatchExtern<Direct>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.opencl.trunc")
+.set_body(DispatchExtern<Direct>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.opencl.fabs")
+.set_body(DispatchExtern<Direct>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.opencl.round")
+.set_body(DispatchExtern<Direct>);
 
 TVM_REGISTER_GLOBAL("tvm.intrin.rule.opencl.exp")
 .set_body(DispatchExtern<Direct>);

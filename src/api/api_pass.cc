@@ -5,6 +5,7 @@
  */
 #include <tvm/expr.h>
 #include <tvm/ir.h>
+#include <tvm/attrs.h>
 #include <tvm/ir_pass.h>
 #include <tvm/ir_visitor.h>
 #include <tvm/ir_mutator.h>
@@ -44,6 +45,18 @@ TVM_REGISTER_API("ir_pass.CanonicalSimplify")
       } else {
         *ret = CanonicalSimplify(args[0].operator Expr());
       }
+<<<<<<< HEAD
+=======
+    }
+  });
+
+TVM_REGISTER_API("ir_pass.Substitute")
+.set_body([](TVMArgs args, TVMRetValue *ret) {
+    if (args[0].IsNodeType<Stmt>()) {
+      *ret = Substitute(args[0].operator Stmt(), args[1].operator Map<Var, Expr>());
+    } else {
+      *ret = Substitute(args[0].operator Expr(), args[1].operator Map<Var, Expr>());
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     }
   });
 
@@ -55,6 +68,14 @@ TVM_REGISTER_API("ir_pass.Equal")
       *ret = Equal(args[0].operator Expr(), args[1].operator Expr());
     }
   });
+
+
+TVM_REGISTER_API("ir_pass.AttrsEqual")
+.set_body_typed<bool(const NodeRef&, const NodeRef&)>(AttrsEqual::Equal);
+
+TVM_REGISTER_API("ir_pass.AttrsHash")
+.set_body_typed<int64_t(const NodeRef&)>(AttrsHash::Hash);
+
 
 TVM_REGISTER_API("ir_pass.ExprUseVar")
 .set_body([](TVMArgs args, TVMRetValue *ret) {
@@ -131,5 +152,9 @@ REGISTER_PASS2(LowerIntrin);
 REGISTER_PASS1(LowerTVMBuiltin);
 REGISTER_PASS1(CombineContextCall);
 REGISTER_PASS2(VerifyMemory);
+<<<<<<< HEAD
+=======
+REGISTER_PASS2(VerifyGPUCode);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }  // namespace ir
 }  // namespace tvm

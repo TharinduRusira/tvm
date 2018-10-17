@@ -10,8 +10,9 @@
 #include <ir/IR.h>
 #include <type_traits>
 #include <string>
-#include "./base.h"
-#include "./expr.h"
+#include "base.h"
+#include "expr.h"
+#include "runtime/util.h"
 
 namespace tvm {
 namespace ir {
@@ -27,7 +28,7 @@ struct CommReducerNode;
 
 struct CommReducer : public NodeRef {
   CommReducer() {}
-  explicit CommReducer(std::shared_ptr<Node> n) : NodeRef(n) {}
+  explicit CommReducer(NodePtr<Node> n) : NodeRef(n) {}
   /*!
    * \brief access the internal node container
    * \return the pointer to the internal node container
@@ -179,6 +180,11 @@ constexpr const char* loop_scope = "loop_scope";
 constexpr const char* reduce_scope = "reduce_scope";
 /*! \brief Mark region is guarded by the pragma extension */
 constexpr const char* pragma_scope_prefix = "pragma_";
+<<<<<<< HEAD
+=======
+/*! \brief Import llvm source or file into the final code gen module */
+constexpr const char* pragma_import_llvm = "pragma_import_llvm";
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 /*!
  * \brief Mark of prefetch scope, value=offset,
  *  run prefetch of Tensor on the current loop scope
@@ -447,25 +453,6 @@ constexpr const char* tvm_global_barrier_kinit = "tvm_global_barrier_kinit";
  */
 constexpr const char* tvm_thread_allreduce = "tvm_thread_allreduce";
 
-/*! \brief The kind of structure field info */
-enum TVMStructFieldKind : int {
-  // array head address
-  kArrAddr,
-  kArrData,
-  kArrShape,
-  kArrStrides,
-  kArrNDim,
-  kArrTypeCode,
-  kArrTypeBits,
-  kArrTypeLanes,
-  kArrByteOffset,
-  kArrDeviceId,
-  kArrDeviceType,
-  kArrKindBound_,
-  // TVMValue field
-  kTVMValueContent,
-  kTVMValueKindBound_
-};
 }   // namespace intrinsic
 
 // Reuse IR node defintiion from HalideIR
@@ -511,9 +498,22 @@ using HalideIR::Internal::Block;
 using HalideIR::Internal::IfThenElse;
 using HalideIR::Internal::Evaluate;
 using HalideIR::Internal::Shuffle;
+<<<<<<< HEAD
 // ir functions
 using HalideIR::Internal::is_const_power_of_two_integer;
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
+/*!
+ * \brief Create a type annotation expression
+ * \param dtype The data type
+ * \return Expr a expression with dtype.
+ */
+inline Expr TypeAnnotation(Type dtype) {
+  return ir::Call::make(dtype,
+                        "type_annotation", {},
+                        ir::Call::PureIntrinsic);
+}
 }  // namespace ir
 }  // namespace tvm
 

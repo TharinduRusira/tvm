@@ -1,6 +1,11 @@
 #!/bin/bash
 mkdir -p docs/_build/html
 rm -rf docs/_build/html/jsdoc
+rm -rf docs/_build/html/javadoc
+
+# remove stale tutorials and always build from scratch.
+rm -rf docs/tutorials
+
 # C++ doc
 make doc
 
@@ -8,7 +13,11 @@ make doc
 jsdoc web/tvm_runtime.js web/README.md || exit -1
 mv out docs/_build/html/jsdoc || exit -1
 
-rm -rf python/tvm/*.pyc python/tvm/*/*.pyc
+# Java doc
+make javadoc || exit -1
+mv jvm/core/target/site/apidocs docs/_build/html/javadoc || exit -1
+
+rm -rf python/tvm/*.pyc python/tvm/*/*.pyc python/tvm/*/*/*.pyc
 
 cd docs
 PYTHONPATH=`pwd`/../python make html || exit -1

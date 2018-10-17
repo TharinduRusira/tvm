@@ -8,3 +8,7 @@ from .binary_dense import schedule_binary_dense
 from .nn import *
 from .injective import *
 from .pooling import schedule_pool, schedule_global_pool
+<<<<<<< HEAD
+=======
+from .bitserial_conv2d import schedule_bitserial_conv2d
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

@@ -86,7 +86,11 @@ def get_workload(batch_size, num_classes=1000, image_shape=(3, 224, 224), dtype=
         The batch size used in the model
 
     num_classes : int, optional
+<<<<<<< HEAD
         Number of claseses
+=======
+        Number of classes
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     image_shape : tuple, optional
         The input image shape
