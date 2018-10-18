@@ -196,6 +196,7 @@ inline tvm::Tensor pad(const tvm::Tensor& t,
       return tvm::select(detail::Map(sel, tvm::ir::And::make), t(indices), pad_value);
     }
     return t(indices);
+<<<<<<< HEAD
   };
   return tvm::compute(output_shape, l, name, tag);
 }

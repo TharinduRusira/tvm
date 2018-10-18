@@ -254,6 +254,11 @@ void OpenCLWorkspace::Init(const std::string& type_key, const std::string& devic
       this->devices = devices_matched;
       break;
     }
+=======
+  if (this->platform_id == nullptr) {
+    LOG(WARNING) << "No OpenCL device";
+    return;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   }
   if (this->platform_id == nullptr) {
     LOG(WARNING) << "No OpenCL device";

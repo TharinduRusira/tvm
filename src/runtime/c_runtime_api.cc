@@ -114,6 +114,7 @@ void DeviceAPI::FreeWorkspace(TVMContext ctx, void* ptr) {
 TVMStreamHandle DeviceAPI::CreateStream(TVMContext ctx) {
   LOG(FATAL) << "Device does not support stream api.";
   return 0;
+<<<<<<< HEAD
 }
 
 void DeviceAPI::FreeStream(TVMContext ctx, TVMStreamHandle stream) {
@@ -334,6 +335,8 @@ int TVMStreamCreate(int device_type, int device_id, TVMStreamHandle* out) {
 
 int TVMStreamFree(int device_type, int device_id, TVMStreamHandle stream) {
   API_BEGIN();
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   TVMContext ctx;
   ctx.device_type = static_cast<DLDeviceType>(device_type);
   ctx.device_id = device_id;

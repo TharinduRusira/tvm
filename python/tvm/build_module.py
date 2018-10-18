@@ -169,6 +169,7 @@ class BuildConfig(NodeBase):
         if self.dump_pass_ir:
             BuildConfig._dump_ir.exit()
         _api_internal._ExitBuildConfigScope()
+<<<<<<< HEAD
 
     def __setattr__(self, name, value):
         if name in BuildConfig._node_defaults:
@@ -177,6 +178,16 @@ class BuildConfig(NodeBase):
         return super(BuildConfig, self).__setattr__(name, value)
 
 
+=======
+
+    def __setattr__(self, name, value):
+        if name in BuildConfig._node_defaults:
+            raise AttributeError(
+                "'%s' object cannot set attribute '%s'" % (str(type(self)), name))
+        return super(BuildConfig, self).__setattr__(name, value)
+
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def current_build_config():
     """Get the current build configuration."""
     return _api_internal._GetCurrentBuildConfig()
@@ -239,10 +250,17 @@ def build_config(**kwargs):
     node_args = {k: v if k not in kwargs else kwargs[k]
                  for k, v in BuildConfig._node_defaults.items()}
     config = make.node("BuildConfig", **node_args)
+<<<<<<< HEAD
 
     if "add_lower_pass" in kwargs:
         config.add_lower_pass = kwargs["add_lower_pass"]
 
+=======
+
+    if "add_lower_pass" in kwargs:
+        config.add_lower_pass = kwargs["add_lower_pass"]
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     return config
 
 def get_binds(args, binds=None):
@@ -441,6 +459,23 @@ def _build_for_device(flist, target, target_host):
 
     fhost = [ir_pass.BindDeviceType(x, device_type) for x in fhost]
     fhost = [ir_pass.LowerTVMBuiltin(x) for x in fhost]
+=======
+        target_flist = inputs
+
+    for tar, flist in target_flist.items():
+        if not isinstance(tar, (str, _target.Target)):
+            raise ValueError("The key of inputs must be str or "
+                             "_target.Target when inputs is dict.")
+        fname_set = set()
+        for x in flist:
+            if not isinstance(x, container.LoweredFunc):
+                raise ValueError("inputs must be Schedule, LoweredFunc, list "
+                                 "of LoweredFunc, or dict of str to list of "
+                                 "LoweredFunc.")
+            if x.name in fname_set:
+                raise ValueError("Duplicate function name %s" % x.name)
+            fname_set.add(x.name)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     if device_type == ndarray.cpu(0).device_type and target_host == target:
         assert not fdevice

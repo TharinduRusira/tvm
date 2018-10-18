@@ -45,6 +45,18 @@ TVM_REGISTER_API("ir_pass.CanonicalSimplify")
       } else {
         *ret = CanonicalSimplify(args[0].operator Expr());
       }
+<<<<<<< HEAD
+=======
+    }
+  });
+
+TVM_REGISTER_API("ir_pass.Substitute")
+.set_body([](TVMArgs args, TVMRetValue *ret) {
+    if (args[0].IsNodeType<Stmt>()) {
+      *ret = Substitute(args[0].operator Stmt(), args[1].operator Map<Var, Expr>());
+    } else {
+      *ret = Substitute(args[0].operator Expr(), args[1].operator Map<Var, Expr>());
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     }
   });
 

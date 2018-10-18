@@ -193,6 +193,21 @@ class TVMContext(ctypes.Structure):
         """Return the number of compute units of device."""
         return _api_internal._GetDeviceAttr(
             self.device_type, self.device_id, 7)
+<<<<<<< HEAD
+=======
+
+    @property
+    def max_thread_dimensions(self):
+        """Return the maximum size of each thread axis
+
+        Returns
+        -------
+        dims: List of int
+            The maximum length of threadIdx.x, threadIdx.y, threadIdx.z
+        """
+        return json.loads(_api_internal._GetDeviceAttr(
+            self.device_type, self.device_id, 8))
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     @property
     def max_thread_dimensions(self):

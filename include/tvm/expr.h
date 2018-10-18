@@ -32,6 +32,7 @@ using HalideIR::IR::FunctionBaseNode;
 using HalideIR::Internal::Stmt;
 using HalideIR::Internal::IRPrinter;
 using HalideIR::Internal::Variable;
+<<<<<<< HEAD
 
 inline Type TVMShapeIndexType() {
   if (std::is_signed<tvm_index_t>::value) {

@@ -32,6 +32,11 @@ def depthwise_conv2d_with_workload_nchw(batch, in_channel, in_height, channel_mu
 
     dtype = 'float32'
 
+=======
+
+    dtype = 'float32'
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     def check_device(device):
         ctx = tvm.context(device, 0)
         if not ctx.exist:
@@ -106,6 +111,13 @@ def depthwise_conv2d_with_workload_nchw(batch, in_channel, in_height, channel_mu
             check_device(device)
 
 
+=======
+    for device in get_all_backend():
+        with autotvm.tophub.context(device):  # load tophub pre-tuned parameters
+            check_device(device)
+
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def depthwise_conv2d_with_workload_nhwc(batch, in_channel, in_height, channel_multiplier, filter_height, stride_h, padding, dilation=1):
     in_width = in_height
     filter_channel = in_channel

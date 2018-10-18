@@ -476,6 +476,7 @@ class StoragePlanRewriter : public IRMutator {
     // This allows effective sharing among different types as long as their alignment
     // requirement fits into the max_simd_bits.
     uint64_t bits_offset{0};
+<<<<<<< HEAD
   };
 
   // Alllocate entry of node.
@@ -487,6 +488,19 @@ class StoragePlanRewriter : public IRMutator {
     std::vector<const Variable*> kill;
   };
 
+=======
+  };
+
+  // Alllocate entry of node.
+  // Event entry in liveness analysis
+  struct EventEntry {
+    // variables we generate
+    std::vector<const Variable*> gen;
+    // variables we kill
+    std::vector<const Variable*> kill;
+  };
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   Stmt MakeAttach(const std::vector<StorageEntry*>& svec,
                   Stmt body) {
     std::vector<Stmt> nest;

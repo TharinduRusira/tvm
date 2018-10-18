@@ -264,6 +264,7 @@ def _get_api(f):
     flocal.is_global = True
     return flocal
 
+<<<<<<< HEAD
 def _init_api(namespace, target_module_name=None):
     """Initialize api for a given module name
 
@@ -281,6 +282,9 @@ def _init_api(namespace, target_module_name=None):
         _init_api_prefix(target_module_name, namespace)
 
 
+=======
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def _init_api_prefix(module_name, prefix):
     module = sys.modules[module_name]
 

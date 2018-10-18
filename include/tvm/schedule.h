@@ -129,6 +129,23 @@ class Stage : public NodeRef {
    * \return reference to self.
    */
   EXPORT Stage& fuse(IterVar outer, IterVar inner, IterVar* p_target);  // NOLINT(*)
+<<<<<<< HEAD
+=======
+  /*!
+   * \brief Fuse all the axes together into a single axis.
+   *
+   * \param axes All the axes to be fused.
+   * \param p_target The result target domain.
+   *
+   * \note axes can be an empty array,
+   *       in that case, a singleton itervar is created and
+   *       inserted to the outermost loop.
+   *       The fuse of empty array is used to support zero-dimension tensors.
+   *
+   * \return reference to self.
+   */
+  EXPORT Stage& fuse(const Array<IterVar>& axes, IterVar* p_target);  // NOLINT(*)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   /*!
    * \brief Fuse all the axes together into a single axis.
    *

@@ -37,6 +37,7 @@ inline Expr ComputeExpr(Expr lhs, Expr rhs) {
 template<typename Op>
 inline Expr ComputeReduce(
     const Array<Expr>& values, Expr empty_value);
+<<<<<<< HEAD
 
 inline bool GetConst(Expr e, int64_t* out) {
   if (e.type().is_vector()) return false;

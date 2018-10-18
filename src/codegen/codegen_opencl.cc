@@ -206,6 +206,25 @@ void CodeGenOpenCL::VisitExpr_(const Broadcast* op, std::ostream& os) {   // NOL
     os << v;
   }
   os << "))";
+<<<<<<< HEAD
+=======
+}
+
+
+runtime::Module BuildOpenCL(Array<LoweredFunc> funcs) {
+  using tvm::runtime::Registry;
+  bool output_ssa = false;
+  CodeGenOpenCL cg;
+  cg.Init(output_ssa);
+  for (LoweredFunc f : funcs) {
+    cg.AddFunction(f);
+  }
+  std::string code = cg.Finish();
+  if (const auto* f = Registry::Get("tvm_callback_opencl_postproc")) {
+    code = (*f)(code).operator std::string();
+  }
+  return OpenCLModuleCreate(code, "cl", ExtractFuncInfo(funcs), code);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
 
