@@ -9,7 +9,8 @@
 
 #include <dmlc/io.h>
 #include <dmlc/serializer.h>
-#include "./c_runtime_api.h"
+#include "c_runtime_api.h"
+#include "ndarray.h"
 
 namespace dmlc {
 namespace serializer {

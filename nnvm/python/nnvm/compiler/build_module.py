@@ -6,6 +6,7 @@ import logging
 import tvm
 
 from tvm.contrib import graph_runtime
+from tvm import autotvm
 from . import graph_attr, graph_util
 from .. import graph as _graph
 from .. import symbol as sym
@@ -238,64 +239,96 @@ def build(graph, target=None, shape=None, dtype="float32",
         raise ValueError("Target is not set in env or passed as argument.")
     target = tvm.target.create(target)
 
-    shape = shape if shape else {}
-    if not isinstance(shape, dict):
-        raise TypeError("require shape to be dict")
-    for value in shape.values():
-        if not all(isinstance(x, int) for x in value):
-            raise TypeError("shape value must be int iterator")
-
-    cfg = BuildConfig.current
-    graph = graph if isinstance(graph, _graph.Graph) else _graph.create(graph)
-    shape, dtype = _update_shape_dtype(shape, dtype, params)
-
-    # correct layout if necessary
-    layout = layout if layout else {}
-    graph = graph_attr.set_layout_inputs(graph, layout)
-    graph = graph.apply("CorrectLayout")
-    index = graph.index
-    layouts = graph.json_attr("layout")
-    layout = {x : layouts[index.entry_id(x)] for x in index.input_names}
-
-    # Initial pass do shape type inference
-    ishape, _ = graph_util.infer_shape(graph, **shape)
-    shape.update(zip(graph.index.input_names, ishape))
-    if not isinstance(dtype, str):
-        idtype, _ = graph_util.infer_dtype(graph, **dtype)
-        dtype.update(zip(graph.index.input_names, idtype))
-    # Initialize all variables specified in _all_var_init
-    init_var = {}
-    if _all_var_init:
-        init_var = initialize_variables(shape, dtype)
-    # Apply optimization
-    with target:
-        graph = optimize(graph, shape, dtype, layout)
-    # Precompute prune
-    if params and cfg.pass_enabled("PrecomputePrune"):
-        graph, params = precompute_prune(graph, params)
-        shape, dtype = _update_shape_dtype(shape, dtype, params)
-    # Operator Fusion and generation
-    graph = graph_attr.set_shape_inputs(graph, shape)
-    graph = graph.apply("InferShape")
-    graph = graph_attr.set_dtype_inputs(graph, dtype)
-    graph._set_json_attr("target", str(target), "str")
-    if target_host is not None:
-        graph._set_json_attr("target_host", str(target_host), "str")
-    if cfg.pass_enabled("OpFusion"):
-        graph._set_json_attr("opt_level", 1, "int")
+    # If current dispatch context is fallback context (the default root context),
+    # then load pre-tuned parameters from TopHub
+    if isinstance(autotvm.DispatchContext.current, autotvm.FallbackContext):
+        tophub_context = autotvm.tophub.context(target)
     else:
-        graph._set_json_attr("opt_level", 0, "int")
-    graph = graph.apply("InferShape").apply("InferType")
-    with target:
-        graph = graph.apply("GraphFusePartition").apply("GraphFuseCompile")
-    libmod = graph_attr._move_out_module(graph, "module")
-    # Write variable initial values into params
-    if init_var:
-        if params is None:
-            params = {}
-        params.update(init_var)
-    return graph, libmod, params
+        tophub_context = autotvm.util.EmptyContext()
 
+    with tophub_context:
+        shape = shape if shape else {}
+        if not isinstance(shape, dict):
+            raise TypeError("require shape to be dict")
+        for value in shape.values():
+            if not all(isinstance(x, int) for x in value):
+                raise TypeError("shape value must be int iterator")
+
+        cfg = BuildConfig.current
+        graph = graph if isinstance(graph, _graph.Graph) else _graph.create(graph)
+        shape, dtype = _update_shape_dtype(shape, dtype, params)
+
+        # correct layout if necessary
+        layout = layout if layout else {}
+        graph = graph_attr.set_layout_inputs(graph, layout)
+        graph = graph.apply("CorrectLayout")
+        index = graph.index
+        layouts = graph.json_attr("layout")
+        layout = {x: layouts[index.entry_id(x)] for x in index.input_names}
+
+        # Initial pass do shape type inference
+        ishape, _ = graph_util.infer_shape(graph, **shape)
+        shape.update(zip(graph.index.input_names, ishape))
+        if not isinstance(dtype, str):
+            idtype, _ = graph_util.infer_dtype(graph, **dtype)
+            dtype.update(zip(graph.index.input_names, idtype))
+        # Initialize all variables specified in _all_var_init
+        init_var = {}
+        if _all_var_init:
+            init_var = initialize_variables(shape, dtype)
+        # Apply optimization
+        with target:
+            graph = optimize(graph, shape, dtype, layout)
+
+        # Clear extra params without nodes.
+        _remove_noref_params(params, graph)
+
+        # Precompute prune
+        if params and cfg.pass_enabled("PrecomputePrune"):
+            graph, params = precompute_prune(graph, params)
+            shape, dtype = _update_shape_dtype(shape, dtype, params)
+        # Operator Fusion and generation
+        graph = graph_attr.set_shape_inputs(graph, shape)
+        graph = graph.apply("InferShape")
+        graph = graph_attr.set_dtype_inputs(graph, dtype)
+        graph._set_json_attr("target", str(target), "str")
+        if target_host is not None:
+            graph._set_json_attr("target_host", str(target_host), "str")
+        if cfg.pass_enabled("OpFusion"):
+            graph._set_json_attr("opt_level", 1, "int")
+        else:
+            graph._set_json_attr("opt_level", 0, "int")
+        graph = graph.apply("InferShape").apply("InferType")
+        graph = graph.apply("GraphFindFusibleGroups")
+        graph = graph.apply("GraphFuse")
+        with target:
+            graph = graph.apply("GraphCompile")
+        libmod = graph_attr._move_out_module(graph, "module")
+        # Write variable initial values into params
+        if init_var:
+            if params is None:
+                params = {}
+            params.update(init_var)
+        return graph, libmod, params
+
+def _remove_noref_params(params, graph):
+    """ Helper to clear non referenced params
+
+    Parameters
+    ----------
+    graph : Graph
+        The input graph
+
+    params: dict of str to ndarray
+        The parameter dictionary
+    """
+    arg_list = set(graph.symbol.list_input_names())
+
+    if params:
+        param_keys = list(params.keys())
+        for key in param_keys:
+            if key not in arg_list:
+                params.pop(key)
 
 def _run_graph(graph, params):
     """Helper utility to build and run and get outputs, only use cpu mode.

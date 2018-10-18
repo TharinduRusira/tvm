@@ -7,6 +7,7 @@
 #include <nnvm/node.h>
 #include <nnvm/op_attr_types.h>
 #include <nnvm/compiler/op_attr_types.h>
+#include <nnvm/compiler/util.h>
 #include <nnvm/top/tensor.h>
 #include <cmath>
 #include "../op_common.h"
@@ -14,6 +15,7 @@
 #include "topi/broadcast.h"
 #include "topi/elemwise.h"
 #include "topi/tags.h"
+#include "../../compiler/compile_engine.h"
 
 namespace nnvm {
 namespace top {
@@ -30,6 +32,66 @@ Used to produce invalide node during optimization.
 )code" NNVM_ADD_FILELINE)
 .set_num_outputs(1)
 .set_num_inputs(0);
+
+// floor
+NNVM_REGISTER_ELEMWISE_UNARY_OP(floor)
+.describe(R"code(Take floor input array, computed element-wise.
+)code" NNVM_ADD_FILELINE)
+.set_support_level(3)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+      return Array<Tensor>{ topi::floor(inputs[0]) };
+});
+
+// ceil
+NNVM_REGISTER_ELEMWISE_UNARY_OP(ceil)
+.describe(R"code(Take ceil input array, computed element-wise.
+)code" NNVM_ADD_FILELINE)
+.set_support_level(3)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+      return Array<Tensor>{ topi::ceil(inputs[0]) };
+});
+
+// trunc
+NNVM_REGISTER_ELEMWISE_UNARY_OP(trunc)
+.describe(R"code(Take truncated value of the input, element-wise.
+)code" NNVM_ADD_FILELINE)
+.set_support_level(3)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+      return Array<Tensor>{ topi::trunc(inputs[0]) };
+});
+
+// round
+NNVM_REGISTER_ELEMWISE_UNARY_OP(round)
+.describe(R"code(Round elements of the input to nearest integer.
+)code" NNVM_ADD_FILELINE)
+.set_support_level(3)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+      return Array<Tensor>{ topi::round(inputs[0]) };
+});
+
+// abs
+NNVM_REGISTER_ELEMWISE_UNARY_OP(abs)
+.describe(R"code(Take absolute value of elements of the input.
+)code" NNVM_ADD_FILELINE)
+.set_support_level(3)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+      return Array<Tensor>{ topi::abs(inputs[0]) };
+});
 
 // sigmoid
 NNVM_REGISTER_ELEMWISE_UNARY_OP(sigmoid)
@@ -182,7 +244,7 @@ NNVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_add)
   "FTVMCompute", [](const NodeAttrs& attrs,
                     const Array<Tensor>& inputs,
                     const Array<Tensor>& out_info) {
-      return Array<Tensor>{ topi::broadcast_add(inputs[0], inputs[1]) };
+      return Array<Tensor>{ topi::add(inputs[0], inputs[1]) };
   })
 .set_attr<FGradient>(
   "FGradient", [](const NodePtr& n,
@@ -205,7 +267,7 @@ NNVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_sub)
   "FTVMCompute", [](const NodeAttrs& attrs,
                     const Array<Tensor>& inputs,
                     const Array<Tensor>& out_info) {
-      return Array<Tensor>{ topi::broadcast_sub(inputs[0], inputs[1]) };
+    return Array<Tensor>{ topi::subtract(inputs[0], inputs[1]) };
 })
 .set_attr<FGradient>(
   "FGradient", [](const NodePtr& n,
@@ -228,7 +290,7 @@ NNVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_mul)
   "FTVMCompute", [](const NodeAttrs& attrs,
                     const Array<Tensor>& inputs,
                     const Array<Tensor>& out_info) {
-      return Array<Tensor>{ topi::broadcast_mul(inputs[0], inputs[1]) };
+      return Array<Tensor>{ topi::multiply(inputs[0], inputs[1]) };
 })
 .set_attr<FGradient>(
   "FGradient", [](const NodePtr& n,
@@ -245,7 +307,7 @@ NNVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_mul)
 });
 
 NNVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_div)
-.describe(R"code(Element-wise multiplication
+.describe(R"code(Element-wise division
 
 )code"  NNVM_ADD_FILELINE)
 .set_support_level(1)
@@ -253,7 +315,7 @@ NNVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_div)
   "FTVMCompute", [](const NodeAttrs& attrs,
                     const Array<Tensor>& inputs,
                     const Array<Tensor>& out_info) {
-      return Array<Tensor>{ topi::broadcast_div(inputs[0], inputs[1]) };
+      return Array<Tensor>{ topi::divide(inputs[0], inputs[1]) };
 })
 .set_attr<FGradient>(
   "FGradient", [](const NodePtr& n,
@@ -273,6 +335,30 @@ NNVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_div)
       MakeNode("elemwise_div", n->attrs.name + "_grad_1",
                {sub1, sub2})
     };
+});
+
+NNVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_mod)
+  .describe(R"code(Element-wise modulo
+
+)code" NNVM_ADD_FILELINE)
+.set_support_level(1)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+      return Array<Tensor>{ topi::mod(inputs[0], inputs[1]) };
+});
+
+NNVM_REGISTER_ELEMWISE_BINARY_OP(elemwise_pow)
+  .describe(R"code(Element-wise power
+
+)code" NNVM_ADD_FILELINE)
+.set_support_level(1)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+      return Array<Tensor>{ topi::power(inputs[0], inputs[1]) };
 });
 
 // negative
@@ -334,6 +420,16 @@ NNVM_REGISTER_INIT_OP(full)
 .set_attr<FInferShape>("FInferShape", ZeroShape<InitOpWithScalarParam>)
 .set_attr<FInferType>("FInferType", ZeroType<InitOpWithScalarParam>)
 .set_attr<FCorrectLayout>("FCorrectLayout", ZeroLayout)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+    const InitOpWithScalarParam& param = nnvm::get<InitOpWithScalarParam>(attrs.parsed);
+    Array<Expr> shape = ShapeToArray(param.shape);
+    Type dtype = GetTVMType(param.dtype);
+    Expr fill_value = tvm::make_const(dtype, param.fill_value);
+    return Array<Tensor>{ topi::full(shape, dtype, fill_value) };
+})
 .set_support_level(4);
 
 NNVM_REGISTER_INIT_OP(zeros)
@@ -347,6 +443,16 @@ NNVM_REGISTER_INIT_OP(zeros)
 .set_attr<FInferShape>("FInferShape", ZeroShape<InitOpParam>)
 .set_attr<FInferType>("FInferType", ZeroType<InitOpParam>)
 .set_attr<FCorrectLayout>("FCorrectLayout", ZeroLayout)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+    const InitOpParam& param = nnvm::get<InitOpParam>(attrs.parsed);
+    Array<Expr> shape = ShapeToArray(param.shape);
+    Type dtype = GetTVMType(param.dtype);
+    Expr fill_value = tvm::make_const(dtype, 0);
+    return Array<Tensor>{ topi::full(shape, dtype, fill_value) };
+})
 .set_support_level(4);
 
 NNVM_REGISTER_INIT_OP(ones)
@@ -360,6 +466,16 @@ NNVM_REGISTER_INIT_OP(ones)
 .set_attr<FInferShape>("FInferShape", ZeroShape<InitOpParam>)
 .set_attr<FInferType>("FInferType", ZeroType<InitOpParam>)
 .set_attr<FCorrectLayout>("FCorrectLayout", ZeroLayout)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+    const InitOpParam& param = nnvm::get<InitOpParam>(attrs.parsed);
+    Array<Expr> shape = ShapeToArray(param.shape);
+    Type dtype = GetTVMType(param.dtype);
+    Expr fill_value = tvm::make_const(dtype, 1);
+    return Array<Tensor>{ topi::full(shape, dtype, fill_value) };
+})
 .set_support_level(4);
 
 // full_like
@@ -371,6 +487,14 @@ as the input array
 .add_arguments(FillValueParam::__FIELDS__())
 .set_attr_parser(ParamParser<FillValueParam>)
 .set_attr<FGetAttrDict>("FGetAttrDict", ParamGetAttrDict<FillValueParam>)
+.set_attr<FTVMCompute>(
+    "FTVMCompute", [](const NodeAttrs& attrs,
+                      const Array<Tensor>& inputs,
+                      const Array<Tensor>& out_info) {
+      const FillValueParam& param = nnvm::get<FillValueParam>(attrs.parsed);
+      const Expr fill_value = tvm::make_const(out_info[0]->dtype, param.fill_value);
+      return Array<Tensor> { topi::full_like(inputs[0], fill_value) };
+})
 .set_support_level(4);
 
 NNVM_REGISTER_INIT_LIKE_OP(zeros_like)
@@ -378,6 +502,13 @@ NNVM_REGISTER_INIT_LIKE_OP(zeros_like)
 as the input array.
 
 )code")
+.set_attr<FTVMCompute>(
+    "FTVMCompute", [](const NodeAttrs& attrs,
+                      const Array<Tensor>& inputs,
+                      const Array<Tensor>& out_info) {
+      return Array<Tensor> { topi::full_like(inputs[0],
+                                             tvm::make_const(out_info[0]->dtype, 0)) };
+})
 .set_support_level(4);
 
 NNVM_REGISTER_INIT_LIKE_OP(ones_like)
@@ -385,6 +516,13 @@ NNVM_REGISTER_INIT_LIKE_OP(ones_like)
 as the input array.
 
 )code")
+.set_attr<FTVMCompute>(
+    "FTVMCompute", [](const NodeAttrs& attrs,
+                      const Array<Tensor>& inputs,
+                      const Array<Tensor>& out_info) {
+      return Array<Tensor> { topi::full_like(inputs[0],
+                                             tvm::make_const(out_info[0]->dtype, 1)) };
+})
 .set_support_level(4);
 
 // unary scalar op
@@ -463,6 +601,39 @@ NNVM_REGISTER_ELEMWISE_BINARY_SCALAR(__rsub_scalar__)
       MakeNode("negative", n->attrs.name + "_grad_0", {ograds[0]})
     };
 });
+
+
+NNVM_REGISTER_ELEMWISE_BINARY_SCALAR(__lshift_scalar__)
+.describe(R"code(Tensor left shift by scalar
+
+)code"  NNVM_ADD_FILELINE)
+.set_support_level(3)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+    const ScalarParam& param = nnvm::get<ScalarParam>(attrs.parsed);
+    int scalar_val = static_cast<int>(param.scalar);
+    return Array<Tensor>{
+      topi::left_shift(inputs[0],
+                       make_const(inputs[0]->dtype, scalar_val))};
+    });
+
+NNVM_REGISTER_ELEMWISE_BINARY_SCALAR(__rshift_scalar__)
+.describe(R"code(Tensor right shift by scalar
+
+)code"  NNVM_ADD_FILELINE)
+.set_support_level(3)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+    const ScalarParam& param = nnvm::get<ScalarParam>(attrs.parsed);
+    int scalar_val = static_cast<int>(param.scalar);
+    return Array<Tensor>{
+      topi::right_shift(inputs[0],
+                        make_const(inputs[0]->dtype, scalar_val))};
+  });
 
 NNVM_REGISTER_ELEMWISE_BINARY_SCALAR(__mul_scalar__)
 .describe(R"code(Tensor multiplies scalar
@@ -603,6 +774,14 @@ NNVM_REGISTER_ELEMWISE_REDUCE_OP(elemwise_sum)
 .describe(R"code(Adds all input arguments element-wise.
 
 )code"  NNVM_ADD_FILELINE)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+    const ElementWiseReduceParam& param = nnvm::get<ElementWiseReduceParam>(attrs.parsed);
+    CHECK_EQ(param.num_args, inputs.size()) << """Compute definition of elemwise sum""";
+    return Array<Tensor>{ topi::elemwise_sum(inputs) };
+})
 .set_attr<nnvm::FGradient>(
   "FGradient", [](const NodePtr& n,
                   const std::vector<NodeEntry>& ograds){
@@ -638,6 +817,12 @@ with 1.0 if (left > right), otherwise 0.0 element-wise.
 .add_argument("rhs", "Tensor", "Second input")
 .set_num_inputs(2)
 .set_attr<nnvm::FInferShape>("FInferShape", ElemwiseShape<2, 1>)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+    return Array<Tensor>{ topi::cast(topi::greater(inputs[0], inputs[1]), out_info[0]->dtype) };
+})
 .set_support_level(4);
 
 
@@ -650,6 +835,12 @@ with 1.0 if (left < right), otherwise 0.0 element-wise.
 .add_argument("rhs", "Tensor", "Second input")
 .set_num_inputs(2)
 .set_attr<nnvm::FInferShape>("FInferShape", ElemwiseShape<2, 1>)
+.set_attr<FTVMCompute>(
+  "FTVMCompute", [](const NodeAttrs& attrs,
+                    const Array<Tensor>& inputs,
+                    const Array<Tensor>& out_info) {
+    return Array<Tensor>{ topi::cast(topi::less(inputs[0], inputs[1]), out_info[0]->dtype) };
+})
 .set_support_level(4);
 
 NNVM_REGISTER_INDICATOR_OP(_max_mask)

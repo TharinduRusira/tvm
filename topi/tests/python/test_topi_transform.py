@@ -3,6 +3,8 @@ import numpy as np
 import tvm
 import topi
 
+from common import get_all_backend
+
 def verify_expand_dims(in_shape, out_shape, axis, num_newaxis):
     A = tvm.placeholder(shape=in_shape, name="A")
     B = topi.expand_dims(A, axis, num_newaxis)
@@ -22,7 +24,7 @@ def verify_expand_dims(in_shape, out_shape, axis, num_newaxis):
         foo(data_nd, out_nd)
         np.testing.assert_allclose(out_nd.asnumpy(), out_npy)
 
-    for device in ["llvm", "nvptx", "cuda", "opencl", "metal", "rocm", "vulkan"]:
+    for device in get_all_backend():
         check_device(device)
 
 
@@ -45,7 +47,7 @@ def verify_tranpose(in_shape, axes):
         foo(data_nd, out_nd)
         np.testing.assert_allclose(out_nd.asnumpy(), out_npy)
 
-    for device in ["llvm", "nvptx", "cuda", "opencl", "metal", "rocm", "vulkan"]:
+    for device in get_all_backend():
         check_device(device)
 
 
@@ -68,7 +70,7 @@ def verify_reshape(src_shape, dst_shape):
         foo(data_nd, out_nd)
         np.testing.assert_allclose(out_nd.asnumpy(), out_npy)
 
-    for device in ["llvm", "nvptx", "cuda", "opencl", "metal", "rocm", "vulkan"]:
+    for device in get_all_backend():
         check_device(device)
 
 
@@ -96,7 +98,7 @@ def verify_squeeze(src_shape, axis):
         foo(data_nd, out_nd)
         np.testing.assert_allclose(out_nd.asnumpy(), out_npy)
 
-    for device in ["llvm", "nvptx", "cuda", "opencl", "metal", "rocm", "vulkan"]:
+    for device in get_all_backend():
         check_device(device)
 
 def verify_concatenate(shapes, axis):
@@ -121,7 +123,7 @@ def verify_concatenate(shapes, axis):
         foo(*(data_nds + [out_nd]))
         np.testing.assert_allclose(out_nd.asnumpy(), out_npy)
 
-    for device in ["llvm", "nvptx", "cuda", "opencl", "metal", "rocm", "vulkan"]:
+    for device in get_all_backend():
         check_device(device)
 
 
@@ -137,7 +139,7 @@ def verify_split(src_shape, indices_or_sections, axis):
         with tvm.target.create(device):
             s = topi.generic.schedule_injective(tensor_l)
 
-        foo = tvm.build(s, [A] + tensor_l, device, name="split")
+        foo = tvm.build(s, [A] + list(tensor_l), device, name="split")
         data_npy = np.random.normal(size=src_shape).astype(A.dtype)
         out_npys = np.split(data_npy, indices_or_sections, axis=axis)
         data_nd = tvm.nd.array(data_npy, ctx)
@@ -146,65 +148,7 @@ def verify_split(src_shape, indices_or_sections, axis):
         for out_nd, out_npy in zip(out_nds, out_npys):
             np.testing.assert_allclose(out_nd.asnumpy(), out_npy)
 
-    for device in ["llvm", "nvptx", "cuda", "opencl", "metal", "rocm", "vulkan"]:
-        check_device(device)
-
-
-def verify_expand_like(in_shape, out_shape, axis):
-    A = tvm.placeholder(shape=in_shape, name="A")
-    B = tvm.placeholder(shape=out_shape, name="B")
-    C = topi.expand_like(A, B, axis)
-    s = tvm.create_schedule([C.op])
-
-    def check_device(device):
-        if not tvm.module.enabled(device):
-            print("Skip because %s is not enabled" % device)
-            return
-        print("Running on target: %s" % device)
-
-        ctx = tvm.context(device, 0)
-        f = tvm.build(s, [A, B, C], device, name="expand_like")
-        input = np.random.uniform(size=in_shape).astype(A.dtype)
-        tvm_input = tvm.nd.array(input, ctx)
-
-        odim = len(out_shape)
-        real_axis = [x if x >= 0 else x + odim for x in axis]
-        real_axis = sorted(real_axis)
-        for x in real_axis:
-            input = np.expand_dims(input, x).astype(A.dtype)
-        for x in real_axis:
-            input = np.concatenate([input]*out_shape[x], axis=x).astype(A.dtype)
-        assert input.shape == out_shape
-
-        tvm_shape_like = tvm.nd.array(np.zeros(out_shape).astype(B.dtype), ctx)
-        out = tvm.nd.array(np.zeros(out_shape).astype(A.dtype), ctx)
-        f(tvm_input, tvm_shape_like, out)
-        np.testing.assert_allclose(out.asnumpy(), input)
-
-    for device in ["llvm"]:
-        check_device(device)
-
-def verify_flip(in_shape, axis):
-    A = tvm.placeholder(shape=in_shape, name="A")
-    B = topi.flip(A, axis) + 1
-    def check_device(device):
-        ctx = tvm.context(device, 0)
-        if not ctx.exist:
-            print("Skip because %s is not enabled" % device)
-            return
-        print("Running on target: %s" % device)
-        with tvm.target.create(device):
-            s = topi.generic.schedule_injective(B)
-
-        foo = tvm.build(s, [A, B], device, name="reverse")
-        x_np = np.random.uniform(size=in_shape).astype(A.dtype)
-        out_npy = np.flip(x_np, axis) + 1
-        data_nd = tvm.nd.array(x_np, ctx)
-        out_nd = tvm.nd.empty(out_npy.shape, ctx=ctx, dtype=A.dtype)
-        foo(data_nd, out_nd)
-        np.testing.assert_allclose(out_nd.asnumpy(), out_npy)
-
-    for device in ["llvm", "cuda", "opencl"]:
+    for device in get_all_backend():
         check_device(device)
 
 def verify_take(src_shape, indices_src, axis=None):
@@ -281,6 +225,137 @@ def test_strided_slice():
     verify_strided_slice((3, 4, 3), [1, -1, 0], [2, -3, 3], [1, -1, 1])
     verify_strided_slice((3, 4, 3), [1, 1, 0], [4, 4, 3])
 
+def verify_expand_like(in_shape, out_shape, axis):
+    A = tvm.placeholder(shape=in_shape, name="A")
+    B = tvm.placeholder(shape=out_shape, name="B")
+    C = topi.expand_like(A, B, axis)
+    s = tvm.create_schedule([C.op])
+
+    def check_device(device):
+        if not tvm.module.enabled(device):
+            print("Skip because %s is not enabled" % device)
+            return
+        print("Running on target: %s" % device)
+
+        ctx = tvm.context(device, 0)
+        f = tvm.build(s, [A, B, C], device, name="expand_like")
+        input = np.random.uniform(size=in_shape).astype(A.dtype)
+        tvm_input = tvm.nd.array(input, ctx)
+
+        odim = len(out_shape)
+        real_axis = [x if x >= 0 else x + odim for x in axis]
+        real_axis = sorted(real_axis)
+        for x in real_axis:
+            input = np.expand_dims(input, x).astype(A.dtype)
+        for x in real_axis:
+            input = np.concatenate([input]*out_shape[x], axis=x).astype(A.dtype)
+        assert input.shape == out_shape
+
+        tvm_shape_like = tvm.nd.array(np.zeros(out_shape).astype(B.dtype), ctx)
+        out = tvm.nd.array(np.zeros(out_shape).astype(A.dtype), ctx)
+        f(tvm_input, tvm_shape_like, out)
+        np.testing.assert_allclose(out.asnumpy(), input)
+
+    for device in ["llvm"]:
+        check_device(device)
+
+def verify_flip(in_shape, axis):
+    A = tvm.placeholder(shape=in_shape, name="A")
+    B = topi.flip(A, axis) + 1
+    def check_device(device):
+        ctx = tvm.context(device, 0)
+        if not ctx.exist:
+            print("Skip because %s is not enabled" % device)
+            return
+        print("Running on target: %s" % device)
+        with tvm.target.create(device):
+            s = topi.generic.schedule_injective(B)
+
+        foo = tvm.build(s, [A, B], device, name="reverse")
+        x_np = np.random.uniform(size=in_shape).astype(A.dtype)
+        out_npy = np.flip(x_np, axis) + 1
+        data_nd = tvm.nd.array(x_np, ctx)
+        out_nd = tvm.nd.empty(out_npy.shape, ctx=ctx, dtype=A.dtype)
+        foo(data_nd, out_nd)
+        np.testing.assert_allclose(out_nd.asnumpy(), out_npy)
+
+    for device in ["llvm", "cuda", "opencl", "sdaccel", "aocl_sw_emu"]:
+        check_device(device)
+
+def verify_take(src_shape, indices_src, axis=None):
+    src_dtype = "float32"
+    indices_dtype = "int32"
+    indices_src = np.array(indices_src, dtype=indices_dtype)
+    A = tvm.placeholder(shape=src_shape, dtype=src_dtype, name="A")
+    indices = tvm.placeholder(shape=indices_src.shape, dtype=indices_dtype, name="indices")
+    if axis is None:
+        out_tensor = topi.take(a=A, indices=indices)
+    else:
+        out_tensor = topi.take(a=A, indices=indices, axis=axis)
+
+    def check_device(device):
+        ctx = tvm.context(device, 0)
+        if not ctx.exist:
+            print("Skip because %s is not enabled" % device)
+            return
+        print("Running on target: %s" % device)
+        with tvm.target.create(device):
+            s = topi.generic.schedule_injective(out_tensor)
+
+        foo = tvm.build(s, [A] + [indices] + [out_tensor] , device, name="take")
+        shape_size = 1
+        for i in range(len(src_shape)):
+            shape_size = shape_size * src_shape[i]
+        data_npy = np.arange(shape_size, dtype=src_dtype).reshape((src_shape))
+
+        if axis is None:
+            out_npys = np.take(data_npy, indices_src)
+        else:
+            out_npys = np.take(data_npy, indices_src, axis=axis)
+        data_nd = tvm.nd.array(data_npy, ctx)
+        indices_nd = tvm.nd.array(indices_src, ctx)
+        out_nd = tvm.nd.empty(out_npys.shape, ctx=ctx, dtype=src_dtype)
+        foo(data_nd, indices_nd, out_nd)
+        np.testing.assert_allclose(out_nd.asnumpy(), out_npys)
+
+    for device in ["llvm", "opencl", "sdaccel", "aocl_sw_emu"]:
+        check_device(device)
+
+def verify_strided_slice(in_shape, begin, end, stride=None):
+    stride = stride if stride else [1, 1, 1]
+    A = tvm.placeholder(shape=in_shape, name="A")
+    B = topi.strided_slice(A, begin, end, stride) + 1
+    def test_forward(x, begin, end, stride):
+        return x[begin[0]:end[0]:stride[0],
+                    begin[1]:end[1]:stride[1], begin[2]:end[2]:stride[2]] + 1
+    def check_device(device):
+        ctx = tvm.context(device, 0)
+        if not ctx.exist:
+            print("Skip because %s is not enabled" % device)
+            return
+        print("Running on target: %s" % device)
+        with tvm.target.create(device):
+            s = topi.generic.schedule_injective(B)
+
+        foo = tvm.build(s, [A, B], device, name="stride_slice")
+        x_np = np.random.uniform(size=in_shape).astype(A.dtype)
+        out_npy = test_forward(x_np, begin, end, stride)
+        data_nd = tvm.nd.array(x_np, ctx)
+        out_nd = tvm.nd.empty(out_npy.shape, ctx=ctx, dtype=A.dtype)
+        foo(data_nd, out_nd)
+        np.testing.assert_allclose(out_nd.asnumpy(), out_npy)
+
+    for device in ["llvm", "opencl", "sdaccel", "aocl_sw_emu"]:
+        check_device(device)
+
+def test_strided_slice():
+    verify_strided_slice((3, 4, 3), [0, 0, 0], [4, -5, 4], [1, -1, 2])
+    verify_strided_slice((3, 4, 3), [1, 1, 0], [4, 4, 3], [2, 1, 1])
+    verify_strided_slice((3, 4, 3), [1, -1, 0], [4, -5, 3], [2, -1, 1])
+    verify_strided_slice((3, 4, 3), [1, 0, 0], [2, 2, 3], [1, 1, 2])
+    verify_strided_slice((3, 4, 3), [1, -1, 0], [2, -3, 3], [1, -1, 1])
+    verify_strided_slice((3, 4, 3), [1, 1, 0], [4, 4, 3])
+
 def test_expand_dims():
     verify_expand_dims((3, 10), (3, 10, 1, 1), 2, 2)
     verify_expand_dims((3, 10), (1, 3, 10), -3, 1)
@@ -304,6 +379,21 @@ def test_squeeze():
     verify_squeeze((1, 2, 1, 4), None)
     verify_squeeze((1, 1, 1, 4), (1, 2))
     verify_squeeze((1, 1, 1, 1), None)
+
+    # a special case to trigger inline let expression
+    A = tvm.placeholder((2,), 'float32', 'A')
+    E = topi.squeeze(A)
+    C = tvm.compute((1,), lambda i: E[(2 * A[0] - 1).astype('int32')])
+    for device in ['cuda', 'opencl']:
+        ctx = tvm.context(device, 0)
+        if ctx.exist:
+            with tvm.target.create(device):
+                s = topi.generic.schedule_injective(C)
+                func = tvm.build(s, [A, C])
+            a = tvm.nd.array(np.array((1, 2)).astype('float32'), ctx=ctx)
+            c = tvm.nd.empty((1,), dtype='float32', ctx=ctx)
+            func(a, c)
+            assert c.asnumpy()[0] == 2
 
 
 def test_concatenate():

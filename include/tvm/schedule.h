@@ -7,10 +7,10 @@
 #define TVM_SCHEDULE_H_
 
 #include <string>
-#include "./base.h"
-#include "./expr.h"
-#include "./tensor.h"
-#include "./tensor_intrin.h"
+#include "base.h"
+#include "expr.h"
+#include "tensor.h"
+#include "tensor_intrin.h"
 
 namespace tvm {
 
@@ -36,7 +36,7 @@ enum AttachType : int {
 class Stage : public NodeRef {
  public:
   Stage() {}
-  explicit Stage(std::shared_ptr<Node> n) : NodeRef(n) {}
+  explicit Stage(NodePtr<Node> n) : NodeRef(n) {}
   /*!
    * \brief create a new schedule for op.
    * \param op The operator in the schedule
@@ -130,6 +130,20 @@ class Stage : public NodeRef {
    */
   EXPORT Stage& fuse(IterVar outer, IterVar inner, IterVar* p_target);  // NOLINT(*)
   /*!
+   * \brief Fuse all the axes together into a single axis.
+   *
+   * \param axes All the axes to be fused.
+   * \param p_target The result target domain.
+   *
+   * \note axes can be an empty array,
+   *       in that case, a singleton itervar is created and
+   *       inserted to the outermost loop.
+   *       The fuse of empty array is used to support zero-dimension tensors.
+   *
+   * \return reference to self.
+   */
+  EXPORT Stage& fuse(const Array<IterVar>& axes, IterVar* p_target);  // NOLINT(*)
+  /*!
    * \brief Reorder the iteration
    * \param order The order of iteration variable.
    * \return reference to self.
@@ -151,9 +165,9 @@ class Stage : public NodeRef {
    * \return reference to self.
    */
   EXPORT Stage& tile(IterVar x_parent, IterVar y_parent,   // NOLINT(*)
-              Expr x_factor, Expr y_factor,
-              IterVar* p_x_outer, IterVar* p_y_outer,
-              IterVar* p_x_inner, IterVar* p_y_inner);
+                     Expr x_factor, Expr y_factor,
+                     IterVar* p_x_outer, IterVar* p_y_outer,
+                     IterVar* p_x_inner, IterVar* p_y_inner);
   /*!
    * \brief Vectorize iteration.
    * \param var The axis to be vectorized.
@@ -246,7 +260,7 @@ class Stage : public NodeRef {
 class Schedule : public NodeRef {
  public:
   Schedule() {}
-  explicit Schedule(std::shared_ptr<Node> n) : NodeRef(n) {}
+  explicit Schedule(NodePtr<Node> n) : NodeRef(n) {}
   /*!
    * \brief Get a copy of current schedule.
    * \return The copied schedule.
@@ -369,7 +383,7 @@ class Schedule : public NodeRef {
 class IterVarRelation : public NodeRef {
  public:
   IterVarRelation() {}
-  explicit IterVarRelation(std::shared_ptr<Node> n) : NodeRef(n) {}
+  explicit IterVarRelation(NodePtr<Node> n) : NodeRef(n) {}
   /*!
    * \brief access the internal node container
    * \return the pointer to the internal node container
@@ -383,7 +397,7 @@ class IterVarRelation : public NodeRef {
 class IterVarAttr : public NodeRef {
  public:
   IterVarAttr() {}
-  explicit IterVarAttr(std::shared_ptr<Node> n) : NodeRef(n) {}
+  explicit IterVarAttr(NodePtr<Node> n) : NodeRef(n) {}
   /*!
    * \brief access the internal node container
    * \return the pointer to the internal node container
@@ -671,6 +685,25 @@ class RebaseNode : public IterVarRelationNode {
 
   static constexpr const char* _type_key = "Rebase";
   TVM_DECLARE_NODE_TYPE_INFO(RebaseNode, IterVarRelationNode);
+};
+
+
+/*!
+ * \brief Singleton iterator [0, 1)
+ */
+class SingletonNode : public IterVarRelationNode {
+ public:
+  /*! \brief The singleton iterator */
+  IterVar iter;
+
+  void VisitAttrs(AttrVisitor* v) final {
+    v->Visit("iter", &iter);
+  }
+
+  static IterVarRelation make(IterVar iter);
+
+  static constexpr const char* _type_key = "Singleton";
+  TVM_DECLARE_NODE_TYPE_INFO(SingletonNode, IterVarRelationNode);
 };
 
 

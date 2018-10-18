@@ -15,7 +15,7 @@
 #include <utility>
 #include <vector>
 #include <string>
-#include "./llvm_common.h"
+#include "llvm_common.h"
 #include "../../runtime/thread_storage_scope.h"
 
 namespace tvm {
@@ -178,6 +178,8 @@ class CodeGenLLVM :
   // do a scalarize call with f
   llvm::Value* CreateScalarizedCall(
       const Call* op, llvm::Function* f, const std::vector<llvm::Value*>& args);
+  // handle module import
+  void HandleImport(const std::string& code);
   // cast operatpr
   llvm::Value* CreateCast(Type from, Type to, llvm::Value* value);
   // comparison op

@@ -40,6 +40,8 @@ We can also use other specific function in this module to create specific target
 """
 from __future__ import absolute_import
 
+import warnings
+
 from ._ffi.base import _LIB_NAME
 from ._ffi.node import NodeBase, register_node
 from . import _api_internal
@@ -50,7 +52,6 @@ except ImportError as err_msg:
     # Allow decorator to be missing in runtime
     if _LIB_NAME != "libtvm_runtime.so":
         raise err_msg
-
 
 def _merge_opts(opts, new_opts):
     """Helper function to merge options"""
@@ -72,17 +73,19 @@ class Target(NodeBase):
     Do not use class constructor, you can create target using the following functions
 
     - :any:`tvm.target.create` create target from string
-    - :any:`tvm.target.rasp` create raspberry pi target
+    - :any:`tvm.target.arm_cpu` create arm_cpu target
     - :any:`tvm.target.cuda` create CUDA target
     - :any:`tvm.target.rocm` create ROCM target
     - :any:`tvm.target.mali` create Mali target
-    - :any:`tvm.target.intel_gpu` create Intel GPU target
+    - :any:`tvm.target.intel_graphics` create Intel Graphics target
     """
-    def __init__(self, handle):
-        super(Target, self).__init__(handle)
-        self._keys = None
-        self._options = None
-        self._libs = None
+    def __new__(cls):
+        # Always override new to enable class
+        obj = NodeBase.__new__(cls)
+        obj._keys = None
+        obj._options = None
+        obj._libs = None
+        return obj
 
     @property
     def keys(self):
@@ -101,6 +104,13 @@ class Target(NodeBase):
         if not self._libs:
             self._libs = [l.value for l in self.libs_array]
         return self._libs
+
+    @property
+    def model(self):
+        for opt in self.options_array:
+            if opt.value.startswith('-model='):
+                return opt.value[7:]
+        return 'unknown'
 
     def __enter__(self):
         _api_internal._EnterTargetScope(self)
@@ -262,6 +272,7 @@ def override_native_generic_func(func_name):
                     "Keyword arguments cannot be used when invoking generic_func %s" % func_name)
             return generic_func_node(*args)
         fresult = decorate(fdefault, dispatch_func)
+        fresult.fdefault = fdefault
         fresult.register = register
         return fresult
     return fdecorate
@@ -346,71 +357,64 @@ def generic_func(fdefault):
         return func(*args, **kwargs)
     fdecorate = decorate(fdefault, dispatch_func)
     fdecorate.register = register
+    fdecorate.fdefault = fdefault
     return fdecorate
 
 
-def cuda(options=None):
+def cuda(model='unknown', options=None):
     """Returns a cuda target.
 
     Parameters
     ----------
+    model: str
+        The model of cuda device (e.g. 1080ti)
     options : str or list of str
         Additional options
     """
-    options = _merge_opts([], options)
-    return _api_internal._TargetCreate("cuda", *options)
+    opts = _merge_opts(['-model=%s' % model], options)
+    return _api_internal._TargetCreate("cuda", *opts)
 
 
-def rocm(options=None):
+def rocm(model='unknown', options=None):
     """Returns a ROCM target.
 
     Parameters
     ----------
+    model: str
+        The model of this device
     options : str or list of str
         Additional options
     """
-    options = _merge_opts([], options)
-    return _api_internal._TargetCreate("rocm", *options)
+    opts = _merge_opts(["-model=%s" % model], options)
+    return _api_internal._TargetCreate("rocm", *opts)
 
 
-def rasp(options=None):
-    """Returns a rasp target.
-
-    Parameters
-    ----------
-    options : str or list of str
-        Additional options
-    """
-    opts = ["-device=rasp",
-            "-mtriple=armv7l-none-linux-gnueabihf",
-            "-mcpu=cortex-a53",
-            "-mattr=+neon"]
-    opts = _merge_opts(opts, options)
-    return _api_internal._TargetCreate("llvm", *opts)
-
-
-def mali(options=None):
+def mali(model='unknown', options=None):
     """Returns a ARM Mali GPU target.
 
     Parameters
     ----------
+    model: str
+        The model of this device
     options : str or list of str
         Additional options
     """
-    opts = ["-device=mali"]
+    opts = ["-device=mali", '-model=%s' % model]
     opts = _merge_opts(opts, options)
     return _api_internal._TargetCreate("opencl", *opts)
 
 
-def intel_gpu(options=None):
-    """Returns an Intel GPU target.
+def intel_graphics(model='unknown', options=None):
+    """Returns an Intel Graphics target.
 
     Parameters
     ----------
+    model: str
+        The model of this device
     options : str or list of str
         Additional options
     """
-    opts = ["-device=intel_gpu"]
+    opts = ["-device=intel_graphics", '-model=%s' % model]
     opts = _merge_opts(opts, options)
     return _api_internal._TargetCreate("opencl", *opts)
 
@@ -425,6 +429,48 @@ def opengl(options=None):
     """
     options = _merge_opts([], options)
     return _api_internal._TargetCreate("opengl", *options)
+
+
+def arm_cpu(model='unknown', options=None):
+    """Returns a ARM CPU target.
+    This function will also download pre-tuned op parameters when there is none.
+
+    Parameters
+    ----------
+    model: str
+        SoC name or phone name of the arm board.
+    options : str or list of str
+        Additional options
+    """
+    trans_table = {
+        "pixel2":    ["-model=snapdragon835", "-target=arm64-linux-android -mattr=+neon"],
+        "mate10":    ["-model=kirin970", "-target=arm64-linux-android -mattr=+neon"],
+        "mate10pro": ["-model=kirin970", "-target=arm64-linux-android -mattr=+neon"],
+        "p20":       ["-model=kirin970", "-target=arm64-linux-android -mattr=+neon"],
+        "p20pro":    ["-model=kirin970", "-target=arm64-linux-android -mattr=+neon"],
+        "rasp3b":    ["-model=bcm2837", "-target=armv7l-linux-gnueabihf -mattr=+neon"],
+        "rk3399":    ["-model=rk3399", "-target=aarch64-linux-gnu -mattr=+neon"],
+        "pynq":      ["-model=pynq", "-target=armv7a-linux-eabi -mattr=+neon"],
+        "ultra96":   ["-model=ultra96", "-target=aarch64-linux-gnu -mattr=+neon"],
+    }
+    pre_defined_opt = trans_table.get(model, ["-model=%s" % model])
+
+    opts = ["-device=arm_cpu"] + pre_defined_opt
+    opts = _merge_opts(opts, options)
+    return _api_internal._TargetCreate("llvm", *opts)
+
+
+def rasp(options=None):
+    """Return a Raspberry 3b target.
+
+    Parameters
+    ----------
+    options : str or list of str
+        Additional options
+    """
+    warnings.warn('tvm.target.rasp() is going to be deprecated. '
+                  'Please use tvm.target.arm_cpu("rasp3b")')
+    return arm_cpu('rasp3b', options)
 
 
 def create(target_str):
@@ -464,5 +510,4 @@ def current_target(allow_none=True):
     ------
     ValueError if current target is not set.
     """
-    target_str = _api_internal._GetCurrentTarget(allow_none)
-    return create(target_str) if target_str is not None else None
+    return _api_internal._GetCurrentTarget(allow_none)

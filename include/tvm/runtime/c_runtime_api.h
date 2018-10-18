@@ -42,6 +42,10 @@
 #endif
 #endif
 
+// TVM version
+#define TVM_VERSION "0.5.dev"
+
+
 // TVM Runtime is DLPack compatible.
 #include <dlpack/dlpack.h>
 
@@ -56,11 +60,9 @@ typedef int64_t tvm_index_t;
 
 /*! \brief Extension device types in TVM */
 typedef enum {
-  kDLVulkan = 7,
+  kDLAOCL = 5,
+  kDLSDAccel = 6,
   kOpenGL = 11,
-  // Extension DRAM type, used for quickly test extension device
-  // The device api can differ depending on the xpu driver registered.
-  kExtDev = 12,
   // AddExtraTVMType which is not in DLPack here
 } TVMDeviceExtType;
 
@@ -82,6 +84,7 @@ typedef enum {
   kFuncHandle = 10U,
   kStr = 11U,
   kBytes = 12U,
+  kNDArrayContainer = 13U,
   // Extension codes for other frameworks to integrate TVM PackedFunc.
   // To make sure each framework's id do not conflict, use first and
   // last sections to mark ranges.
@@ -116,6 +119,9 @@ typedef DLContext TVMContext;
  */
 typedef DLTensor TVMArray;
 
+/*! \brief the array handle */
+typedef TVMArray* TVMArrayHandle;
+
 /*!
  * \brief Union type of values
  *  being passed through API and function calls.
@@ -144,8 +150,6 @@ typedef void* TVMModuleHandle;
 typedef void* TVMFunctionHandle;
 /*! \brief Handle to hold return value. */
 typedef void* TVMRetValueHandle;
-/*! \brief the array handle */
-typedef TVMArray* TVMArrayHandle;
 /*!
  * \brief The stream that is specific to device
  * can be NULL, which indicates the default one.
@@ -436,6 +440,32 @@ TVM_DLL int TVMArrayCopyToBytes(TVMArrayHandle handle,
 TVM_DLL int TVMArrayCopyFromTo(TVMArrayHandle from,
                                TVMArrayHandle to,
                                TVMStreamHandle stream);
+
+/*!
+ * \brief Produce an array from the DLManagedTensor that shares data memory
+ * with the DLManagedTensor.
+ * \param from The source DLManagedTensor.
+ * \param out The output array handle.
+ * \return 0 when success, -1 when failure happens
+ */
+TVM_DLL int TVMArrayFromDLPack(DLManagedTensor* from,
+                               TVMArrayHandle* out);
+
+/*!
+ * \brief Produce a DLMangedTensor from the array that shares data memory with
+ * the array.
+ * \param from The source array.
+ * \param out The DLManagedTensor handle.
+ * \return 0 when success, -1 when failure happens
+ */
+TVM_DLL int TVMArrayToDLPack(TVMArrayHandle from,
+                             DLManagedTensor** out);
+
+/*!
+ * \brief Delete (free) a DLManagedTensor's data.
+ * \param dltensor Pointer to the DLManagedTensor.
+ */
+TVM_DLL void TVMDLManagedTensorCallDeleter(DLManagedTensor* dltensor);
 
 /*!
  * \brief Create a new runtime stream.

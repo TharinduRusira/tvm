@@ -27,7 +27,7 @@ def multibox_prior_ir(data, out, sizes, ratios, steps, offsets):
     ratios : tuple of float
         Tuple of ratios for anchor boxes.
 
-    steps : Tuple of int
+    steps : Tuple of float
         Priorbox step across y and x, -1 for auto calculation.
 
     offsets : tuple of int
@@ -86,7 +86,7 @@ def multibox_prior(data, sizes=(1,), ratios=(1,), steps=(-1, -1), offsets=(0.5, 
     ratios : tuple of float
         Tuple of ratios for anchor boxes.
 
-    steps : Tuple of int
+    steps : Tuple of float
         Priorbox step across y and x, -1 for auto calculation.
 
     offsets : tuple of int
@@ -164,10 +164,10 @@ def transform_loc_ir(cls_prob, loc_pred, anchor, valid_count, out, clip, thresho
         oy = py * vy * ah + ay
         ow = tvm.exp(pw * vw) * aw / 2.0
         oh = tvm.exp(ph * vh) * ah / 2.0
-        return tvm.select(clip, tvm.make.Max(0, tvm.make.Min(1, ox - ow)), ox - ow), \
-               tvm.select(clip, tvm.make.Max(0, tvm.make.Min(1, oy - oh)), oy - oh), \
-               tvm.select(clip, tvm.make.Max(0, tvm.make.Min(1, ox + ow)), ox + ow), \
-               tvm.select(clip, tvm.make.Max(0, tvm.make.Min(1, oy + oh)), oy + oh)
+        return tvm.select(clip, tvm.max(0, tvm.min(1, ox - ow)), ox - ow), \
+               tvm.select(clip, tvm.max(0, tvm.min(1, oy - oh)), oy - oh), \
+               tvm.select(clip, tvm.max(0, tvm.min(1, ox + ow)), ox + ow), \
+               tvm.select(clip, tvm.max(0, tvm.min(1, oy + oh)), oy + oh)
 
     batch_size = cls_prob.shape[0]
     num_classes = cls_prob.shape[1]
@@ -191,7 +191,7 @@ def transform_loc_ir(cls_prob, loc_pred, anchor, valid_count, out, clip, thresho
                 with ib.if_scope(j > 0):
                     temp = p_cls_prob[n * num_anchors * num_classes + j * num_anchors + i]
                     cls_id[0] = tvm.select(temp > score[0], j, cls_id[0])
-                    score[0] = tvm.make.Max(temp, score[0])
+                    score[0] = tvm.max(temp, score[0])
             with ib.if_scope(tvm.all(cls_id[0] > 0, score[0] < threshold)):
                 cls_id[0] = 0
             # [id, prob, xmin, ymin, xmax, ymax]
@@ -211,8 +211,8 @@ def transform_loc_ir(cls_prob, loc_pred, anchor, valid_count, out, clip, thresho
 
 
 @tvm.target.generic_func
-def mutibox_transform_loc(cls_prob, loc_pred, anchor, clip=True, threshold=0.01,
-                          variances=(0.1, 0.1, 0.2, 0.2)):
+def multibox_transform_loc(cls_prob, loc_pred, anchor, clip=True, threshold=0.01,
+                           variances=(0.1, 0.1, 0.2, 0.2)):
     """Location transformation for multibox detection
 
     Parameters
@@ -237,11 +237,7 @@ def mutibox_transform_loc(cls_prob, loc_pred, anchor, clip=True, threshold=0.01,
 
     Returns
     -------
-    out : tvm.Tensor
-        3-D tensor with shape (batch_size, num_anchors, 6)
-
-    valid_count : tvm.Tensor
-        1-D tensor with shape (batch_size,), number of valid anchor boxes.
+    ret : tuple of tvm.Tensor
     """
     batch_size = cls_prob.shape[0]
     num_anchors = anchor.shape[1]
@@ -259,7 +255,7 @@ def mutibox_transform_loc(cls_prob, loc_pred, anchor, clip=True, threshold=0.01,
                    dtype=[valid_count_dtype, cls_prob.dtype],
                    out_buffers=[valid_count_buf, out_buf],
                    tag="multibox_transform_loc")
-    return out, valid_count
+    return [out, valid_count]
 
 
 @tvm.target.generic_func
@@ -301,7 +297,7 @@ def multibox_detection(cls_prob, loc_pred, anchor, clip=True, threshold=0.01, nm
     out : tvm.Tensor
         3-D tensor with shape (batch_size, num_anchors, 6)
     """
-    inter_out, valid_count = mutibox_transform_loc(cls_prob, loc_pred, anchor,
-                                                   clip, threshold, variances)
-    out = nms(inter_out, valid_count, nms_threshold, force_suppress, nms_topk)
+    inter_out = multibox_transform_loc(cls_prob, loc_pred, anchor,
+                                       clip, threshold, variances)
+    out = nms(inter_out[0], inter_out[1], nms_threshold, force_suppress, nms_topk)
     return out

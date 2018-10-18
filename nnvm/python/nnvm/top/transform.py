@@ -2,6 +2,7 @@
 """Tensor transformation ops"""
 from __future__ import absolute_import
 
+import tvm
 import topi
 from .tensor import _fschedule_broadcast, _fschedule_injective
 from . import registry as reg
@@ -15,6 +16,10 @@ reg.register_schedule("expand_dims", _fschedule_broadcast)
 @reg.register_compute("expand_like")
 def compute_expand_like(attrs, inputs, _):
     """Compute definition of expand_like"""
+    if len(inputs[0].shape) == len(inputs[1].shape):
+        # If the number of dimensions is not changed then it is just a broadcasting
+        return topi.broadcast_to(inputs[0], inputs[1].shape)
+
     exclude = attrs.get_bool("exclude")
     axis = attrs.get_int_tuple("axis")
     if exclude:
@@ -54,9 +59,30 @@ reg.register_pattern("squeeze", OpPattern.INJECTIVE)
 reg.register_schedule("squeeze", _fschedule_injective)
 
 # concatenate
+@reg.register_schedule("concatenate")
+def schedule_concatenate(_, outs, target):
+    """Schedule definition of concatenate"""
+    with tvm.target.create(target):
+        return topi.generic.schedule_concatenate(outs)
+
 reg.register_pattern("concatenate", OpPattern.INJECTIVE)
-reg.register_schedule("concatenate", _fschedule_injective)
 
 # split
 reg.register_pattern("split", OpPattern.INJECTIVE)
 reg.register_schedule("split", _fschedule_injective)
+
+# take
+reg.register_pattern("take", OpPattern.INJECTIVE)
+reg.register_schedule("take", _fschedule_injective)
+
+# strided_slice
+reg.register_pattern("strided_slice", OpPattern.INJECTIVE)
+reg.register_schedule("strided_slice", _fschedule_injective)
+
+# slice_like
+reg.register_pattern("slice_like", OpPattern.INJECTIVE)
+reg.register_schedule("slice_like", _fschedule_injective)
+
+# where
+reg.register_pattern("where", OpPattern.INJECTIVE)
+reg.register_schedule("where", _fschedule_injective)

@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import ctypes
+import json
 import numpy as np
 from .base import _LIB, check_call
 from .. import _api_internal
@@ -24,6 +25,7 @@ class TypeCode(object):
     FUNC_HANDLE = 10
     STR = 11
     BYTES = 12
+    NDARRAY_CONTAINER = 13
     EXT_BEGIN = 15
 
 class TVMByteArray(ctypes.Structure):
@@ -46,6 +48,13 @@ class TVMType(ctypes.Structure):
         super(TVMType, self).__init__()
         if isinstance(type_str, np.dtype):
             type_str = str(type_str)
+
+        if type_str == "bool":
+            self.bits = 1
+            self.type_code = 1
+            self.lanes = 1
+            return
+
         arr = type_str.split("x")
         head = arr[0]
         self.lanes = int(arr[1]) if len(arr) > 1 else 1
@@ -65,12 +74,14 @@ class TVMType(ctypes.Structure):
             bits = 64
             head = ""
         else:
-            raise ValueError("Donot know how to handle type %s" % type_str)
+            raise ValueError("Do not know how to handle type %s" % type_str)
         bits = int(head) if head else bits
         self.bits = bits
 
 
     def __repr__(self):
+        if self.bits == 1 and self.lanes == 1:
+            return "bool"
         x = "%s%d" % (TVMType.CODE2STR[self.type_code], self.bits)
         if self.lanes != 1:
             x += "x%d" % self.lanes
@@ -94,6 +105,8 @@ class TVMContext(ctypes.Structure):
         1 : 'cpu',
         2 : 'gpu',
         4 : 'opencl',
+        5 : 'aocl',
+        6 : 'sdaccel',
         7 : 'vulkan',
         8 : 'metal',
         9 : 'vpi',
@@ -110,6 +123,9 @@ class TVMContext(ctypes.Structure):
         'nvptx': 2,
         'cl': 4,
         'opencl': 4,
+        'aocl' : 5,
+        'aocl_sw_emu' : 5,
+        'sdaccel': 6,
         'vulkan': 7,
         'metal': 8,
         'vpi': 9,
@@ -177,6 +193,18 @@ class TVMContext(ctypes.Structure):
         """Return the number of compute units of device."""
         return _api_internal._GetDeviceAttr(
             self.device_type, self.device_id, 7)
+
+    @property
+    def max_thread_dimensions(self):
+        """Return the maximum size of each thread axis
+
+        Returns
+        -------
+        dims: List of int
+            The maximum length of threadIdx.x, threadIdx.y, threadIdx.z
+        """
+        return json.loads(_api_internal._GetDeviceAttr(
+            self.device_type, self.device_id, 8))
 
     def sync(self):
         """Synchronize until jobs finished at the context."""

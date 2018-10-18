@@ -5,10 +5,14 @@
  */
 #include <tvm/base.h>
 #include <tvm/expr.h>
-#include <tvm/container.h>
+#include <tvm/attrs.h>
+#include <tvm/node/container.h>
 #include <tvm/packed_func_ext.h>
+#include <tvm/runtime/ndarray.h>
 #include <dmlc/json.h>
+#include <dmlc/memory_io.h>
 #include <string>
+#include "../common/base64.h"
 
 namespace dmlc {
 DMLC_REGISTRY_ENABLE(::tvm::NodeFactoryReg);
@@ -16,12 +20,17 @@ DMLC_REGISTRY_ENABLE(::tvm::NodeFactoryReg);
 
 namespace tvm {
 
+::dmlc::Registry<NodeFactoryReg>* NodeFactoryReg::Registry() {
+  return ::dmlc::Registry<NodeFactoryReg>::Get();
+}
+
 inline std::string Type2String(const Type& t) {
   if (t.code()  ==Type::Handle) return "handle";
   std::ostringstream os;
   os << t;
   return os.str();
 }
+
 
 inline Type String2Type(std::string s) {
   std::istringstream is(s);
@@ -52,6 +61,8 @@ class NodeIndexer : public AttrVisitor {
  public:
   std::unordered_map<Node*, size_t> node_index{{nullptr, 0}};
   std::vector<Node*> node_list{nullptr};
+  std::unordered_map<DLTensor*, size_t> tensor_index;
+  std::vector<DLTensor*> tensor_list;
 
   void Visit(const char* key, double* value) final {}
   void Visit(const char* key, int64_t* value) final {}
@@ -64,7 +75,13 @@ class NodeIndexer : public AttrVisitor {
   void Visit(const char* key, NodeRef* value) final {
     MakeIndex(value->node_.get());
   }
-
+  void Visit(const char* key, runtime::NDArray* value) final {
+    DLTensor* ptr = const_cast<DLTensor*>((*value).operator->());
+    if (tensor_index.count(ptr)) return;
+    CHECK_EQ(tensor_index.size(), tensor_list.size());
+    tensor_index[ptr] = tensor_list.size();
+    tensor_list.push_back(ptr);
+  }
   // make index of all the children of node
   void MakeIndex(Node* node) {
     if (node == nullptr) return;
@@ -84,6 +101,11 @@ class NodeIndexer : public AttrVisitor {
         MakeIndex(kv.first.get());
         MakeIndex(kv.second.get());
       }
+    } else if (node->is_type<StrMapNode>()) {
+      StrMapNode* n = static_cast<StrMapNode*>(node);
+      for (const auto& kv : n->data) {
+        MakeIndex(kv.second.get());
+      }
     } else {
       node->VisitAttrs(this);
     }
@@ -97,16 +119,26 @@ using AttrMap = std::map<std::string, std::string>;
 struct JSONNode {
   // The type key of the data
   std::string type_key;
+  // The global key for global object
+  std::string global_key;
   // the attributes
   AttrMap attrs;
+  // container keys
+  std::vector<std::string> keys;
   // container data
   std::vector<size_t> data;
 
   void Save(dmlc::JSONWriter *writer) const {
     writer->BeginObject();
     writer->WriteObjectKeyValue("type_key", type_key);
+    if (global_key.size() != 0) {
+      writer->WriteObjectKeyValue("global_key", global_key);
+    }
     if (attrs.size() != 0) {
       writer->WriteObjectKeyValue("attrs", attrs);
+    }
+    if (keys.size() != 0) {
+      writer->WriteObjectKeyValue("keys", keys);
     }
     if (data.size() != 0) {
       writer->WriteObjectKeyValue("data", data);
@@ -117,10 +149,13 @@ struct JSONNode {
   void Load(dmlc::JSONReader *reader) {
     attrs.clear();
     data.clear();
+    global_key.clear();
     type_key.clear();
     dmlc::JSONObjectReadHelper helper;
     helper.DeclareOptionalField("type_key", &type_key);
+    helper.DeclareOptionalField("global_key", &global_key);
     helper.DeclareOptionalField("attrs", &attrs);
+    helper.DeclareOptionalField("keys", &keys);
     helper.DeclareOptionalField("data", &data);
     helper.ReadAllFields(reader);
   }
@@ -129,6 +164,7 @@ struct JSONNode {
 class JSONAttrGetter : public AttrVisitor {
  public:
   const std::unordered_map<Node*, size_t>* node_index_;
+  const std::unordered_map<DLTensor*, size_t>* tensor_index_;
   JSONNode* node_;
 
   void Visit(const char* key, double* value) final {
@@ -159,6 +195,10 @@ class JSONAttrGetter : public AttrVisitor {
     node_->attrs[key] = std::to_string(
         node_index_->at(value->node_.get()));
   }
+  void Visit(const char* key, runtime::NDArray* value) final {
+    node_->attrs[key] = std::to_string(
+        tensor_index_->at(const_cast<DLTensor*>((*value).operator->())));
+  }
   // Get the node
   void Get(Node* node) {
     if (node == nullptr) {
@@ -166,6 +206,12 @@ class JSONAttrGetter : public AttrVisitor {
       return;
     }
     node_->type_key = node->type_key();
+    // sepcially handle global object
+    auto* f = dmlc::Registry<NodeFactoryReg>::Find(node_->type_key);
+    if (f->fglobal_key != nullptr) {
+      node_->global_key = f->fglobal_key(node);
+      return;
+    }
     node_->attrs.clear();
     node_->data.clear();
     if (node->is_type<ArrayNode>()) {
@@ -176,14 +222,25 @@ class JSONAttrGetter : public AttrVisitor {
       }
     } else if (node->is_type<MapNode>()) {
       MapNode* n = static_cast<MapNode*>(node);
-      std::vector<std::pair<size_t, size_t> > elems;
       for (const auto& kv : n->data) {
         node_->data.push_back(
             node_index_->at(kv.first.get()));
         node_->data.push_back(
             node_index_->at(kv.second.get()));
       }
+    } else if (node->is_type<StrMapNode>()) {
+      StrMapNode* n = static_cast<StrMapNode*>(node);
+      for (const auto& kv : n->data) {
+        node_->keys.push_back(kv.first);
+        node_->data.push_back(
+            node_index_->at(kv.second.get()));
+      }
     } else {
+      // do not need to recover content of global singleton object
+      // they are registered via the environment
+      auto* f = dmlc::Registry<NodeFactoryReg>::Find(node->type_key());
+      if (f != nullptr && f->fglobal_key != nullptr) return;
+      // recursively index normal object.
       node->VisitAttrs(this);
     }
   }
@@ -191,7 +248,8 @@ class JSONAttrGetter : public AttrVisitor {
 
 class JSONAttrSetter : public AttrVisitor {
  public:
-  const std::vector<std::shared_ptr<Node> >* node_list_;
+  const std::vector<NodePtr<Node> >* node_list_;
+  const std::vector<runtime::NDArray>* tensor_list_;
   JSONNode* node_;
 
   std::string GetValue(const char* key) const {
@@ -237,10 +295,16 @@ class JSONAttrSetter : public AttrVisitor {
   void Visit(const char* key, NodeRef* value) final {
     size_t index;
     ParseValue(key, &index);
+    CHECK_LE(index, node_list_->size());
     value->node_ = node_list_->at(index);
   }
-
-  // Get the node
+  void Visit(const char* key, runtime::NDArray* value) final {
+    size_t index;
+    ParseValue(key, &index);
+    CHECK_LE(index, tensor_list_->size());
+    *value = tensor_list_->at(index);
+  }
+  // set node to be current JSONNode
   void Set(Node* node) {
     if (node == nullptr) return;
     if (node->is_type<ArrayNode>()) {
@@ -256,6 +320,13 @@ class JSONAttrSetter : public AttrVisitor {
         n->data[node_list_->at(node_->data[i])]
             = node_list_->at(node_->data[i + 1]);
       }
+    } else if (node->is_type<StrMapNode>()) {
+      StrMapNode* n = static_cast<StrMapNode*>(node);
+      CHECK_EQ(node_->data.size(), node_->keys.size());
+      for (size_t i = 0; i < node_->data.size(); ++i) {
+        n->data[node_->keys[i]]
+            = node_list_->at(node_->data[i]);
+      }
     } else {
       node->VisitAttrs(this);
     }
@@ -268,6 +339,8 @@ struct JSONGraph {
   size_t root;
   // the nodes of the graph
   std::vector<JSONNode> nodes;
+  // base64 b64ndarrays of arrays
+  std::vector<std::string> b64ndarrays;
   // global attributes
   AttrMap attrs;
 
@@ -275,6 +348,7 @@ struct JSONGraph {
     writer->BeginObject();
     writer->WriteObjectKeyValue("root", root);
     writer->WriteObjectKeyValue("nodes", nodes);
+    writer->WriteObjectKeyValue("b64ndarrays", b64ndarrays);
     if (attrs.size() != 0) {
       writer->WriteObjectKeyValue("attrs", attrs);
     }
@@ -286,6 +360,7 @@ struct JSONGraph {
     dmlc::JSONObjectReadHelper helper;
     helper.DeclareField("root", &root);
     helper.DeclareField("nodes", &nodes);
+    helper.DeclareOptionalField("b64ndarrays", &b64ndarrays);
     helper.DeclareOptionalField("attrs", &attrs);
     helper.ReadAllFields(reader);
   }
@@ -296,14 +371,24 @@ struct JSONGraph {
     indexer.MakeIndex(root.node_.get());
     JSONAttrGetter getter;
     getter.node_index_ = &indexer.node_index;
+    getter.tensor_index_ = &indexer.tensor_index;
     for (Node* n : indexer.node_list) {
       JSONNode jnode;
       getter.node_ = &jnode;
       getter.Get(n);
       g.nodes.emplace_back(std::move(jnode));
     }
-    g.attrs["tvm_version"] = "0.1.0";
+    g.attrs["tvm_version"] = TVM_VERSION;
     g.root = indexer.node_index.at(root.node_.get());
+    // serialize tensor
+    for (DLTensor* tensor : indexer.tensor_list) {
+      std::string blob;
+      dmlc::MemoryStringStream mstrm(&blob);
+      common::Base64OutStream b64strm(&mstrm);
+      runtime::SaveDLTensor(&b64strm, tensor);
+      b64strm.Finish();
+      g.b64ndarrays.emplace_back(std::move(blob));
+    }
     return g;
   }
 };
@@ -316,13 +401,23 @@ std::string SaveJSON(const NodeRef& n) {
   return os.str();
 }
 
-std::shared_ptr<Node> LoadJSON_(std::string json_str) {
+NodePtr<Node> LoadJSON_(std::string json_str) {
   std::istringstream is(json_str);
   dmlc::JSONReader reader(&is);
   JSONGraph jgraph;
   // load in json graph.
   jgraph.Load(&reader);
-  std::vector<std::shared_ptr<Node> > nodes;
+  std::vector<NodePtr<Node> > nodes;
+  std::vector<runtime::NDArray> tensors;
+  // load in tensors
+  for (const std::string& blob : jgraph.b64ndarrays) {
+    dmlc::MemoryStringStream mstrm(const_cast<std::string*>(&blob));
+    common::Base64InStream b64strm(&mstrm);
+    b64strm.InitPosition();
+    runtime::NDArray temp;
+    CHECK(temp.Load(&b64strm));
+    tensors.emplace_back(temp);
+  }
   // node 0 is always null
   nodes.reserve(jgraph.nodes.size());
   for (const JSONNode& jnode : jgraph.nodes) {
@@ -330,18 +425,23 @@ std::shared_ptr<Node> LoadJSON_(std::string json_str) {
       auto* f = dmlc::Registry<NodeFactoryReg>::Find(jnode.type_key);
       CHECK(f != nullptr)
           << "Node type \'" << jnode.type_key << "\' is not registered in TVM";
-      nodes.emplace_back(f->body());
+      nodes.emplace_back(f->fcreator(jnode.global_key));
     } else {
-      nodes.emplace_back(std::shared_ptr<Node>());
+      nodes.emplace_back(NodePtr<Node>());
     }
   }
   CHECK_EQ(nodes.size(), jgraph.nodes.size());
   JSONAttrSetter setter;
   setter.node_list_ = &nodes;
+  setter.tensor_list_ = &tensors;
 
   for (size_t i = 0; i < nodes.size(); ++i) {
     setter.node_ = &jgraph.nodes[i];
-    setter.Set(nodes[i].get());
+    // do not need to recover content of global singleton object
+    // they are registered via the environment
+    if (setter.node_->global_key.length() == 0) {
+      setter.Set(nodes[i].get());
+    }
   }
   return nodes.at(jgraph.root);
 }
@@ -351,60 +451,58 @@ class NodeAttrSetter : public AttrVisitor {
   std::string type_key;
   std::unordered_map<std::string, runtime::TVMArgValue> attrs;
 
-  template<typename T>
-  void SetValue(const char* key, T* value) {
+  void Visit(const char* key, double* value) final {
+    *value = GetAttr(key).operator double();
+  }
+  void Visit(const char* key, int64_t* value) final {
+    *value = GetAttr(key).operator int64_t();
+  }
+  void Visit(const char* key, uint64_t* value) final {
+    *value = GetAttr(key).operator uint64_t();
+  }
+  void Visit(const char* key, int* value) final {
+    *value = GetAttr(key).operator int();
+  }
+  void Visit(const char* key, bool* value) final {
+    *value = GetAttr(key).operator bool();
+  }
+  void Visit(const char* key, std::string* value) final {
+    *value = GetAttr(key).operator std::string();
+  }
+  void Visit(const char* key, void** value) final {
+    *value = GetAttr(key).operator void*();
+  }
+  void Visit(const char* key, Type* value) final {
+    *value = GetAttr(key).operator Type();
+  }
+  void Visit(const char* key, NodeRef* value) final {
+    *value = GetAttr(key).operator NodeRef();
+  }
+  void Visit(const char* key, runtime::NDArray* value) final {
+    *value = GetAttr(key).operator runtime::NDArray();
+  }
+
+ private:
+  runtime::TVMArgValue GetAttr(const char* key) {
     auto it = attrs.find(key);
     if (it == attrs.end()) {
       LOG(FATAL) << type_key << ": require field " << key;
     }
-    *value = it->second.operator T();
+    runtime::TVMArgValue v = it->second;
     attrs.erase(it);
-  }
-  void Visit(const char* key, double* value) final {
-    SetValue(key, value);
-  }
-  void Visit(const char* key, int64_t* value) final {
-    SetValue(key, value);
-  }
-  void Visit(const char* key, uint64_t* value) final {
-    SetValue(key, value);
-  }
-  void Visit(const char* key, int* value) final {
-    SetValue(key, value);
-  }
-  void Visit(const char* key, bool* value) final {
-    SetValue(key, value);
-  }
-  void Visit(const char* key, std::string* value) final {
-    SetValue(key, value);
-  }
-  void Visit(const char* key, void** value) final {
-    SetValue(key, value);
-  }
-  void Visit(const char* key, Type* value) final {
-    SetValue(key, value);
-  }
-  void Visit(const char* key, NodeRef* value) final {
-    SetValue(key, value);
+    return v;
   }
 };
 
-// API function to make node.
-// args format:
-//    type_key, key1, value1, ..., key_n, value_n
-void MakeNode(runtime::TVMArgs args, runtime::TVMRetValue* rv) {
+
+void InitNodeByPackedArgs(Node* n, const TVMArgs& args) {
   NodeAttrSetter setter;
-  setter.type_key = args[0].operator std::string();
-  CHECK_EQ(args.size() % 2, 1);
-  for (int i = 1; i < args.size(); i += 2) {
-    setter.attrs.emplace(
-        args[i].operator std::string(),
-        runtime::TVMArgValue(args.values[i + 1], args.type_codes[i + 1]));
+  setter.type_key = n->type_key();
+  CHECK_EQ(args.size() % 2, 0);
+  for (int i = 0; i < args.size(); i += 2) {
+    setter.attrs.emplace(args[i].operator std::string(),
+                         args[i + 1]);
   }
-  auto* f = dmlc::Registry<NodeFactoryReg>::Find(setter.type_key);
-  CHECK(f != nullptr)
-      << "Node type \'" << setter.type_key << "\' is not registered in TVM";
-  std::shared_ptr<Node> n = f->body();
   n->VisitAttrs(&setter);
   if (setter.attrs.size() != 0) {
     std::ostringstream os;
@@ -414,10 +512,29 @@ void MakeNode(runtime::TVMArgs args, runtime::TVMRetValue* rv) {
     }
     LOG(FATAL) << os.str();
   }
+}
+
+// API function to make node.
+// args format:
+//   key1, value1, ..., key_n, value_n
+void MakeNode(const TVMArgs& args, TVMRetValue* rv) {
+  std::string type_key = args[0];
+  std::string empty_str;
+  auto* f = dmlc::Registry<NodeFactoryReg>::Find(type_key);
+  CHECK(f != nullptr)
+      << "Node type \'" << type_key << "\' is not registered in TVM";
+  TVMArgs kwargs(args.values + 1, args.type_codes + 1, args.size() - 1);
+  CHECK(f->fglobal_key == nullptr)
+      << "Cannot make node type \'" << type_key << "\' with global_key.";
+  NodePtr<Node> n = f->fcreator(empty_str);
+  if (n->derived_from<BaseAttrsNode>()) {
+    static_cast<BaseAttrsNode*>(n.get())->InitByPackedArgs(kwargs);
+  } else {
+    InitNodeByPackedArgs(n.get(), kwargs);
+  }
   *rv = NodeRef(n);
 }
 
 TVM_REGISTER_GLOBAL("make._Node")
 .set_body(MakeNode);
-
 }  // namespace tvm

@@ -32,7 +32,7 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
 */
 Target CreateTarget(const std::string& target_name,
                     const std::vector<std::string>& options) {
-  auto target = Target(std::make_shared<TargetNode>());
+  auto target = Target(make_node<TargetNode>());
   auto t = static_cast<TargetNode*>(target.node_.get());
 
   t->target_name = target_name;
@@ -73,10 +73,10 @@ Target CreateTarget(const std::string& target_name,
     } else {
       t->device_type = kDLROCM;
     }
-    t->keys_array.push_back(ir::StringImm::make("rocm"));
+    t->keys_array.push_back(ir::StringImm::make(target_name));
     t->keys_array.push_back(ir::StringImm::make("gpu"));
     t->max_num_threads = 256;
-    if (t->device_name == "intel_gpu") {
+    if (t->device_name == "intel_graphics") {
       t->thread_warp_size = 16;
     }
   } else if (target_name == "metal" || target_name == "vulkan") {
@@ -88,13 +88,21 @@ Target CreateTarget(const std::string& target_name,
     t->keys_array.push_back(ir::StringImm::make(target_name));
     t->keys_array.push_back(ir::StringImm::make("gpu"));
     t->max_num_threads = 256;
+  } else if (target_name == "sdaccel") {
+    t->device_type = kDLOpenCL;
+    t->keys_array.push_back(ir::StringImm::make("sdaccel"));
+    t->keys_array.push_back(ir::StringImm::make("hls"));
+  } else if (target_name == "aocl" || target_name == "aocl_sw_emu") {
+    t->device_type = kDLAOCL;
+    t->keys_array.push_back(ir::StringImm::make("aocl"));
+    t->keys_array.push_back(ir::StringImm::make("hls"));
   } else if (target_name == "opengl") {
     t->device_type = kOpenGL;
     t->keys_array.push_back(ir::StringImm::make("opengl"));
   } else if (target_name == "stackvm") {
     t->device_type = kDLCPU;
   } else if (target_name == "ext_dev") {
-    t->device_type = kExtDev;
+    t->device_type = kDLExtDev;
   } else {
     LOG(ERROR) << "Unknown target name " << target_name;
     return target::stackvm();
@@ -192,11 +200,7 @@ Target Target::create(const std::string& target_str) {
     options.push_back(item);
   }
 
-  if (device_name == "rasp") {
-    return target::rasp(options);
-  } else {
-    return CreateTarget(target_name, options);
-  }
+  return CreateTarget(target_name, options);
 }
 
 /*! \brief Entry to hold the Target context stack. */
@@ -259,24 +263,15 @@ Target metal(const std::vector<std::string>& options) {
   return CreateTarget("metal", options);
 }
 
-Target rasp(const std::vector<std::string>& options) {
-  return CreateTarget("llvm", MergeOptions(options, {
-    "-device=rasp",
-    "-mtriple=armv7l-none-linux-gnueabihf",
-    "-mcpu=cortex-a53",
-    "-mattr=+neon"
-  }));
-}
-
 Target mali(const std::vector<std::string>& options) {
   return CreateTarget("opencl", MergeOptions(options, {
     "-device=mali"
   }));
 }
 
-Target intel_gpu(const std::vector<std::string>& options) {
+Target intel_graphics(const std::vector<std::string>& options) {
   return CreateTarget("opencl", MergeOptions(options, {
-    "-device=intel_gpu"
+    "-device=intel_graphics"
   }));
 }
 
@@ -480,7 +475,7 @@ runtime::Module build(const Array<LoweredFunc>& funcs,
 }
 
 BuildConfig build_config() {
-  return BuildConfig(std::make_shared<BuildConfigNode>());
+  return BuildConfig(make_node<BuildConfigNode>());
 }
 
 /*! \brief Entry to hold the BuildConfig context stack. */
@@ -538,7 +533,7 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
 });
 
 struct GenericFunc::Manager {
-  std::unordered_map<std::string, std::shared_ptr<Node> > fmap;
+  std::unordered_map<std::string, NodePtr<Node> > fmap;
   // mutex
   std::mutex mutex;
 
@@ -556,7 +551,7 @@ GenericFunc GenericFunc::Get(const std::string& name) {
   std::lock_guard<std::mutex>(m->mutex);
   auto it = m->fmap.find(name);
   if (it == m->fmap.end()) {
-    auto f = std::make_shared<GenericFuncNode>();
+    auto f = make_node<GenericFuncNode>();
     f->name_ = name;
     m->fmap[name] = f;
     return GenericFunc(f);
@@ -674,7 +669,7 @@ TVM_REGISTER_API("_BuildConfigGetAddLowerPassInfo")
 
 TVM_REGISTER_API("_GenericFuncCreate")
 .set_body([](TVMArgs args, TVMRetValue* ret) {
-  *ret = GenericFunc(std::make_shared<GenericFuncNode>());
+  *ret = GenericFunc(make_node<GenericFuncNode>());
   });
 
 TVM_REGISTER_API("_GenericFuncGetGlobal")
@@ -729,11 +724,6 @@ TVM_REGISTER_API("_GetCurrentTarget")
 TVM_REGISTER_API("_EnterTargetScope")
 .set_body([](TVMArgs args, TVMRetValue* ret) {
   Target target = args[0];
-  auto current = Target::current_target();
-  if (current.defined() && target->str() != current->str()) {
-    LOG(WARNING) << "Overriding target " << current->str()
-      << " with new target scope " << target->str();
-  }
   Target::EnterTargetScope(target);
   });
 

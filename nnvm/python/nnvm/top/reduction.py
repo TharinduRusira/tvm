@@ -37,3 +37,23 @@ reg.register_schedule("max", _fschedule_reduce)
 # min
 reg.register_pattern("min", OpPattern.COMM_REDUCE)
 reg.register_schedule("min", _fschedule_reduce)
+
+# collapse sum
+reg.register_pattern("collapse_sum", OpPattern.COMM_REDUCE)
+reg.register_schedule("collapse_sum", _fschedule_reduce)
+
+# argmax
+reg.register_pattern("argmax", OpPattern.COMM_REDUCE)
+reg.register_schedule("argmax", _fschedule_reduce)
+
+# argmin
+reg.register_pattern("argmin", OpPattern.COMM_REDUCE)
+reg.register_schedule("argmin", _fschedule_reduce)
+
+# mean
+reg.register_pattern("mean", OpPattern.COMM_REDUCE)
+reg.register_schedule("mean", _fschedule_reduce)
+
+# product
+reg.register_pattern("prod", OpPattern.COMM_REDUCE)
+reg.register_schedule("prod", _fschedule_reduce)

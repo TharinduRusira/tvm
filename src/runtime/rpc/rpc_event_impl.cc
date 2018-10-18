@@ -5,7 +5,7 @@
  */
 #include <tvm/runtime/registry.h>
 #include <memory>
-#include "./rpc_session.h"
+#include "rpc_session.h"
 
 namespace tvm {
 namespace runtime {
@@ -44,7 +44,7 @@ PackedFunc CreateEventDrivenServer(PackedFunc fsend,
     });
 }
 
-TVM_REGISTER_GLOBAL("contrib.rpc._CreateEventDrivenServer")
+TVM_REGISTER_GLOBAL("rpc._CreateEventDrivenServer")
 .set_body([](TVMArgs args, TVMRetValue* rv) {
     *rv = CreateEventDrivenServer(args[0], args[1], args[2]);
   });

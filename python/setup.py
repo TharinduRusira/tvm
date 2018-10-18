@@ -27,14 +27,17 @@ def get_lib_path():
     libinfo_py = os.path.join(CURRENT_DIR, './tvm/_ffi/libinfo.py')
     libinfo = {'__file__': libinfo_py}
     exec(compile(open(libinfo_py, "rb").read(), libinfo_py, 'exec'), libinfo, libinfo)
-    lib_path = libinfo['find_lib_path']()
     version = libinfo['__version__']
-    libs = [lib_path[0]]
-    if libs[0].find("runtime") == -1:
-        for name in lib_path[1:]:
-            if name.find("runtime") != -1:
-                libs.append(name)
-                break
+    if not os.getenv('CONDA_BUILD'):
+        lib_path = libinfo['find_lib_path']()
+        libs = [lib_path[0]]
+        if libs[0].find("runtime") == -1:
+            for name in lib_path[1:]:
+                if name.find("runtime") != -1:
+                    libs.append(name)
+                    break
+    else:
+        libs = None
     return libs, version
 
 LIB_LIST, __version__ = get_lib_path()
@@ -71,8 +74,8 @@ def config_cython():
                 "tvm._ffi.%s.%s" % (subdir, fn[:-4]),
                 ["tvm/_ffi/_cython/%s" % fn],
                 include_dirs=["../include/",
-                              "../dmlc-core/include",
-                              "../dlpack/include",
+                              "../3rdparty/dmlc-core/include",
+                              "../3rdparty/dlpack/include",
                 ],
                 library_dirs=library_dirs,
                 libraries=libraries,
@@ -89,8 +92,18 @@ class BinaryDistribution(Distribution):
     def is_pure(self):
         return False
 
+include_libs = False
+wheel_include_libs = False
+if not os.getenv('CONDA_BUILD'):
+    if "bdist_wheel" in sys.argv:
+        wheel_include_libs = True
+    else:
+        include_libs = True
+
+setup_kwargs = {}
+
 # For bdist_wheel only
-if "bdist_wheel" in sys.argv:
+if wheel_include_libs:
     with open("MANIFEST.in", "w") as fo:
         for path in LIB_LIST:
             shutil.copy(path, os.path.join(CURRENT_DIR, 'tvm'))
@@ -99,7 +112,8 @@ if "bdist_wheel" in sys.argv:
     setup_kwargs = {
         "include_package_data": True
     }
-else:
+
+if include_libs:
     curr_path = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
     for i, path in enumerate(LIB_LIST):
         LIB_LIST[i] = os.path.relpath(path, curr_path)
@@ -122,8 +136,9 @@ setup(name='tvm',
       ext_modules=config_cython(),
       **setup_kwargs)
 
-# Wheel cleanup
-if "bdist_wheel" in sys.argv:
+
+if wheel_include_libs:
+    # Wheel cleanup
     os.remove("MANIFEST.in")
     for path in LIB_LIST:
         _, libname = os.path.split(path)

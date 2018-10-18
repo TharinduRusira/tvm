@@ -9,15 +9,14 @@
 #ifndef TVM_IR_PASS_H_
 #define TVM_IR_PASS_H_
 
-#include <tvm/ir_functor.h>
 #include <arithmetic/Simplify.h>
 #include <unordered_map>
 #include <vector>
 #include <string>
-#include "./expr.h"
-#include "./buffer.h"
-#include "./schedule.h"
-#include "./lowered_func.h"
+#include "expr.h"
+#include "buffer.h"
+#include "schedule.h"
+#include "lowered_func.h"
 
 namespace tvm {
 namespace ir {
@@ -218,7 +217,7 @@ Stmt NarrowChannelAccess(Stmt stmt);
  * \param auto_max_step The maximum step before stop attach automatic unroll
  * \param auto_max_depth The maximum depth before stop attach automatic unroll
  * \param auto_max_extent The maximum extent of the loop we can unroll,
- *                        this is an legacy option that donot take the loop total steps into account.
+ *                     this is an legacy option that do not take the loop total steps into account.
  * \param explicit_unroll Whether explicitly unroll the loop, or leave unroll annotation to codegen.
  * \return Transformed stmt.
  */
@@ -476,6 +475,30 @@ LoweredFunc LowerIntrin(LoweredFunc f, const std::string& target);
  * \return Success of memory verification.
  */
 bool VerifyMemory(LoweredFunc func, int device_type);
+
+
+/*!
+ * \brief Verify the correctness of a GPU code
+ *        It will check the whether the amount of memory usage or the number of threads
+ *        in a block exceeds the limit
+ * \param stmt The statement to be checked
+ * \param constraints The dict to specify constraints to check.
+ *        Possible keys are
+ *
+ *        "max_local_memory_per_block": Total amount of local memory per block (in bytes).
+ *        "max_shared_memory_per_block": Total amount of shared memory per block (in bytes).
+ *        "max_threads_per_block": Maximum number of threads per block.
+ *        "max_thread_x": Maximum length of threadIdx.x.
+ *        "max_thread_y": Maximum length of threadIdx.y.
+ *        "max_thread_z": Maximum length of threadIdx.z.
+ *
+ *        If one key is missing in this argument, the pass won't check for that item.
+ * \return valid Whether it is a valid GPU code
+ *
+ */
+bool VerifyGPUCode(Stmt stmt,
+                   Map<std::string, Expr> constraints);
+
 
 }  // namespace ir
 }  // namespace tvm

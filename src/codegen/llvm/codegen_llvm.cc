@@ -7,8 +7,8 @@
 
 #include <tvm/runtime/device_api.h>
 #include <tvm/runtime/c_runtime_api.h>
-#include "./codegen_llvm.h"
-#include "./codegen_cpu.h"
+#include "codegen_llvm.h"
+#include "codegen_cpu.h"
 #include "../codegen_common.h"
 #include "../../pass/ir_util.h"
 #include "../../arithmetic/compute_expr.h"
@@ -157,6 +157,42 @@ std::unique_ptr<llvm::Module> CodeGenLLVM::Finish() {
   // optimize
   this->Optimize();
   return std::move(module_);
+}
+
+
+void CodeGenLLVM::HandleImport(const std::string& code) {
+  std::unique_ptr<llvm::Module> mlib;
+  llvm::SMDiagnostic err;
+  if (code.length() >= 3 &&
+      (code.substr(code.length() - 3) == ".ll" ||
+       code.substr(code.length() - 3) == ".bc")) {
+    mlib = llvm::parseIRFile(code, err, *ctx_);
+    if (mlib.get() == nullptr) {
+      std::string msg = err.getMessage();
+      LOG(FATAL) << "Fail to load bitcode file " << code << "\n"
+                 << "line " << err.getLineNo() << ":" << msg;
+    }
+  } else {
+    std::unique_ptr<llvm::MemoryBuffer> buf =
+        llvm::MemoryBuffer::getMemBuffer(code);
+    mlib = llvm::parseIR(*buf, err, *ctx_);
+    if (mlib.get() == nullptr) {
+      std::string msg = err.getMessage();
+      LOG(FATAL) << "Fail to load llvm ir "
+                 << "line " << err.getLineNo() << ":" << msg
+                 << "\ncontent:\n"  << code;
+    }
+  }
+  mlib->setTargetTriple(target_machine_->getTargetTriple().str());
+  mlib->setDataLayout(target_machine_->createDataLayout());
+  // mark all the functions as force inline
+  for (llvm::Function &f : mlib->functions()) {
+    f.removeFnAttr(llvm::Attribute::NoInline);
+    f.addFnAttr(llvm::Attribute::AlwaysInline);
+    f.setLinkage(llvm::GlobalValue::AvailableExternallyLinkage);
+  }
+  // add to linker libraries.
+  this->AddLinkModule(std::move(mlib));
 }
 
 void CodeGenLLVM::AddLinkModule(std::unique_ptr<llvm::Module>&& mod) {
@@ -366,7 +402,7 @@ llvm::Value* CodeGenLLVM::CreateBroadcast(llvm::Value* value, int lanes) {
 llvm::Value* CodeGenLLVM::CreateVecSlice(llvm::Value* vec, int begin, int extent) {
   int num_elems = static_cast<int>(vec->getType()->getVectorNumElements());
   if (extent == num_elems && begin == 0) return vec;
-  CHECK_LT(begin + extent, num_elems);
+  CHECK_LE(begin + extent, num_elems);
   std::vector<unsigned> indices;
   for (int i = 0; i < extent; ++i) {
     indices.push_back(begin + i);
@@ -562,6 +598,10 @@ llvm::Value* CodeGenLLVM::CreateIntrinsic(const Call* op) {
         sig_type.push_back(arg_value.back()->getType());
       }
     }
+    llvm::Type *return_type = LLVMType(op->type);
+    if (sig_type.size() > 0 && return_type != sig_type[0]) {
+      sig_type.insert(sig_type.begin(), return_type);
+    }
     llvm::Function* f = llvm::Intrinsic::getDeclaration(
         module_.get(), id, sig_type);
     return builder_->CreateCall(f, arg_value);
@@ -628,6 +668,26 @@ llvm::Value* CodeGenLLVM::CreateIntrinsic(const Call* op) {
     value->addIncoming(then_value, then_value_block);
     value->addIncoming(else_value, else_value_block);
     return value;
+  } else if (op->is_intrinsic(Call::reinterpret)) {
+    llvm::Type * target = LLVMType(op->type);
+    return builder_->CreateBitCast(MakeValue(op->args[0]), target);
+  } else if (op->is_intrinsic("vectorlow")) {
+    llvm::Value *v = MakeValue(op->args[0]);
+    int l = v->getType()->getVectorNumElements();
+    return CreateVecSlice(v, 0, l/2);
+  } else if (op->is_intrinsic("vectorhigh")) {
+    llvm::Value *v = MakeValue(op->args[0]);
+    int l = v->getType()->getVectorNumElements();
+    return CreateVecSlice(v, l/2, l/2);
+  } else if (op->is_intrinsic("vectorcombine")) {
+    llvm::Value *v0 = MakeValue(op->args[0]);
+    llvm::Value *v1 = MakeValue(op->args[1]);
+    int num_elems = static_cast<int>(v0->getType()->getVectorNumElements()) * 2;
+    std::vector<unsigned> indices;
+    for (int i = 0; i < num_elems; ++i) {
+      indices.push_back(i);
+    }
+    return builder_->CreateShuffleVector(v0, v1, indices);
   } else {
     LOG(FATAL) << "unknown intrinsic " << op->name;
     return nullptr;

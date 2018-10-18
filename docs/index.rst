@@ -8,6 +8,7 @@ Get Started
 
    install/index
    tutorials/index
+   vta/index
    deploy/index
    contribute/index
    faq
@@ -17,6 +18,7 @@ API Reference
 .. toctree::
    :maxdepth: 2
 
+   langref/index
    api/python/index
    api_links
 

@@ -9,9 +9,9 @@
 #include <string>
 #include <vector>
 #include <utility>
-#include "./runtime/packed_func.h"
-#include "./schedule_pass.h"
-#include "./lowered_func.h"
+#include "runtime/packed_func.h"
+#include "schedule_pass.h"
+#include "lowered_func.h"
 
 namespace tvm {
 using namespace tvm::runtime;
@@ -69,7 +69,7 @@ class TargetNode : public Node {
 class Target : public NodeRef {
  public:
   Target() {}
-  explicit Target(std::shared_ptr<Node> n) : NodeRef(n) {}
+  explicit Target(NodePtr<Node> n) : NodeRef(n) {}
 
   /*!
   * \brief Create a Target given a string
@@ -157,9 +157,9 @@ EXPORT Target rasp(const std::vector<std::string>& options =
 EXPORT Target mali(const std::vector<std::string>& options =
                    std::vector<std::string>());
 
-/*! \return A target for Intel GPU */
-EXPORT Target intel_gpu(const std::vector<std::string>& options =
-                   std::vector<std::string>());
+/*! \return A target for Intel Graphics */
+EXPORT Target intel_graphics(const std::vector<std::string>& options =
+                             std::vector<std::string>());
 
 /*! \return A target for stackvm */
 EXPORT Target stackvm(const std::vector<std::string>& options =
@@ -241,7 +241,7 @@ class BuildConfigNode : public Node {
 class BuildConfig : public ::tvm::NodeRef {
  public:
   BuildConfig() {}
-  explicit BuildConfig(std::shared_ptr<::tvm::Node> n) : NodeRef(n) {}
+  explicit BuildConfig(NodePtr<::tvm::Node> n) : NodeRef(n) {}
 
   const BuildConfigNode* operator->() const {
     return static_cast<const BuildConfigNode*>(node_.get());
@@ -335,7 +335,7 @@ class GenericFuncNode;
 class GenericFunc : public NodeRef {
  public:
   GenericFunc() {}
-  explicit GenericFunc(std::shared_ptr<Node> n) : NodeRef(n) {}
+  explicit GenericFunc(NodePtr<Node> n) : NodeRef(n) {}
 
   /*!
    * \brief Set the default function implementaiton.

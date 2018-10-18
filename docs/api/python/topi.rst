@@ -9,6 +9,11 @@ List of operators
 
    topi.identity
    topi.negative
+   topi.floor
+   topi.ceil
+   topi.trunc
+   topi.round
+   topi.abs
    topi.exp
    topi.tanh
    topi.log
@@ -27,8 +32,6 @@ List of operators
    topi.take
    topi.full
    topi.full_like
-   topi.greater
-   topi.less
    topi.nn.relu
    topi.nn.leaky_relu
    topi.nn.dilate
@@ -44,13 +47,25 @@ List of operators
    topi.max
    topi.sum
    topi.min
+   topi.argmax
+   topi.argmin
+   topi.prod
    topi.broadcast_to
-   topi.broadcast_add
-   topi.broadcast_sub
-   topi.broadcast_mul
-   topi.broadcast_div
-   topi.broadcast_maximum
-   topi.broadcast_minimum
+   topi.add
+   topi.subtract
+   topi.multiply
+   topi.divide
+   topi.mod
+   topi.maximum
+   topi.minimum
+   topi.power
+   topi.greater
+   topi.less
+   topi.equal
+   topi.not_equal
+   topi.greater_equal
+   topi.less_equal
+   topi.image.resize
 
 
 List of schedules
@@ -67,6 +82,11 @@ topi
 ~~~~
 .. autofunction:: topi.negative
 .. autofunction:: topi.identity
+.. autofunction:: topi.floor
+.. autofunction:: topi.ceil
+.. autofunction:: topi.trunc
+.. autofunction:: topi.round
+.. autofunction:: topi.abs
 .. autofunction:: topi.exp
 .. autofunction:: topi.tanh
 .. autofunction:: topi.log
@@ -85,19 +105,21 @@ topi
 .. autofunction:: topi.take
 .. autofunction:: topi.full
 .. autofunction:: topi.full_like
-.. autofunction:: topi.greater
-.. autofunction:: topi.less
 .. autofunction:: topi.max
 .. autofunction:: topi.sum
 .. autofunction:: topi.min
+.. autofunction:: topi.prod
 .. autofunction:: topi.broadcast_to
-.. autofunction:: topi.broadcast_add
-.. autofunction:: topi.broadcast_sub
-.. autofunction:: topi.broadcast_mul
-.. autofunction:: topi.broadcast_div
-.. autofunction:: topi.broadcast_maximum
-.. autofunction:: topi.broadcast_minimum
-
+.. autofunction:: topi.add
+.. autofunction:: topi.subtract
+.. autofunction:: topi.multiply
+.. autofunction:: topi.divide
+.. autofunction:: topi.mod
+.. autofunction:: topi.maximum
+.. autofunction:: topi.minimum
+.. autofunction:: topi.power
+.. autofunction:: topi.greater
+.. autofunction:: topi.less
 
 topi.nn
 ~~~~~~~
@@ -113,6 +135,10 @@ topi.nn
 .. autofunction:: topi.nn.conv2d_hwcn
 .. autofunction:: topi.nn.depthwise_conv2d_nchw
 .. autofunction:: topi.nn.depthwise_conv2d_nhwc
+
+topi.image
+~~~~~~~~~~
+.. autofunction:: topi.image.resize
 
 
 topi.generic

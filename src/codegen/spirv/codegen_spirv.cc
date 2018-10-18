@@ -3,13 +3,11 @@
  * \file codegen_spirv.cc
  * \brief Generate SPIRV block
  */
-
-#if TVM_VULKAN_RUNTIME
-
 #include <tvm/ir.h>
 #include <tvm/ir_pass.h>
+#include <string>
 #include "../codegen_common.h"
-#include "./codegen_spirv.h"
+#include "codegen_spirv.h"
 
 namespace tvm {
 namespace codegen {
@@ -38,7 +36,7 @@ std::vector<uint32_t> CodeGenSPIRV::BuildFunction(const LoweredFunc& f) {
       pod_args.push_back(arg);
     }
   }
-  spirv::Value func_ptr = builder_->DeclareKenrelFunction(f->name);
+  spirv::Value func_ptr = builder_->NewFunction();
   builder_->StartFunction(func_ptr);
 
   // All the POD arguments are passed in through PushConstant
@@ -58,6 +56,8 @@ std::vector<uint32_t> CodeGenSPIRV::BuildFunction(const LoweredFunc& f) {
   builder_->SetLocalSize(func_ptr, workgroup_size_);
   builder_->MakeInst(spv::OpReturn);
   builder_->MakeInst(spv::OpFunctionEnd);
+
+  builder_->CommitKernelFunction(func_ptr, f->name);
 
   return builder_->Finalize();
 }
@@ -94,12 +94,14 @@ spirv::Value CodeGenSPIRV::CreateStorageSync(const Call* op) {
   if (sync == "warp") {
     return value;
   } else if (sync == "shared") {
+    auto type_int = builder_->GetSType(Int(32));
     builder_->MakeInst(
-        spv::OpControlBarrier,
-        spv::ScopeWorkgroup,
-        spv::ScopeWorkgroup,
+      spv::OpControlBarrier,
+      builder_->IntImm(type_int, static_cast<int64_t>(spv::ScopeWorkgroup)),
+      builder_->IntImm(type_int, static_cast<int64_t>(spv::ScopeWorkgroup)),
+      builder_->IntImm(type_int, static_cast<int64_t>(
         spv::MemorySemanticsSequentiallyConsistentMask |
-        spv::MemorySemanticsWorkgroupMemoryMask);
+        spv::MemorySemanticsWorkgroupMemoryMask)));
   } else {
     LOG(FATAL) << "Do not support sync " << sync;
   }
@@ -634,5 +636,3 @@ void CodeGenSPIRV::VisitStmt_(const ProducerConsumer* op) {
 
 }  // namespace codegen
 }  // namespace tvm
-
-#endif  // TVM_VULKAN_RUNTIME

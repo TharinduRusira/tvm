@@ -3,7 +3,6 @@ import nnvm.symbol as sym
 import nnvm.graph as graph
 from nnvm.compiler import graph_attr
 
-# Level 1
 def correct_layout(g, layout=None):
     if isinstance(g, nnvm.symbol.Symbol):
         g = graph.create(g)
@@ -19,6 +18,7 @@ def correct_layout(g, layout=None):
     return g, ldict
 
 
+# Level 1
 def test_dense():
     x = sym.Variable("data", shape=(10, 20))
     y = sym.dense(x, units=30, name="fc")
@@ -77,14 +77,25 @@ def test_concatenate():
     g, ldict = correct_layout(z, {"x": "HW", "y": "HW"})
     assert(ldict["x"][0] == "HW")
     assert(ldict["y"][0] == "HW")
-    assert(ldict["concat"][0] == "__undef__")
+    assert(ldict["concat"][0] == "HW")
     # second pass will insert layout transform
     _, ldict = correct_layout(g, {"x": "HW16w", "y": "HW16w"})
     assert(ldict["x"][0] == "HW16w")
     assert(ldict["y"][0] == "HW16w")
-    assert(ldict["x_HW"][0] == "HW")
-    assert(ldict["y_HW"][0] == "HW")
-    assert(ldict["concat"][0] == "__undef__")
+    assert(ldict["concat"][0] == "HW16w")
+
+    x1 = sym.Variable("x", shape=(10, 20, 60))
+    x2 = sym.Variable("y", shape=(10, 20, 40))
+    z = sym.concatenate(x1, x2, axis=2, name="concat")
+    g, ldict = correct_layout(z, {"x": "H20wW", "y": "H20wW"})
+    assert(ldict["x"][0] == "H20wW")
+    assert(ldict["y"][0] == "H20wW")
+    assert(ldict["concat"][0] == "H20wW")
+    # second pass will insert layout transform
+    _, ldict = correct_layout(g, {"x": "HW", "y": "HW"})
+    assert(ldict["x_H20wW"][0] == "H20wW")
+    assert(ldict["x_H20wW"][0] == "H20wW")
+    assert(ldict["concat"][0] == "H20wW")
 
 
 def test_expand_dims():
@@ -167,6 +178,19 @@ def test_flatten():
     assert(ldict["x"][0] == "NCHW16c")
     assert(ldict["x_NCHW"][0] == "NCHW")
     assert(ldict["y"][0] == "__undef__")
+
+
+def test_softmax():
+    x = sym.Variable("x", shape=(10, 20, 10, 10))
+    y = sym.softmax(x, name="y")
+    g, ldict = correct_layout(y, "NCHW")
+    assert(ldict["x"][0] == "NCHW")
+    assert(ldict["y"][0] == "NCHW")
+    # second pass will insert layout transform
+    _, ldict = correct_layout(g, "NCHW16c")
+    assert(ldict["x"][0] == "NCHW16c")
+    assert(ldict["x_NCHW"][0] == "NCHW")
+    assert(ldict["y"][0] == "NCHW")
 
 
 # Level 2
@@ -327,6 +351,7 @@ if __name__ == "__main__":
     test_split()
     test_batchnorm()
     test_flatten()
+    test_softmax()
     test_conv2d()
     test_conv2d_transpose()
     test_max_pool2d()

@@ -9,6 +9,9 @@ import wc as mdl
 import xlwt
 import argparse
 
+
+from tvm import autotvm
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", nargs=1, type=str, default=["alex4"])
 args = parser.parse_args()
@@ -116,7 +119,9 @@ def resnet_transform(func):
 def default_transform(func):
     #an experimental schedule to figure out what's 'generally' good for WU
     s = tvm.create_schedule(func.op)
-    
+    print(s[func].op.axis)
+    print(s[func].op.reduce_axis)
+
     #iter_var(name, Range(min=0, extent=bound))
     ko, co,  rr, ss, ki, ci  = s[func].op.axis
     n, rh, rw = s[func].op.reduce_axis
@@ -155,6 +160,50 @@ def default_transform(func):
     #s[func].unroll(rr)
     return [s]
 
+@autotvm.template
+def tvm_tuner(func):
+    s = tvm.create_schedule(func.op)
+    print(s[func].op.axis)
+    print(s[func].op.reduce_axis)
+
+    #iter_var(name, Range(min=0, extent=bound))
+    ko, co,  rr, ss, ki, ci  = s[func].op.axis
+    n, rh, rw = s[func].op.reduce_axis
+
+    h_list = []
+    w_list = []
+
+    for i in range(2,  input_height):
+        if input_height%i ==0 and i is not in h_list:
+            h_list.append(i)
+    for j in range(2, input_width):
+        if input_width%j ==0 and j is not in w_list:
+            w_list.append(j)
+
+
+    cfg = autotvm.get_config()
+    cfg.define_knob("h_tile", h_list)
+    cfg.define_knob("w_tile", w_list)
+
+    ho, wo, hi, wi = s[func].tile(rh, rw, cfg['h_tile'].val, cfg['w_tile'].val)
+   
+    #hi_outer, hi_inner = s[func].split(hi, factor=inner_tile)
+    order = [ko, co, n, ho, wo, hi, rr, ss,wi, hi, ki, ci]
+        
+    order =  [ko, co, n, ho, wo, hi, rr, ss, wi, ki, ci]
+    
+    s[func].reorder(*order)
+    
+    #can't parallelize n, dependency
+    koco_fused = s[func].fuse( ko, co)
+    s[func].parallel(koco_fused)
+    
+    s[func].vectorize(ci)
+    s[func].unroll(ki)
+    return [s]
+
+
+
 def compile_and_run(s, A, B, W):
 
     with tvm.build_config(data_alignment=64):
@@ -171,7 +220,7 @@ def compile_and_run(s, A, B, W):
         w = tvm.nd.array(input_np, ctx)
       
         func(a, w, b)
-        print(tvm.lower(s, [A,W,B], simple_mode=True))       
+        #print(tvm.lower(s, [A,W,B], simple_mode=True))       
 
         #verify correctness
        

@@ -69,14 +69,26 @@ def pool(data,
     stride : list/tuple of two ints
         Stride size, [stride_height, stride_width]
 
-    paddding : list/tuple of two ints
-        Pad size, [pad_height, pad_width]
+    padding : list/tuple of four ints
+        Pad size, [pad_top, pad_left, pad_bottom, pad_right]]
 
     pool_type : str
         Pool type, 'max' or 'avg'
 
     ceil_mode : bool
-        Whether to use ceil when caculate output size.
+        Whether to use ceil when calculating output size.
+
+    layout: string
+        Layout of the input data.
+        The layout is supposed to be composed of upper cases, lower cases and numbers,
+        where upper case indicates a dimension and
+        the corresponding lower case with factor size indicates the split dimension.
+        For example, NCHW16c can describe a 5-D tensor of
+        [batch_size, channel, height, width, channel_block],
+        in which channel_block=16 is a split of dimension channel.
+
+    count_include_pad: bool
+        Whether include padding in the calculation when pool_type is 'avg'
 
     layout: string
         Layout of the input data.

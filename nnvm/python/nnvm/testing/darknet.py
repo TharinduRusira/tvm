@@ -9,8 +9,8 @@ These are utility functions used for testing and tutorial file.
 from __future__ import division
 import math
 import numpy as np
-import cv2
 from cffi import FFI
+import cv2
 
 def _resize_image(img, w_in, h_in):
     """Resize the image to the given height and width."""
@@ -55,10 +55,10 @@ def _letterbox_image(img, w_in, h_in):
     imc, imh, imw = img.shape
     if (w_in / imw) < (h_in / imh):
         new_w = w_in
-        new_h = imh * w_in / imw
+        new_h = imh * w_in // imw
     else:
         new_h = h_in
-        new_w = imw * h_in/imh
+        new_w = imw * h_in // imh
     resized = _resize_image(img, new_w, new_h)
     boxed = np.full((imc, h_in, w_in), 0.5, dtype=float)
     _, resizedh, resizedw = resized.shape
@@ -115,8 +115,12 @@ class LAYERTYPE(object):
     NETWORK = 20
     XNOR = 21
     REGION = 22
-    REORG = 23
-    BLANK = 24
+    YOLO = 23
+    REORG = 24
+    UPSAMPLE = 25
+    LOGXENT = 26
+    L2NORM = 27
+    BLANK = 28
 
 class ACTIVATION(object):
     """Darknet ACTIVATION Class constant."""
@@ -182,12 +186,16 @@ typedef enum {
     NETWORK,
     XNOR,
     REGION,
+    YOLO,
     REORG,
+    UPSAMPLE,
+    LOGXENT,
+    L2NORM,
     BLANK
 } LAYERTYPE;
 
 typedef enum{
-    SSE, MASKED, LONE, SEG, SMOOTH
+    SSE, MASKED, L1, SEG, SMOOTH, WGAN
 } COSTTYPE;
 
 
@@ -241,18 +249,20 @@ struct layer{
     float shift;
     float ratio;
     float learning_rate_scale;
+    float clip;
     int softmax;
     int classes;
     int coords;
     int background;
     int rescore;
     int objectness;
-    int does_cost;
     int joint;
     int noadjust;
     int reorg;
     int log;
     int tanh;
+    int *mask;
+    int total;
 
     float alpha;
     float beta;
@@ -265,13 +275,17 @@ struct layer{
     float class_scale;
     int bias_match;
     int random;
+    float ignore_thresh;
+    float truth_thresh;
     float thresh;
+    float focus;
     int classfix;
     int absolute;
 
     int onlyforward;
     int stopbackward;
     int dontload;
+    int dontsave;
     int dontloadscales;
 
     float temperature;
@@ -309,6 +323,7 @@ struct layer{
 
     float * delta;
     float * output;
+    float * loss;
     float * squared;
     float * norms;
 
@@ -462,6 +477,7 @@ typedef struct network{
     int train;
     int index;
     float *cost;
+    float clip;
 } network;
 
 
@@ -479,6 +495,7 @@ void top_predictions(network *net, int n, int *index);
 void free_image(image m);
 image load_image_color(char *filename, int w, int h);
 float *network_predict_image(network *net, image im);
+float *network_predict(network *net, float *input);
 network *make_network(int n);
 layer make_convolutional_layer(int batch, int h, int w, int c, int n, int groups, int size, int stride, int padding, ACTIVATION activation, int batch_normalize, int binary, int xnor, int adam);
 layer make_connected_layer(int batch, int inputs, int outputs, ACTIVATION activation, int batch_normalize, int adam);
@@ -488,6 +505,13 @@ layer make_shortcut_layer(int batch, int index, int w, int h, int c, int w2, int
 layer make_batchnorm_layer(int batch, int w, int h, int c);
 layer make_reorg_layer(int batch, int w, int h, int c, int stride, int reverse, int flatten, int extra);
 layer make_region_layer(int batch, int w, int h, int n, int classes, int coords);
+layer make_softmax_layer(int batch, int inputs, int groups);
+layer make_rnn_layer(int batch, int inputs, int outputs, int steps, ACTIVATION activation, int batch_normalize, int adam);
+layer make_yolo_layer(int batch, int w, int h, int n, int total, int *mask, int classes);
+layer make_crnn_layer(int batch, int h, int w, int c, int hidden_filters, int output_filters, int steps, ACTIVATION activation, int batch_normalize);
+layer make_lstm_layer(int batch, int inputs, int outputs, int steps, int batch_normalize, int adam);
+layer make_gru_layer(int batch, int inputs, int outputs, int steps, int batch_normalize, int adam);
+layer make_upsample_layer(int batch, int w, int h, int c, int stride);
 void free_network(network *net);
 """
                    )

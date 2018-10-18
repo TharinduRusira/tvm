@@ -11,6 +11,7 @@
 #include <nnvm/tuple.h>
 #include <nnvm/layout.h>
 #include <string>
+#include "tensor.h"
 
 namespace nnvm {
 namespace top {
@@ -122,6 +123,7 @@ struct Conv2DParam : public dmlc::Parameter<Conv2DParam> {
   std::string layout;
   std::string kernel_layout;
   std::string out_layout;
+  int out_dtype;
   bool use_bias;
 
   DMLC_DECLARE_PARAMETER(Conv2DParam) {
@@ -156,6 +158,11 @@ struct Conv2DParam : public dmlc::Parameter<Conv2DParam> {
       .describe("Dimension ordering of weight. Can be 'OIHW', 'OIHW16o16i', etc."
                 "'O', 'I', 'H', 'W' stands for num_filter, input_channel, height, and width"
                 "dimensions respectively.");
+    DMLC_DECLARE_DTYPE_FIELD(out_dtype)
+      .add_enum("same", -1)
+      .set_default(-1)
+      .describe("Output data type, set to explicit type under mixed precision setting");
+
     DMLC_DECLARE_FIELD(use_bias).set_default(true)
       .describe("Whether the layer uses a bias vector.");
   }
@@ -165,6 +172,77 @@ struct Conv2DParam : public dmlc::Parameter<Conv2DParam> {
   static const constexpr int kBias = 2;
 };
 
+struct WinogradWeightTransformParam : public dmlc::Parameter<WinogradWeightTransformParam> {
+    int tile_size;
+
+    DMLC_DECLARE_PARAMETER(WinogradWeightTransformParam) {
+      DMLC_DECLARE_FIELD(tile_size)
+        .describe("Tile size of winograd. E.g. 2 for F(2x2, 3x3) and 4 for F(4x4, 3x3)");
+    }
+
+    static const constexpr int kWeight = 0;
+};
+
+struct WinogradConv2DParam : public dmlc::Parameter<WinogradConv2DParam> {
+  int channels;
+  TShape kernel_size;
+  TShape strides;
+  TShape padding;
+  TShape dilation;
+  int groups;
+  std::string layout;
+  std::string kernel_layout;
+  std::string out_layout;
+  int out_dtype;
+  bool use_bias;
+  int tile_size;
+
+  DMLC_DECLARE_PARAMETER(WinogradConv2DParam) {
+    DMLC_DECLARE_FIELD(channels)
+      .describe("The dimensionality of the output space"
+                "i.e. the number of output channels in the convolution.");
+    DMLC_DECLARE_FIELD(kernel_size)
+      .describe("Specifies the dimensions of the convolution window.");
+    DMLC_DECLARE_FIELD(strides).set_default(TShape({1, 1}))
+      .describe("Specifies the strides of the convolution.");
+    DMLC_DECLARE_FIELD(padding).set_default(TShape({0, 0}))
+      .describe("If padding is non-zero, then the input is implicitly zero-padded"
+                "on both sides for padding number of points");
+    DMLC_DECLARE_FIELD(dilation).set_default(TShape({1, 1}))
+      .describe("Specifies the dilation rate to use for dilated convolution.");
+    DMLC_DECLARE_FIELD(groups).set_default(1)
+      .describe("Controls the connections between inputs and outputs."
+                "At groups=1, all inputs are convolved to all outputs."
+                "At groups=2, the operation becomes equivalent to having two convolution"
+                "layers side by side, each seeing half the input channels, and producing"
+                "half the output channels, and both subsequently concatenated.");
+    DMLC_DECLARE_FIELD(layout).set_default("NCHW")
+      .describe("Dimension ordering of input data. Can be 'NCHW', 'NHWC', etc."
+                "'N', 'C', 'H', 'W' stands for batch, channel, height, and width"
+                "dimensions respectively. Convolution is applied on the 'H' and"
+                "'W' dimensions.");
+    DMLC_DECLARE_FIELD(out_layout).set_default("__undef__")
+      .describe("Dimension ordering of output. Can be 'NCHW', 'NHWC', etc."
+                "'N', 'C', 'H', 'W' stands for batch, channel, height, and width"
+                "dimensions respectively. Default to be same as input layout.");
+    DMLC_DECLARE_FIELD(kernel_layout).set_default("OIHW")
+      .describe("Dimension ordering of weight. Can be 'OIHW', 'OIHW16o16i', etc."
+                "'O', 'I', 'H', 'W' stands for num_filter, input_channel, height, and width"
+                "dimensions respectively.");
+    DMLC_DECLARE_DTYPE_FIELD(out_dtype)
+      .add_enum("same", -1)
+      .set_default(-1)
+      .describe("Output data type, set to explicit type under mixed precision setting");
+    DMLC_DECLARE_FIELD(use_bias).set_default(true)
+      .describe("Whether the layer uses a bias vector.");
+    DMLC_DECLARE_FIELD(tile_size)
+      .describe("Tile size of winograd. E.g. 2 for F(2x2, 3x3) and 4 for F(4x4, 3x3)");
+  }
+  // constants
+  static const constexpr int kData = 0;
+  static const constexpr int kWeight = 1;
+  static const constexpr int kBias = 2;
+};
 
 struct Conv2DTransposeParam : public dmlc::Parameter<Conv2DTransposeParam> {
   int channels;
@@ -176,6 +254,7 @@ struct Conv2DTransposeParam : public dmlc::Parameter<Conv2DTransposeParam> {
   int groups;
   std::string layout;
   std::string kernel_layout;
+  int out_dtype;
   bool use_bias;
 
   DMLC_DECLARE_PARAMETER(Conv2DTransposeParam) {
@@ -208,6 +287,10 @@ struct Conv2DTransposeParam : public dmlc::Parameter<Conv2DTransposeParam> {
       .describe("Dimension ordering of data and weight. Can be 'OIHW', 'OIHW16o16i', etc."
                 "'O', 'I', 'H', 'W' stands for num_filter, input_channel, height, and width"
                 "dimensions respectively.");
+    DMLC_DECLARE_DTYPE_FIELD(out_dtype)
+        .add_enum("same", -1)
+        .set_default(-1)
+        .describe("Output data type, set to explicit type under mixed precision setting");
     DMLC_DECLARE_FIELD(use_bias).set_default(true)
       .describe("Whether the layer uses a bias vector.");
   }
@@ -232,7 +315,10 @@ struct MaxPool2DParam : public dmlc::Parameter<MaxPool2DParam> {
       .describe("Specifies the strides of the convolution.");
     DMLC_DECLARE_FIELD(padding).set_default(TShape({0, 0}))
       .describe("If padding is non-zero, then the input is implicitly zero-padded"
-                "on both sides for padding number of points");
+                "Padding support both symmetric and asymmetric as"
+                "one int : same padding used on all sides"
+                "two int : bottom, right will use same padding as top, left"
+                "four int : padding width in the order of (top, left, bottom, right)");
     DMLC_DECLARE_FIELD(layout).set_default("NCHW")
       .describe("Dimension ordering of data and weight. Can be 'NCHW', 'NHWC', etc."
                 "'N', 'C', 'H', 'W' stands for batch, channel, height, and width"
@@ -259,7 +345,10 @@ struct AvgPool2DParam : public dmlc::Parameter<AvgPool2DParam> {
       .describe("Specifies the strides of the convolution.");
     DMLC_DECLARE_FIELD(padding).set_default(TShape({0, 0}))
       .describe("If padding is non-zero, then the input is implicitly zero-padded"
-                "on both sides for padding number of points");
+                "Padding support both symmetric and asymmetric as"
+                "one int : same padding used on all sides"
+                "two int : bottom, right will use same padding as top, left"
+                "four int : padding width in the order of (top, left, bottom, right)");
     DMLC_DECLARE_FIELD(layout).set_default("NCHW")
       .describe("Dimension ordering of data and weight. Can be 'NCHW', 'NHWC', etc."
                 "'N', 'C', 'H', 'W' stands for batch, channel, height, and width"
@@ -288,16 +377,22 @@ struct GlobalPool2DParam : public dmlc::Parameter<GlobalPool2DParam> {
 struct UpSamplingParam : public dmlc::Parameter<UpSamplingParam> {
   int scale;
   std::string layout;
+  std::string method;
 
   DMLC_DECLARE_PARAMETER(UpSamplingParam) {
     DMLC_DECLARE_FIELD(scale)
       .describe("upsampling scaling factor");
     DMLC_DECLARE_FIELD(layout)
       .set_default("NCHW")
-      .describe("Dimension ordering of data and weight. Can be 'NCHW', 'NHWC', etc."
+      .describe("Dimension ordering of data. Can be 'NCHW', 'NHWC', etc."
                 "'N', 'C', 'H', 'W' stands for batch, channel, height, and width"
-                "dimensions respectively. Convolution is applied on the 'H' and"
+                "dimensions respectively. Upsampling is applied on the 'H' and"
                 "'W' dimensions.");
+    DMLC_DECLARE_FIELD(method)
+      .set_default("NEAREST_NEIGHBOR")
+      .describe("Specify the mode to use for scaling."
+                "NEAREST_NEIGHBOR -  Nearest Neighbor"
+                "BILINEAR - Bilinear Interpolation");
   }
 };
 
@@ -310,6 +405,90 @@ struct LayoutTransformParam : public dmlc::Parameter<LayoutTransformParam> {
     .describe("Dimension ordering of data");
     DMLC_DECLARE_FIELD(dst_layout).set_default("__undef__")
     .describe("Dimension ordering of data.");
+  }
+};
+
+struct MultiBoxPriorParam : public dmlc::Parameter<MultiBoxPriorParam> {
+  Tuple<float> sizes;
+  Tuple<float> ratios;
+  Tuple<float> steps;
+  Tuple<float> offsets;
+  bool clip;
+
+  DMLC_DECLARE_PARAMETER(MultiBoxPriorParam) {
+    DMLC_DECLARE_FIELD(sizes).set_default(Tuple<float>({1.0}))
+      .describe("List of sizes of generated MultiBoxPriores.");
+    DMLC_DECLARE_FIELD(ratios).set_default(Tuple<float>({1.0}))
+    .describe("List of aspect ratios of generated MultiBoxPriores.");
+    DMLC_DECLARE_FIELD(steps).set_default(Tuple<float>({-1.0, -1.0}))
+    .describe("Priorbox step across y and x, -1 for auto calculation.");
+    DMLC_DECLARE_FIELD(offsets).set_default(Tuple<float>({0.5, 0.5}))
+    .describe("Priorbox center offsets, y and x respectively.");
+    DMLC_DECLARE_FIELD(clip).set_default(false)
+    .describe("Whether to clip out-of-boundary boxes.");
+  }
+};
+
+struct MultiBoxTransformLocParam : public dmlc::Parameter<MultiBoxTransformLocParam> {
+  bool clip;
+  float threshold;
+  Tuple<float> variances;
+  DMLC_DECLARE_PARAMETER(MultiBoxTransformLocParam) {
+    DMLC_DECLARE_FIELD(clip).set_default(true)
+      .describe("Clip out-of-boundary boxes.");
+    DMLC_DECLARE_FIELD(threshold).set_default(0.01)
+    .describe("Threshold to be a positive prediction.");
+    DMLC_DECLARE_FIELD(variances).set_default(Tuple<float>({0.1f, 0.1f, 0.2f, 0.2f}))
+    .describe("Variances to be decoded from box regression output.");
+  }
+};
+
+struct NMSParam : public dmlc::Parameter<NMSParam> {
+  float nms_threshold;
+  bool force_suppress;
+  int nms_topk;
+  DMLC_DECLARE_PARAMETER(NMSParam) {
+    DMLC_DECLARE_FIELD(nms_threshold).set_default(0.5)
+      .describe("Non-maximum suppression threshold.");
+    DMLC_DECLARE_FIELD(force_suppress).set_default(false)
+    .describe("Suppress all detections regardless of class_id.");
+    DMLC_DECLARE_FIELD(nms_topk).set_default(-1)
+    .describe("Keep maximum top k detections before nms, -1 for no limit.");
+  }
+};
+
+struct LRNParam : public dmlc::Parameter<LRNParam> {
+  int size;
+  int axis;
+  float alpha;
+  float beta;
+  float bias;
+
+  DMLC_DECLARE_PARAMETER(LRNParam) {
+    DMLC_DECLARE_FIELD(size)
+      .describe("The size of the local region to be considered for normalization.");
+    DMLC_DECLARE_FIELD(axis)
+      .describe("input data layout channel axis");
+    DMLC_DECLARE_FIELD(alpha)
+      .describe("The scaling parameter.");
+    DMLC_DECLARE_FIELD(beta)
+      .describe("The exponent parameter.");
+    DMLC_DECLARE_FIELD(bias)
+      .describe("The offset parameter.");
+  }
+  // constants
+  static const constexpr int kData = 0;
+};
+
+struct L2NormalizeParam : public dmlc::Parameter<L2NormalizeParam> {
+  float eps;
+  Tuple<int> axis;
+
+  DMLC_DECLARE_PARAMETER(L2NormalizeParam) {
+    DMLC_DECLARE_FIELD(eps)
+      .describe("float type epsilon value.");
+    DMLC_DECLARE_FIELD(axis)
+      .describe("axis over the normalization applied");
   }
 };
 

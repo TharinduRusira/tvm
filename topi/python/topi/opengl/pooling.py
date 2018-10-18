@@ -1,4 +1,4 @@
-# pylint: disable=invalid-name, unused-variable
+# pylint: disable=invalid-name, unused-variable, unused-argument
 """Schedule for pooling operators"""
 import tvm
 from .. import tag
@@ -21,6 +21,8 @@ def schedule_global_pool(outs):
     """
     outs = [outs] if isinstance(outs, tvm.tensor.Tensor) else outs
     s = tvm.create_schedule([x.op for x in outs])
+    scheduled_ops = []
+
     def _schedule(Pool):
         if Pool.op in s.outputs:
             Out = Pool
@@ -36,7 +38,7 @@ def schedule_global_pool(outs):
             if OP not in s.outputs:
                 s[OP].opengl()
             for tensor in OP.input_tensors:
-                if tensor.op.input_tensors:
+                if tensor.op.input_tensors and tensor.op not in scheduled_ops:
                     traverse(tensor.op)
         # schedule global_pool
         elif OP.tag.startswith('global_pool'):
@@ -45,12 +47,14 @@ def schedule_global_pool(outs):
         else:
             raise RuntimeError("Unsupported operator: %s" % OP.tag)
 
+        scheduled_ops.append(OP)
+
     traverse(outs[0].op)
     return s
 
 
 @generic.schedule_pool.register(["opengl"])
-def schedule_pool(outs):
+def schedule_pool(outs, layout):
     """Schedule for pool.
 
     Parameters
@@ -59,6 +63,9 @@ def schedule_pool(outs):
         The computation graph description of pool
         in the format of an array of tensors.
 
+    layout: str
+        Data layout.
+
     Returns
     -------
     s: Schedule
@@ -66,6 +73,8 @@ def schedule_pool(outs):
     """
     outs = [outs] if isinstance(outs, tvm.tensor.Tensor) else outs
     s = tvm.create_schedule([x.op for x in outs])
+    scheduled_ops = []
+
     def _schedule(PaddedInput, Pool):
         if isinstance(PaddedInput.op, tvm.tensor.ComputeOp):
             s[PaddedInput].opengl()
@@ -82,7 +91,7 @@ def schedule_pool(outs):
         if tag.is_broadcast(OP.tag):
             if OP not in s.outputs:
                 s[OP].compute_inline()
-            for tensor in OP.input_tensors:
+            for tensor in OP.input_tensors and tensor.op not in scheduled_ops:
                 if tensor.op.input_tensors:
                     traverse(tensor.op)
         # schedule pool
@@ -92,6 +101,8 @@ def schedule_pool(outs):
             _schedule(PaddedInput, Pool)
         else:
             raise RuntimeError("Unsupported operator: %s" % OP.tag)
+
+        scheduled_ops.append(OP)
 
     traverse(outs[0].op)
     return s

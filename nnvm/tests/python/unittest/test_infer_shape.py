@@ -84,6 +84,10 @@ def test_split():
     sdict = infer_shape(z)
     assert(sdict["y"][0] == [10, 10])
     assert(sdict["y"][1] == [10, 10])
+    z = sym.split(x1, indices_or_sections=[6], axis=-1, name="y")
+    sdict = infer_shape(z)
+    assert(sdict["y"][0] == [10, 6])
+    assert(sdict["y"][1] == [10, 14])
 
 
 def test_batchnorm():
@@ -166,6 +170,27 @@ def test_conv2d():
           kernel_size=(3, 3),
           padding=(1, 1),
           layout="NHWC")
+
+
+def test_conv2d_packed():
+    def check(in_shape,
+              out_shape,
+              kernel_shape,
+              **kwargs):
+        x = sym.Variable("x", shape=in_shape)
+        y = sym.conv2d(x, name="y", **kwargs)
+        sdict = infer_shape(y)
+        assert(tuple(sdict["y"][0]) == tuple(out_shape))
+        assert(tuple(sdict["y_weight"][0]) == tuple(kernel_shape))
+
+    check((4, 10, 10, 12, 1, 8),
+          (4, 10, 10, 2, 1, 8),
+          (2, 12, 3, 3, 8, 8),
+          channels=8 * 2,
+          kernel_size=(3,3),
+          padding=(1,1),
+          layout="NHWC1n8c",
+          kernel_layout="OIHW8o8i")
 
 
 def test_conv2d_transpose():
@@ -332,6 +357,7 @@ def test_reduce():
 
 
 if __name__ == "__main__":
+    test_conv2d_packed()
     test_expand_dims()
     test_dense()
     test_matmul()

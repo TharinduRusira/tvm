@@ -7,8 +7,8 @@
 #define TVM_RUNTIME_DEVICE_API_H_
 
 #include <string>
-#include "./packed_func.h"
-#include "./c_runtime_api.h"
+#include "packed_func.h"
+#include "c_runtime_api.h"
 
 namespace tvm {
 namespace runtime {
@@ -23,7 +23,8 @@ enum DeviceAttrKind : int {
   kComputeVersion = 4,
   kDeviceName = 5,
   kMaxClockRate = 6,
-  kMultiProcessorCount = 7
+  kMultiProcessorCount = 7,
+  kMaxThreadDimensions = 8
 };
 
 /*! \brief Number of bytes each allocation must align to */

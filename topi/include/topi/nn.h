@@ -64,7 +64,7 @@ inline tvm::Tensor relu(const tvm::Tensor& t,
 * \param name The name of the operation
 * \param tag The tag to mark the operation
 *
-* \return A Tensor whose op member is the relu operation
+* \return A Tensor whose op member is the leaky relu operation
 */
 inline tvm::Tensor leaky_relu(const tvm::Tensor& t,
                               double alpha = 0.1,
@@ -90,9 +90,8 @@ inline tvm::Tensor leaky_relu(const tvm::Tensor& t,
  * \param name The name of the operation
  * \param tag The tag to mark the operation
  *
- * \return A Tensor whose op member is the relu operation
+ * \return A Tensor whose op member is the parametric relu operation
  */
-template <typename T>
 inline tvm::Tensor prelu(const tvm::Tensor &x,
                          const tvm::Tensor &slope,
                          const int axis = 1,
@@ -202,37 +201,6 @@ inline tvm::Tensor pad(const tvm::Tensor& t,
 }
 
 /*!
- * \brief Creates an operation that calculates a matrix multiplication
- *  (row-major notation):
- *      A(i, k) * B(k, j), if trans_a == trans_b
- *          the usual transposed combinations, otherwise
- *
- * \param A The matrix A
- * \param B The matrix B
- * \param trans_a Is A's layout transposed?
- * \param trans_b Is B's layout transposed?
- * \param name The name of the operation
- * \param tag The tag to mark the operation
- *
- * \return A Tensor whose op member is the matmult operation
- */
-inline tvm::Tensor matmult(const tvm::Tensor& A,
-                           const tvm::Tensor& B,
-                           bool trans_a = false,
-                           bool trans_b = false,
-                           std::string name = "tensor",
-                           std::string tag = kMatMult) {
-  tvm::Array<tvm::Expr> output_shape{A->shape[trans_a ? 1 : 0],
-                                     B->shape[trans_b ? 0 : 1]};
-  auto k = tvm::reduce_axis(tvm::Range{0, A->shape[trans_a ? 0 : 1]}, "k");
-  auto l = [&](tvm::Var i, tvm::Var j) {
-    return tvm::sum((trans_a ? A[k][i] : A[i][k]) * (trans_b ? B[j][k] : B[k][j]),
-                    {k});
-  };
-  return tvm::compute(output_shape, l, name, tag);
-}
-
-/*!
  * \brief Creates an operation that performs a 2-D convolution with an
  * NCHW-layout
  *
@@ -266,7 +234,7 @@ inline tvm::Tensor conv2d_nchw(const tvm::Tensor& I,
   auto pW = I->shape[3];
   tvm::Array<tvm::Expr> output_shape{
       I->shape[0],                                            // B
-      W->shape[1],                                            // O
+      W->shape[0],                                            // O
       (I->shape[2] - W->shape[2] + 2 * pad_h) / stride_h + 1,  // H
       (I->shape[3] - W->shape[3] + 2 * pad_w) / stride_w + 1   // W
   };

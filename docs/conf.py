@@ -26,13 +26,14 @@ curr_path = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
 sys.path.insert(0, os.path.join(curr_path, '../python/'))
 sys.path.insert(0, os.path.join(curr_path, '../topi/python'))
 sys.path.insert(0, os.path.join(curr_path, '../nnvm/python'))
+sys.path.insert(0, os.path.join(curr_path, '../vta/python'))
 
 # -- General configuration ------------------------------------------------
 
 # General information about the project.
 project = u'tvm'
 author = u'%s developers' % project
-copyright = u'2017, %s' % author
+copyright = u'2018, %s' % author
 github_doc_root = 'https://github.com/tqchen/tvm/tree/master/docs/'
 
 # add markdown parser
@@ -184,15 +185,18 @@ intersphinx_mapping = {
 
 from sphinx_gallery.sorting import ExplicitOrder
 
-examples_dirs = ['../tutorials/']
-gallery_dirs = ['tutorials']
+examples_dirs = ["../tutorials/", "../vta/tutorials/"]
+gallery_dirs = ["tutorials", "vta/tutorials"]
+
 subsection_order = ExplicitOrder(
     ['../tutorials/language',
      '../tutorials/optimize',
+     '../tutorials/autotvm',
+     '../tutorials/dev',
+     '../tutorials/vta',
      '../tutorials/topi',
      '../tutorials/deployment',
      '../tutorials/nnvm'])
-
 
 def generate_doxygen_xml(app):
     """Run the doxygen make commands if we're on the ReadTheDocs server"""
@@ -220,7 +224,7 @@ sphinx_gallery_conf = {
     'examples_dirs': examples_dirs,
     'gallery_dirs': gallery_dirs,
     'subsection_order': subsection_order,
+    'filename_pattern': os.environ.get("TVM_TUTORIAL_EXEC_PATTERN", ".py"),
     'find_mayavi_figures': False,
-    'filename_pattern': '.py',
     'expected_failing_examples': []
 }

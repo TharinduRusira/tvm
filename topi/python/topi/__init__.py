@@ -24,12 +24,16 @@ from .broadcast import *
 from . import nn
 from . import x86
 from . import cuda
-from . import rasp
+from . import arm_cpu
 from . import mali
+from . import intel_graphics
 from . import opengl
 from . import util
 from . import rocm
 from . import vision
+from . import image
+from . import sparse
+from . import hls
 # not import testing by default
 # because testing can have extra deps that are not necessary
 # we can import them from test cases explicitly

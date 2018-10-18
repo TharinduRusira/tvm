@@ -2,17 +2,14 @@
  *  Copyright (c) 2018 by Contributors
  * \file vulkan_module.cc
  */
-#include "./vulkan_module.h"
-
-#if TVM_VULKAN_RUNTIME
-
 #include <dmlc/memory_io.h>
 #include <tvm/runtime/registry.h>
 #include <tvm/runtime/module.h>
 #include <array>
 #include <string>
 #include <mutex>
-#include "./vulkan_common.h"
+#include "vulkan_common.h"
+#include "vulkan_module.h"
 #include "../pack_args.h"
 #include "../thread_storage_scope.h"
 #include "../meta_data.h"
@@ -38,10 +35,10 @@ class VulkanModuleNode final :public runtime::ModuleNode {
  public:
   // Pipeline cache states
   struct PipelineEntry {
-    VkShaderModule shader{nullptr};
-    VkPipelineLayout pipeline_layout{nullptr};
-    VkDescriptorSetLayout descriptor_layout{nullptr};
-    VkPipeline pipeline{nullptr};
+    VkShaderModule shader{VK_NULL_HANDLE};
+    VkPipelineLayout pipeline_layout{VK_NULL_HANDLE};
+    VkDescriptorSetLayout descriptor_layout{VK_NULL_HANDLE};
+    VkPipeline pipeline{VK_NULL_HANDLE};
   };
   // constructor
   explicit VulkanModuleNode(std::unordered_map<std::string, VulkanShader> smap,
@@ -196,10 +193,10 @@ class VulkanModuleNode final :public runtime::ModuleNode {
     pipeline_cinfo.stage.pName = func_name.c_str();
     pipeline_cinfo.stage.pSpecializationInfo = nullptr;
     pipeline_cinfo.layout = pe.pipeline_layout;
-    pipeline_cinfo.basePipelineHandle = nullptr;
+    pipeline_cinfo.basePipelineHandle = VK_NULL_HANDLE;
     pipeline_cinfo.basePipelineIndex = 0;
     VULKAN_CALL(vkCreateComputePipelines(
-        e.device, nullptr, 1, &pipeline_cinfo, nullptr, &(pe.pipeline)));
+        e.device, VK_NULL_HANDLE, 1, &pipeline_cinfo, nullptr, &(pe.pipeline)));
     e.smap[func_name] = pe;
     return pe;
   }
@@ -253,7 +250,7 @@ class VulkanWrappedFunc {
     CHECK_LT(device_id, kVulkanMaxNumDevice);
     const vulkan::VulkanContext& vctx = w_->context_[device_id];
     VulkanModuleNode::PipelineEntry& pe = scache_[device_id];
-    if (pe.pipeline == nullptr) {
+    if (pe.pipeline == VK_NULL_HANDLE) {
       pe = m_->GetPipeline(device_id, func_name_, num_pack_args_);
     }
     ThreadWorkLoad wl = thread_axis_cfg_.Extract(args);
@@ -421,4 +418,3 @@ TVM_REGISTER_GLOBAL("module.loadbinary_vulkan")
   });
 }  // namespace runtime
 }  // namespace tvm
-#endif  // TVM_VULKAN_RUNTIME

@@ -1,123 +1,94 @@
 """
+.. _tutorial-deploy-model-on-rasp:
+
 Deploy the Pretrained Model on Raspberry Pi
 ===========================================
 **Author**: `Ziheng Jiang <https://ziheng.org/>`_
 
 This is an example of using NNVM to compile a ResNet model and deploy
 it on raspberry pi.
-
-To begin with, we import nnvm(for compilation) and TVM(for deployment).
 """
+
 import tvm
 import nnvm.compiler
 import nnvm.testing
-from tvm.contrib import util, rpc
-from tvm.contrib import graph_runtime as runtime
-
+from tvm import rpc
+from tvm.contrib import util, graph_runtime as runtime
 
 ######################################################################
+# .. _build-tvm-runtime-on-device:
+#
 # Build TVM Runtime on Device
 # ---------------------------
 #
-# There're some prerequisites: we need build tvm runtime and set up
-# a RPC server on remote device.
-#
-# To get started, clone tvm repo from github. It is important to clone
-# the submodules along, with --recursive option (Assuming you are in
-# your home directory):
-#
-#   .. code-block:: bash
-#
-#     git clone --recursive https://github.com/dmlc/tvm
+# The first step is to build tvm runtime on the remote device.
 #
 # .. note::
 #
-#   Usually device has limited resources and we only need to build
-#   runtime. The idea is we will use TVM compiler on the local server
-#   to compile and upload the compiled program to the device and run
-#   the device function remotely.
+#   All instructions in both this section and next section should be
+#   executed on the target device, e.g. Raspberry Pi. And we assume it
+#   has Linux running.
+# 
+# Since we do compilation on local machine, the remote device is only used
+# for running the generated code. We only need to build tvm runtime on
+# the remote device.
 #
-#   .. code-block:: bash
+# .. code-block:: bash
 #
-#     make runtime
+#   git clone --recursive https://github.com/dmlc/tvm
+#   cd tvm
+#   make runtime -j4
 #
-# After success of buildind runtime, we need set environment varibles
-# in :code:`~/.bashrc` file of yourself account or :code:`/etc/profile`
-# of system enviroment variables. Assuming your TVM directory is in
-# :code:`~/tvm` and set environment variables below your account.
+# After building runtime successfully, we need to set environment varibles
+# in :code:`~/.bashrc` file. We can edit :code:`~/.bashrc`
+# using :code:`vi ~/.bashrc` and add the line below (Assuming your TVM 
+# directory is in :code:`~/tvm`):
 #
-#   .. code-block:: bash
+# .. code-block:: bash
 #
-#    vi ~/.bashrc
+#   export PYTHONPATH=$PYTHONPATH:~/tvm/python
 #
-# We need edit :code:`~/.bashrc` using :code:`vi ~/.bashrc` and add
-# lines below (Assuming your TVM directory is in :code:`~/tvm`):
-#
-#   .. code-block:: bash
-#
-#    export TVM_HOME=~/tvm
-#    export PATH=$PATH:$TVM_HOME/lib
-#    export PYTHONPATH=$PYTHONPATH:$TVM_HOME/python
-#
-# To enable updated :code:`~/.bashrc`, execute :code:`source ~/.bashrc`.
+# To update the environment variables, execute :code:`source ~/.bashrc`.
 
 ######################################################################
 # Set Up RPC Server on Device
 # ---------------------------
-# To set up a TVM RPC server on the Raspberry Pi (our remote device),
-# we have prepared a one-line script so you only need to run this
-# command after following the installation guide to install TVM on
-# your device:
+# To start an RPC server, run the following command on your remote device
+# (Which is Raspberry Pi in our example).
 #
 #   .. code-block:: bash
 #
 #     python -m tvm.exec.rpc_server --host 0.0.0.0 --port=9090
 #
-# After executing command above, if you see these lines below, it's
-# successful to start RPC server on your device.
+# If you see the line below, it means the RPC server started
+# successfully on your device.
 #
 #    .. code-block:: bash
 #
-#      Loading runtime library /home/YOURNAME/code/tvm/lib/libtvm_runtime.so... exec only
 #      INFO:root:RPCServer: bind to 0.0.0.0:9090
-
-
-######################################################################
-# For demonstration, we simply start an RPC server on the same machine,
-# if :code:`use_rasp` is False. If you have set up the remote
-# environment, please change the three lines below: change the
-# :code:`use_rasp` to True, also change the :code:`host` and :code:`port`
-# with your device's host address and port number.
-
-use_rasp = False
-host = 'rasp0'
-port = 9090
-
-if not use_rasp:
-    # run server locally
-    host = 'localhost'
-    port = 9091
-    server = rpc.Server(host=host, port=port, use_popen=True)
+#
 
 ######################################################################
-# Prepare the Pretrained Model
-# ----------------------------
-# Back to the host machine, firstly, we need to download a MXNet Gluon
-# ResNet model from model zoo, which is pretrained on ImageNet. You
-# can found more details about this part at `Compile MXNet Models`
+# Prepare the Pre-trained Model
+# -----------------------------
+# Back to the host machine, which should have a full TVM installed (with LLVM).
+# 
+# We will use pre-trained model from
+# `MXNet Gluon model zoo <https://mxnet.incubator.apache.org/api/python/gluon/model_zoo.html>`_.
+# You can found more details about this part at tutorial :ref:`tutorial-from-mxnet`.
 
 from mxnet.gluon.model_zoo.vision import get_model
 from mxnet.gluon.utils import download
 from PIL import Image
 import numpy as np
 
-# only one line to get the model
+# one line to get the model
 block = get_model('resnet18_v1', pretrained=True)
 
 ######################################################################
 # In order to test our model, here we download an image of cat and
 # transform its format.
-img_name = 'cat.jpg'
+img_name = 'cat.png'
 download('https://github.com/dmlc/mxnet.js/blob/master/data/cat.png?raw=true', img_name)
 image = Image.open(img_name).resize((224, 224))
 
@@ -129,7 +100,6 @@ def transform_image(image):
     return image
 
 x = transform_image(image)
-
 
 ######################################################################
 # synset is used to transform the label from number of ImageNet class to
@@ -158,7 +128,6 @@ batch_size = 1
 num_classes = 1000
 image_shape = (3, 224, 224)
 data_shape = (batch_size,) + image_shape
-out_shape = (batch_size, num_classes)
 
 ######################################################################
 # Compile The Graph
@@ -172,29 +141,32 @@ out_shape = (batch_size, num_classes)
 # will lead to very different performance.
 
 ######################################################################
-# If we run the example locally for demonstration, we can simply set
-# it as :code:`llvm`. If to run it on the Raspberry Pi, you need to
-# specify its instruction set. Here is the option I use for my Raspberry
-# Pi, which has been proved as a good compilation configuration.
+# If we run the example on our x86 server for demonstration, we can simply
+# set it as :code:`llvm`. If running it on the Raspberry Pi, we need to
+# specify its instruction set. Set :code:`local_demo` to False if you want
+# to run this tutorial with a real device.
 
-if use_rasp:
-    target = tvm.target.rasp()
-else:
+local_demo = True
+
+if local_demo:
     target = tvm.target.create('llvm')
+else:
+    target = tvm.target.arm_cpu('rasp3b')
+    # The above line is a simple form of
+    # target = tvm.target.create('llvm -devcie=arm_cpu -model=bcm2837 -target=armv7l-linux-gnueabihf -mattr=+neon')
 
-graph, lib, params = nnvm.compiler.build(
-    net, target, shape={"data": data_shape}, params=params)
+with nnvm.compiler.build_config(opt_level=3):
+    graph, lib, params = nnvm.compiler.build(
+        net, target, shape={"data": data_shape}, params=params)
 
 # After `nnvm.compiler.build`, you will get three return values: graph,
 # library and the new parameter, since we do some optimization that will
 # change the parameters but keep the result of model as the same.
 
-
 # Save the library at local temporary directory.
 tmp = util.tempdir()
-lib_fname = tmp.relpath('net.o')
-lib.save(lib_fname)
-
+lib_fname = tmp.relpath('net.tar')
+lib.export_library(lib_fname)
 
 ######################################################################
 # Deploy the Model Remotely by RPC
@@ -202,31 +174,30 @@ lib.save(lib_fname)
 # With RPC, you can deploy the model remotely from your host machine
 # to the remote device.
 
-# connect the server
-remote = rpc.connect(host, port)
+# obtain an RPC session from remote device.
+if local_demo:
+    remote = rpc.LocalSession()
+else:
+    # The following is my environment, change this to the IP address of your target device
+    host = '10.77.1.162'
+    port = 9090
+    remote = rpc.connect(host, port)
 
 # upload the library to remote device and load it
 remote.upload(lib_fname)
-rlib = remote.load_module('net.o')
-
-ctx = remote.cpu(0)
-# upload the parameter
-rparams = {k: tvm.nd.array(v, ctx) for k, v in params.items()}
+rlib = remote.load_module('net.tar')
 
 # create the remote runtime module
+ctx = remote.cpu(0)
 module = runtime.create(graph, rlib, ctx)
-# set parameter
-module.set_input(**rparams)
+# set parameter (upload params to the remote device. This may take a while)
+module.set_input(**params)
 # set input data
 module.set_input('data', tvm.nd.array(x.astype('float32')))
 # run
 module.run()
 # get output
-out = module.get_output(0, tvm.nd.empty(out_shape, ctx=ctx))
+out = module.get_output(0)
 # get top1 result
 top1 = np.argmax(out.asnumpy())
 print('TVM prediction top-1: {}'.format(synset[top1]))
-
-if not use_rasp:
-    # terminate the local server
-    server.terminate()
