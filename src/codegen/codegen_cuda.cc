@@ -86,7 +86,6 @@ void CodeGenCUDA::PrintType(Type t, std::ostream& os) {  // NOLINT(*)
       } else {
         os << "unsigned ";
       }
-<<<<<<< HEAD
     }
     switch (t.bits()) {
       case 8: {

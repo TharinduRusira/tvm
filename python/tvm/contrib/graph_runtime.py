@@ -216,23 +216,6 @@ class GraphModule(object):
                 "Please compile runtime with USE_GRAPH_RUNTIME_DEBUG = 0")
         return out
 
-    def debug_get_output(self, node, out):
-        """Run graph upto node and get the output to out
-
-        Parameters
-        ----------
-        node : int / str
-            The node index or name
-
-        out : NDArray
-            The output array container
-        """
-        if hasattr(self, '_debug_get_output'):
-            self._debug_get_output(node, out)
-        else:
-            raise RuntimeError("Please compile runtime with USE_GRAPH_RUNTIME_DEBUG = 0")
-        return out
-
     def load_params(self, params_bytes):
         """Load parameters from serialized byte array of parameter dict.
 

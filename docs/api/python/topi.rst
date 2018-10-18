@@ -68,25 +68,6 @@ List of operators
    topi.image.resize
 
 
-=======
-   topi.add
-   topi.subtract
-   topi.multiply
-   topi.divide
-   topi.mod
-   topi.maximum
-   topi.minimum
-   topi.power
-   topi.greater
-   topi.less
-   topi.equal
-   topi.not_equal
-   topi.greater_equal
-   topi.less_equal
-   topi.image.resize
-
-
->>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 List of schedules
 ~~~~~~~~~~~~~~~~~
 .. autosummary::

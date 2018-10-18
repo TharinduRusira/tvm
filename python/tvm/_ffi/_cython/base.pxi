@@ -40,14 +40,6 @@ cdef extern from "tvm/runtime/c_runtime_api.h":
         int64_t* shape
         int64_t* strides
         uint64_t byte_offset
-<<<<<<< HEAD
-=======
-
-    ctypedef struct DLManagedTensor:
-        DLTensor dl_tensor
-        void* manager_ctx
-        void (*deleter)(DLManagedTensor* self)
->>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     ctypedef struct DLManagedTensor:
         DLTensor dl_tensor

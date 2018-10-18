@@ -30,7 +30,6 @@ struct Expr;
 #ifndef TVM_RUNTIME_HEADER_ONLY
 #define TVM_RUNTIME_HEADER_ONLY 0
 #endif
-<<<<<<< HEAD
 
 namespace tvm {
 namespace runtime {

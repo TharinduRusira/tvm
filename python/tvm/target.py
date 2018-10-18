@@ -104,16 +104,6 @@ class Target(NodeBase):
         if not self._libs:
             self._libs = [l.value for l in self.libs_array]
         return self._libs
-<<<<<<< HEAD
-=======
-
-    @property
-    def model(self):
-        for opt in self.options_array:
-            if opt.value.startswith('-model='):
-                return opt.value[7:]
-        return 'unknown'
->>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     @property
     def model(self):
@@ -135,7 +125,6 @@ class GenericFunc(NodeBase):
     """GenericFunc node reference. This represents a generic function
     that may be specialized for different targets. When this object is
     called, a specialization is chosen based on the current target.
-<<<<<<< HEAD
 
     Note
     ----
@@ -233,105 +222,6 @@ def override_native_generic_func(func_name):
     """
     generic_func_node = get_native_generic_func(func_name)
 
-=======
-
-    Note
-    ----
-    Do not construct an instance of this object, it should only ever be
-    used as a return value from calling into C++.
-    """
-    def __call__(self, *args):
-        return _api_internal._GenericFuncCallFunc(self, *args)
-
-    def set_default(self, func, allow_override=False):
-        """Set the default function to be used if no specializations match
-        the current target.
-
-        Parameters
-        ----------
-        func : function
-            The default function
-
-        allow_override : bool
-            Whether to allow the current default to be overridden
-        """
-        _api_internal._GenericFuncSetDefault(self, func, allow_override)
-
-    def register(self, func, key_list, allow_override=False):
-        """Register a specialization for this GenericFunc.
-
-        Parameters
-        ----------
-        func : function
-            The function to be registered.
-
-        key : str or list of str
-            The key to be registered.
-
-        allow_override : bool, optional
-            Whether to allow existing keys to be overridden.
-        """
-        key_list = [key_list] if isinstance(key_list, str) else key_list
-        _api_internal._GenericFuncRegisterFunc(self, func, key_list, allow_override)
-
-
-def get_native_generic_func(name):
-    """Get a generic function from the global registry. If no
-    function is registered under the given name, a new generic
-    function is created.
-
-    Parameters
-    ----------
-    name : string
-        The name of the generic function to get
-
-    Returns
-    -------
-    func : GenericFunc
-        The generic function for the given name
-    """
-    return _api_internal._GenericFuncGetGlobal(name)
-
-
-def override_native_generic_func(func_name):
-    """Override a generic function defined in C++
-
-    Generic function allows registration of further functions
-    that can be dispatched on current target context.
-    If no registered dispatch is matched, the fdefault will be called.
-
-    Parameters
-    ----------
-    func_name : string
-        The name of the generic func to be overridden
-
-    Returns
-    -------
-    fgeneric : function
-        A wrapped generic function.
-
-    Example
-    -------
-    .. code-block:: python
-
-      import tvm
-      # wrap function as target generic
-      @tvm.target.override_native_generic_func("my_func")
-      def my_func(a):
-          return a + 1
-      # register specialization of my_func under target cuda
-      @my_func.register("cuda")
-      def my_func_cuda(a):
-          return a + 2
-      # displays 3, because my_func is called
-      print(my_func(2))
-      # displays 4, because my_func_cuda is called
-      with tvm.target.cuda():
-          print(my_func(2))
-    """
-    generic_func_node = get_native_generic_func(func_name)
-
->>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     def fdecorate(fdefault):
         """Wrap a target generic function, overriding the previous
         default that was set for the generic function.

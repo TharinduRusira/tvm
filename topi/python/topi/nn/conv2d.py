@@ -97,27 +97,6 @@ def _get_workload_int8(data, kernel, stride, padding, out_dtype):
         "Do not support inputs with different data types now. ' \
         '{} vs. {}".format(data.dtype, kernel.dtype)
     return Workload(data.dtype, out_dtype, IH, IW, CI, CO, KH, KW, HPAD, WPAD, HSTR, WSTR)
-=======
-    assert (data.dtype == kernel.dtype) or (data.dtype == 'uint8' and kernel.dtype == 'int8'), \
-        "Do not support inputs with different data types now. ' \
-        '{} vs. {}".format(data.dtype, kernel.dtype)
-    return Workload(data.dtype, out_dtype, IH, IW, CI, CO, KH, KW, HPAD, WPAD, HSTR, WSTR)
-
-def _get_workload_int8(data, kernel, stride, padding, out_dtype):
-    """ Get the workload structure. """
-    _, CI, IH, IW = [x.value for x in data.shape]
-    CO, _, KH, KW = [x.value for x in kernel.shape]
-    HPAD, WPAD, _, _ = get_pad_tuple(padding, kernel)
-    if isinstance(stride, (tuple, list)):
-        HSTR, WSTR = stride
-    else:
-        HSTR, WSTR = stride, stride
-    assert (data.dtype == kernel.dtype) or (data.dtype == 'uint8' and kernel.dtype == 'int8'), \
-        "Do not support inputs with different data types now. ' \
-        '{} vs. {}".format(data.dtype, kernel.dtype)
-    return Workload(data.dtype, out_dtype, IH, IW, CI, CO, KH, KW, HPAD, WPAD, HSTR, WSTR)
-
->>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 
 
@@ -131,7 +110,6 @@ def _get_alter_layout_schedule(wkl):
     # This return has no use, merely to supress pylint warning
     return wkl
 
-<<<<<<< HEAD
 
 @tvm.target.generic_func
 def _get_schedule(wkl):

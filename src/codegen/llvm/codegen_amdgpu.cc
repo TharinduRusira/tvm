@@ -12,10 +12,7 @@
 #include "../build_common.h"
 #include "../codegen_source_base.h"
 #include "../../pass/ir_util.h"
-
-#if TVM_ROCM_RUNTIME
 #include "../../runtime/rocm/rocm_module.h"
-#endif   // TVM_ROCM_RUNTIME
 
 namespace tvm {
 namespace codegen {
@@ -243,17 +240,6 @@ runtime::Module BuildAMDGPU(Array<LoweredFunc> funcs, std::string target) {
   std::string hsaco = (*f)(arr);
   std::string ll(data_ll.begin(), data_ll.end());
   return ROCMModuleCreate(hsaco, "hsaco", ExtractFuncInfo(funcs), ll, assembly);
-#else
-  LOG(WARNING) << "ROCM runtime is not enabled, return a source module...";
-  auto fget_source = [ll, assembly](const std::string& format) {
-    if (format.length() == 0) return assembly;
-    if (format == "ll" || format == "llvm") return format;
-    if (format == "asm") return assembly;
-    return std::string("");
-  };
-  return DeviceSourceModuleCreate(
-      hsaco, "hsaco", ExtractFuncInfo(funcs), "hsaco", fget_source);
-#endif   // TVM_ROCM_RUNTIME
 }
 
 TVM_REGISTER_API("codegen.build_rocm")

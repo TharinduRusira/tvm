@@ -153,15 +153,9 @@ s = tvm.create_schedule(C.op)
 xo, yo, xi, yi = s[C].tile(C.op.axis[0], C.op.axis[1], bn, bn)
 k, = s[C].op.reduce_axis
 ko, ki = s[C].split(k, factor=4)
-<<<<<<< HEAD
 
 s[C].reorder(xo, yo, ko, ki, xi, yi)
 
-=======
-
-s[C].reorder(xo, yo, ko, ki, xi, yi)
-
->>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 # Vectorization
 s[C].vectorize(yi)
 

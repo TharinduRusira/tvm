@@ -7,8 +7,6 @@ from tvm.autotvm.task import ConfigEntity
 
 from ..nn.util import infer_pad
 from ..nn.pad import pad
-<<<<<<< HEAD
-=======
 from .tensor_intrin import dot_16x1x16_int8_int8_int32
 from .check_targets import check_skylake
 
@@ -197,8 +195,6 @@ def _schedule_conv_NCHWc(s, cfg, data, conv_out, last):
         s[O].parallel(parallel_axis)
 
     return s
-<<<<<<< HEAD
-=======
 
 
 def _declaration_conv_NCHWc_int8(wkl, sch, data, kernel):
@@ -320,4 +316,3 @@ def _schedule_conv_NCHWc_int8(s, wkl, sch, data, kernel, conv_out, last):
         s[O].parallel(parallel_axis)
 
     return s
->>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

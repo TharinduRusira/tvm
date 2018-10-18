@@ -59,24 +59,15 @@ def expand_like(a, shape_like, axis):
     """
     odim = len(axis) + len(a.shape)
     if odim != len(shape_like.shape):
-<<<<<<< HEAD
-=======
         if len(a.shape) == 1 and len(axis) == len(shape_like.shape):
             # A special case: `a` is a scalar represented as a 1-dim tensor
             return tvm.compute(shape_like.shape, lambda *idxs: a(0))
->>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         raise ValueError("shape inconsistent when expand_like ({}, {}, {})".format(
             len(axis), len(a.shape), len(shape_like.shape)))
 
     real_axis = topi.reduction._get_real_axis(len(shape_like.shape), axis)
     real_axis = sorted(real_axis)
 
-<<<<<<< HEAD
-    if not real_axis:
-        return a
-
-=======
->>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     def _compute(*idxs):
         indices = []
         axis_index = 0
@@ -107,10 +98,6 @@ def transpose(a, axes=None):
     return cpp.transpose(a, axes)
 
 
-<<<<<<< HEAD
-@tvm.tag_scope(tag=tag.INJECTIVE)
-=======
->>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def flip(a, axis=0):
     """Flip/reverse elements of an array in a particular axis.
 
@@ -128,10 +115,6 @@ def flip(a, axis=0):
     """
     return cpp.flip(a, axis)
 
-<<<<<<< HEAD
-@tvm.tag_scope(tag=tag.INJECTIVE)
-=======
->>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def strided_slice(a, begin, end, strides=None):
     """Slice of an array.
 

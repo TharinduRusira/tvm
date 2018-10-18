@@ -343,26 +343,6 @@ PackedFunc GraphRuntime::GetFunction(
     return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
         *rv = this->NumOutputs();
       });
-  } else if (name == "get_input") {
-    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
-        if (args[0].type_code() == kStr) {
-          int in_idx = this->GetInputIndex(args[0]);
-          CHECK_GE(in_idx, 0);
-          this->GetInput(in_idx, args[1]);
-        } else {
-          this->GetInput(args[0], args[1]);
-        }
-      });
-#ifdef TVM_GRAPH_RUNTIME_DEBUG
-  } else if (name == "debug_get_output") {
-    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
-        if (args[0].type_code() == kStr) {
-          this->DebugGetNodeOutput(this->GetNodeIndex(args[0]), args[1]);
-        } else {
-          this->DebugGetNodeOutput(args[0], args[1]);
-        }
-      });
-#endif
   } else if (name == "run") {
     return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
         this->Run();

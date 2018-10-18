@@ -90,18 +90,6 @@ def pool(data,
     count_include_pad: bool
         Whether include padding in the calculation when pool_type is 'avg'
 
-    layout: string
-        Layout of the input data.
-        The layout is supposed to be composed of upper cases, lower cases and numbers,
-        where upper case indicates a dimension and
-        the corresponding lower case with factor size indicates the split dimension.
-        For example, NCHW16c can describe a 5-D tensor of
-        [batch_size, channel, height, width, channel_block],
-        in which channel_block=16 is a split of dimension channel.
-
-    count_include_pad: bool
-        Whether include padding in the calculation when pool_type is 'avg'
-
     Returns
     -------
     output : tvm.Tensor

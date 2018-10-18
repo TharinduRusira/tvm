@@ -660,7 +660,6 @@ def select(cond, t, f):
     return _expr.Select(convert(cond), convert(t), convert(f))
 
 
-
 def comm_reducer(fcombine, fidentity, name="reduce"):
     """Create a commutative reducer for reduction.
 
