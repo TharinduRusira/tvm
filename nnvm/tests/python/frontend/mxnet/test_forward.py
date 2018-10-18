@@ -14,7 +14,11 @@ import model_zoo
 
 
 def verify_mxnet_frontend_impl(mx_symbol, data_shape=(1, 3, 224, 224), out_shape=(1, 1000),
+<<<<<<< HEAD
                                gluon_impl=False, name=None):
+=======
+                               gluon_impl=False, name=None, dtype='float32'):
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     """Use name different from test to avoid let nose pick it up"""
     if gluon_impl:
         def get_gluon_output(name, x):
@@ -57,7 +61,10 @@ def verify_mxnet_frontend_impl(mx_symbol, data_shape=(1, 3, 224, 224), out_shape
         return out.asnumpy()
 
     # random input
+<<<<<<< HEAD
     dtype = 'float32'
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     x = np.random.uniform(size=data_shape)
     if gluon_impl:
         gluon_out, gluon_sym = get_gluon_output(name, x)
@@ -97,6 +104,15 @@ def test_forward_rrelu():
     mx_sym = mx.sym.LeakyReLU(data, act_type='rrelu', lower_bound=0.3, upper_bound=0.7)
     verify_mxnet_frontend_impl(mx_sym, (1, 3, 100, 100), (1, 6, 100, 100))
 
+<<<<<<< HEAD
+=======
+def test_forward_prelu():
+    data = mx.sym.var('data')
+    data = mx.sym.concat(data, -data, dim=1)  # negative part explicitly
+    mx_sym = mx.sym.LeakyReLU(data, act_type='prelu')
+    verify_mxnet_frontend_impl(mx_sym, (1, 3, 100, 100), (1, 6, 100, 100))
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def test_forward_softrelu():
     data = mx.sym.var('data')
     data = mx.sym.concat(data, -data, dim=1)  # negative part explicitly
@@ -120,12 +136,55 @@ def test_forward_clip():
     mx_sym = mx.sym.clip(data, a_min=0, a_max=1)
     verify_mxnet_frontend_impl(mx_sym, (1, 3, 100, 100), (1, 6, 100, 100))
 
+<<<<<<< HEAD
+=======
+def test_forward_split():
+    data = mx.sym.var('data')
+    mx_sym = mx.sym.split(data, axis=1, num_outputs=4, squeeze_axis=False)
+    verify_mxnet_frontend_impl(mx_sym, (1, 4, 2, 1), (1, 1, 2, 1))
+
+def test_forward_split_squeeze():
+    data = mx.sym.var('data')
+    mx_sym = mx.sym.split(data, axis=1, num_outputs=4, squeeze_axis=True)
+    verify_mxnet_frontend_impl(mx_sym, (1, 4, 2, 1), (1, 2, 1))
+
+def test_forward_expand_dims():
+    data = mx.sym.var('data')
+    mx_sym = mx.sym.expand_dims(data, axis=1)
+    verify_mxnet_frontend_impl(mx_sym, (2, 3, 4), (2, 1, 3, 4))
+
+def test_forward_pooling():
+    data = mx.sym.var('data')
+    mx_sym = mx.sym.Pooling(data, kernel=(3, 3), pad=(1, 1), pool_type='avg')
+    verify_mxnet_frontend_impl(mx_sym, (1, 20, 8, 8), (1, 20, 8, 8))
+
+    mx_sym = mx.sym.Pooling(data, kernel=(3, 3), pad=(1, 1), pool_type='max')
+    verify_mxnet_frontend_impl(mx_sym, (1, 20, 8, 8), (1, 20, 8, 8))
+
+def test_forward_lrn():
+    data = mx.sym.var('data')
+    mx_sym = mx.sym.LRN(data, alpha=2, beta=2, knorm=1, nsize=5)
+    verify_mxnet_frontend_impl(mx_sym, (1, 10, 24, 24), (1, 10, 24, 24))
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 if __name__ == '__main__':
     test_forward_mlp()
     test_forward_vgg()
     test_forward_resnet()
     test_forward_elu()
     test_forward_rrelu()
+<<<<<<< HEAD
     test_forward_softrelu()
     test_forward_fc_flatten()
     test_forward_clip()
+=======
+    test_forward_prelu()
+    test_forward_softrelu()
+    test_forward_fc_flatten()
+    test_forward_clip()
+    test_forward_split()
+    test_forward_split_squeeze()
+    test_forward_expand_dims()
+    test_forward_pooling()
+    test_forward_lrn()
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

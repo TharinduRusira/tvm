@@ -13,7 +13,8 @@ cd /homes/tharindu/tvm/topi/tests/python
 #    'alex4':[128,256,384,13,13,3,1,1],'alex5':[128,256,256,13,13,3,1,1],
 #    'overfeat3':[64,512,256,12,12,3,1,1], 'overfeat4':[64,1024,512,12,12,3,1,1], 'overfeat5':[64,1024,1024,12,12,3,1,1], 'resnet1':[1,64,64,56,56,3,1,1], 'test':[2,32,32,12,12,3,1,1]}
 
-python test.py -d test
+python fp_tvm_tuner.py -d alex4
+#python test.py -d test
 #python tune_wu.py -d vgg2_1
 #python tune_wu.py -d vgg3_1
 #python tune_wu.py -d vgg3_2

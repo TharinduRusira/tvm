@@ -27,12 +27,19 @@ def depthwise_conv2d_nchw(Input, Filter, stride, padding, out_dtype=None):
     padding : int or str
         Padding size, or ['VALID', 'SAME']
 
+    out_dtype: str, optional
+        Output data type
+
     Returns
     -------
     Output : tvm.Tensor
         4-D with shape [batch, out_channel, out_height, out_width]
     """
+<<<<<<< HEAD
     out_dtype = Input.dtype
+=======
+    out_dtype = Input.dtype if out_dtype is None else out_dtype
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     batch, in_channel, in_height, in_width = Input.shape
     filter_channel, channel_multiplier, filter_height, filter_width = Filter.shape
@@ -65,7 +72,11 @@ def depthwise_conv2d_nchw(Input, Filter, stride, padding, out_dtype=None):
 
 
 @tvm.target.generic_func
+<<<<<<< HEAD
 def depthwise_conv2d_nhwc(Input, Filter, stride, padding):
+=======
+def depthwise_conv2d_nhwc(Input, Filter, stride, padding, out_dtype=None):
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     """Depthwise convolution nhwc forward operator.
 
     Parameters
@@ -82,11 +93,16 @@ def depthwise_conv2d_nhwc(Input, Filter, stride, padding):
     padding : int or str
         Padding size, or ['VALID', 'SAME']
 
+    out_dtype: str, optional
+        Output data type
+
     Returns
     -------
     Output : tvm.Tensor
         4-D with shape [batch, out_height, out_width, out_channel]
     """
+    out_dtype = Input.dtype if out_dtype is None else out_dtype
+
     batch, in_height, in_width, in_channel = Input.shape
     filter_height, filter_width, filter_channel, channel_multiplier = Filter.shape
     if isinstance(stride, int):
@@ -110,8 +126,9 @@ def depthwise_conv2d_nhwc(Input, Filter, stride, padding):
     Output = tvm.compute(
         (batch, out_height, out_width, out_channel),
         lambda b, i, j, c: tvm.sum(
-            (PaddedInput[b, i*stride_h + di, j*stride_w + dj, c/channel_multiplier] *
-             Filter[di, dj, c/channel_multiplier, c%channel_multiplier]),
+            (PaddedInput[b, i*stride_h + di, j*stride_w + dj, c/channel_multiplier].astype(
+                out_dtype) *
+             Filter[di, dj, c/channel_multiplier, c%channel_multiplier].astype(out_dtype)),
             axis=[di, dj]),
         name='DepthwiseConv2d', tag="depthwise_conv2d_nhwc")
     return Output

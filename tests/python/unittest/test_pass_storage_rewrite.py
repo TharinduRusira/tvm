@@ -28,15 +28,41 @@ def test_storage_share():
     tvm.ir_pass.PostOrderVisit(stmt, verify)
     assert num_alloc[0] == 1
 
+<<<<<<< HEAD
 def test_alloc_seq():
+=======
+def register_mem(scope_tb, max_bits):
+    #Register mem
+    @tvm.register_func("tvm.info.mem.%s" % scope_tb)
+    def mem_info_inp_buffer():
+        return tvm.make.node("MemoryInfo",
+                        unit_bits= 16,
+                        max_simd_bits=32,
+                        max_num_bits=max_bits,
+                        head_address=None)
+
+def test_alloc_seq():
+    scope_tb = "local.L0A"
+    max_bits = 1024 * 1024 * 1024
+
+    register_mem(scope_tb, max_bits)
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     ib = tvm.ir_builder.create()
     n = tvm.var("n")
     with ib.for_range(0, n, name="i") as i:
         with ib.for_range(0, 10, name="j") as j:
+<<<<<<< HEAD
             A = ib.allocate("float32", 200, name="A", scope="local.L0A")
             A[j] = 1.2
         with ib.for_range(0, 10, name="j") as j:
             A = ib.allocate("float32", 200, name="B", scope="local.L0A")
+=======
+            A = ib.allocate("float32", 200, name="A", scope=scope_tb)
+            A[j] = 1.2
+        with ib.for_range(0, 10, name="j") as j:
+            A = ib.allocate("float32", 200, name="B", scope=scope_tb)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
             A[j] = 1.3
 
     body = ib.get()
@@ -233,6 +259,7 @@ def test_parallel_alloc():
 
     assert(isinstance(body.body.body.body.body, tvm.stmt.Allocate))
 
+<<<<<<< HEAD
 def test_inplace_rule2():
     #Test Buffer
     scope_tb = "local_TB2"
@@ -243,6 +270,11 @@ def test_inplace_rule2():
                         max_simd_bits=32,
                         max_num_bits=1024*1024*1024,
                         head_address=None)
+=======
+def test_inplace_rule2(scope_tb = "local_TB2", max_bits = 1024 * 1024 * 1024):
+    #Test Buffer
+    register_mem(scope_tb, max_bits)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     m = 10
     A = tvm.placeholder((m,), name='A')
     C = tvm.placeholder((m,), name='C')
@@ -275,6 +307,7 @@ def test_inplace_rule2():
     tvm.ir_pass.PostOrderVisit(stmt, verify)
     assert num_alloc[0] == 2
 
+<<<<<<< HEAD
 def test_inplace_rule3():
     #Test Buffer
     scope_tb = "local_TB3"
@@ -285,6 +318,25 @@ def test_inplace_rule3():
                         max_simd_bits=32,
                         max_num_bits=1024*1024*1024,
                         head_address=None)
+=======
+def test_exceed_mem():
+    max_bits = 639
+    # The critical max_num_bits is between 639 and 640
+    loc = -1
+    try:
+        test_inplace_rule2("local_TEM", max_bits)
+    except Exception as e:
+        estr = str(e)
+        loc = estr.find('Allocation exceed bound of memory')
+        assert loc != -1
+
+def test_inplace_rule3():
+    #Test Buffer
+    scope_tb = "local_TB3"
+    max_bits=1024 * 1024 * 1024
+
+    register_mem(scope_tb, max_bits)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     m = 10
     B0 = tvm.placeholder((m,), name='B0')
     B1 = tvm.placeholder((m,), name='B1')
@@ -388,10 +440,19 @@ def test_alloc_seq_type():
     assert num_alloc[0] == 1
 
 def test_alloc_seq_type2():
+<<<<<<< HEAD
+=======
+    scope_tb = "local.L0A2"
+    max_bits=1024 * 1024 * 1024
+
+    register_mem(scope_tb, max_bits)
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     ib = tvm.ir_builder.create()
     n = tvm.var("n")
     with ib.for_range(0, n, name="i") as i:
         with ib.for_range(0, 10, name="j") as j:
+<<<<<<< HEAD
             A = ib.allocate("float32", 200, name="A", scope="local.L0A")
             A[j] = 1.2
         with ib.for_range(0, 20, name="j") as j:
@@ -399,6 +460,15 @@ def test_alloc_seq_type2():
             B[j] = tvm.const(1, "int16")
         with ib.for_range(0, 10, name="j") as j:
             C = ib.allocate("float32", 200, name="C", scope="local.L0A")
+=======
+            A = ib.allocate("float32", 200, name="A", scope=scope_tb)
+            A[j] = 1.2
+        with ib.for_range(0, 20, name="j") as j:
+            B = ib.allocate("int16", 400, name="B", scope=scope_tb)
+            B[j] = tvm.const(1, "int16")
+        with ib.for_range(0, 10, name="j") as j:
+            C = ib.allocate("float32", 200, name="C", scope=scope_tb)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
             C[j] = 1.2
 
     body = ib.get()
@@ -465,6 +535,10 @@ if __name__ == "__main__":
     test_storage_combine()
     test_storage_share_gpu()
     test_inplace_rule2()
+<<<<<<< HEAD
+=======
+    test_exceed_mem()
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     test_inplace_rule3()
     test_alloc_seq_type()
     test_alloc_seq_type2()

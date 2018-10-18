@@ -12,7 +12,7 @@
 #include <map>
 #include <unordered_set>
 #include <unordered_map>
-#include "./ir_util.h"
+#include "ir_util.h"
 #include "../arithmetic/compute_expr.h"
 #include "../runtime/thread_storage_scope.h"
 
@@ -476,6 +476,7 @@ class StoragePlanRewriter : public IRMutator {
     // This allows effective sharing among different types as long as their alignment
     // requirement fits into the max_simd_bits.
     uint64_t bits_offset{0};
+<<<<<<< HEAD
   };
 
   // Alllocate entry of node.
@@ -487,6 +488,19 @@ class StoragePlanRewriter : public IRMutator {
     std::vector<const Variable*> kill;
   };
 
+=======
+  };
+
+  // Alllocate entry of node.
+  // Event entry in liveness analysis
+  struct EventEntry {
+    // variables we generate
+    std::vector<const Variable*> gen;
+    // variables we kill
+    std::vector<const Variable*> kill;
+  };
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   Stmt MakeAttach(const std::vector<StorageEntry*>& svec,
                   Stmt body) {
     std::vector<Stmt> nest;
@@ -578,12 +592,22 @@ class StoragePlanRewriter : public IRMutator {
           combo_size = combo_size / type_bits;
           // round up for can not divided
           if (!divided) {
+<<<<<<< HEAD
              combo_size += make_const(Int(32), 1);
+=======
+             combo_size = combo_size + make_const(Int(32), 1);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
           }
           combo_size = ir::Simplify(combo_size);
           e->new_alloc = Allocate::make(
               e->alloc_var, alloc_type, {combo_size}, const_true(),
               Evaluate::make(0));
+          if (e->scope.tag.length() != 0) {
+            MemoryInfo info = GetMemoryInfo(e->scope.to_string());
+            uint64_t total_elem = e->const_nbits / e->elem_type.bits();
+            CHECK_LE(total_elem * e->elem_type.bits(), info->max_num_bits)
+                << "Allocation exceed bound of memory tag " << e->scope.to_string();
+          }
         }
       }
     }
@@ -944,8 +968,12 @@ class VectorAllocRewriter : public IRMutator {
 
 
 LoweredFunc PointerValueTypeRewrite(LoweredFunc f) {
+<<<<<<< HEAD
   std::shared_ptr<LoweredFuncNode> n =
       std::make_shared<LoweredFuncNode>(*f.operator->());
+=======
+  auto n = make_node<LoweredFuncNode>(*f.operator->());
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   VectorAllocRewriter rewriter;
   n->body = rewriter.Mutate(n->body);
   for (Var arg : f->args) {

@@ -10,10 +10,17 @@
 #include <string>
 #include <utility>
 #include <functional>
+<<<<<<< HEAD
 #include "./base.h"
 #include "./node.h"
 #include "./tuple.h"
 #include "./layout.h"
+=======
+#include "base.h"
+#include "node.h"
+#include "tuple.h"
+#include "layout.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace nnvm {
 
@@ -202,6 +209,21 @@ using FCorrectLayout = std::function<bool(
     const std::vector<Layout> *last_ilayouts,
     std::vector<Layout> *olayouts)>;
 
+<<<<<<< HEAD
+=======
+/*!
+ * \brief Get a list of inputs that represent graphs instead of data.
+ * Normally, input symbols are considered as data to the operator. However,
+ * control flow operators and high-order functions need to interpret symbols
+ * as graphs.
+ * \param attrs The attributes of this node.
+ * \return a list of input index that are interpreted as symbols by the operator.
+ *
+ * \note Register under "FInputGraph".
+ */
+using FInputGraph = std::function<std::vector<uint32_t>(const NodeAttrs& attrs)>;
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }  // namespace nnvm
 
 #endif  // NNVM_OP_ATTR_TYPES_H_

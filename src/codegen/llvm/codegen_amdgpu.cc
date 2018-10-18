@@ -8,7 +8,7 @@
 #include <tvm/runtime/device_api.h>
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/runtime/registry.h>
-#include "./codegen_llvm.h"
+#include "codegen_llvm.h"
 #include "../build_common.h"
 #include "../codegen_source_base.h"
 #include "../../pass/ir_util.h"
@@ -105,7 +105,6 @@ class CodeGenAMDGPU : public CodeGenLLVM {
   llvm::Value* CreateStorageSync(const Call* op) final {
     const std::string& sync = op->args[0].as<StringImm>()->value;
     if (sync == "warp") {
-      // TODO(tqchen) warp sync in CUDA9
       return nullptr;
     } else if (sync == "shared") {
       llvm::Function* f = llvm::Intrinsic::getDeclaration(
@@ -243,8 +242,11 @@ runtime::Module BuildAMDGPU(Array<LoweredFunc> funcs, std::string target) {
 
   std::string hsaco = (*f)(arr);
   std::string ll(data_ll.begin(), data_ll.end());
+<<<<<<< HEAD
 
 #if TVM_ROCM_RUNTIME
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   return ROCMModuleCreate(hsaco, "hsaco", ExtractFuncInfo(funcs), ll, assembly);
 #else
   LOG(WARNING) << "ROCM runtime is not enabled, return a source module...";

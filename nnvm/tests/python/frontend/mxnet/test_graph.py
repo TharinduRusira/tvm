@@ -32,6 +32,34 @@ def test_resnet():
         nnvm_sym = model_zoo.nnvm_resnet[n]
         compare_graph(from_mx_sym, nnvm_sym)
 
+<<<<<<< HEAD
+=======
+def test_squeezenet():
+    for version in ['1.0', '1.1']:
+        mx_sym = model_zoo.mx_squeezenet[version]
+        from_mx_sym, _ = nnvm.frontend.from_mxnet(mx_sym)
+        nnvm_sym = model_zoo.nnvm_squeezenet[version]
+        compare_graph(from_mx_sym, nnvm_sym)
+
+def test_inception_v3():
+    mx_sym = model_zoo.mx_inception_v3
+    from_mx_sym, _ = nnvm.frontend.from_mxnet(mx_sym)
+    nnvm_sym = model_zoo.nnvm_inception_v3
+    compare_graph(from_mx_sym, nnvm_sym, ishape=(2, 3, 299, 299))
+
+def test_dqn():
+    mx_sym = model_zoo.mx_dqn
+    from_mx_sym, _ = nnvm.frontend.from_mxnet(mx_sym)
+    nnvm_sym = model_zoo.nnvm_dqn
+    compare_graph(from_mx_sym, nnvm_sym, ishape=(2, 4, 84, 84))
+
+def test_dcgan():
+    mx_sym = model_zoo.mx_dcgan
+    from_mx_sym, _ = nnvm.frontend.from_mxnet(mx_sym)
+    nnvm_sym = model_zoo.nnvm_dcgan
+    compare_graph(from_mx_sym, nnvm_sym, ishape=(2, 100))
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def test_multi_outputs():
     def compose(F, **kwargs):
         x = F.sym.Variable('x')
@@ -48,3 +76,10 @@ if __name__ == '__main__':
     test_vgg()
     test_resnet()
     test_multi_outputs()
+<<<<<<< HEAD
+=======
+    test_dqn()
+    test_dcgan()
+    test_squeezenet()
+    test_inception_v3()
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

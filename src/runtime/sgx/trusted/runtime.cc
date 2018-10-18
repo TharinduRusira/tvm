@@ -12,9 +12,15 @@
 #include "../../system_lib_module.cc"
 #include "../../thread_pool.cc"
 #include "../../workspace_pool.cc"
+<<<<<<< HEAD
 #include "./ecall_registry.h"
 #include "./runtime.h"
 #include "./threading_backend.cc"
+=======
+#include "ecall_registry.h"
+#include "runtime.h"
+#include "threading_backend.cc"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace tvm {
 namespace runtime {

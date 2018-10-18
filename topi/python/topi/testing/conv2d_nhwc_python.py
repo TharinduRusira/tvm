@@ -13,7 +13,11 @@ def conv2d_nhwc_python(a_np, w_np, stride, padding):
         4-D with shape [batch, in_height, in_width, in_channel]
 
     w_np : numpy.ndarray
+<<<<<<< HEAD
         4-D with shape [num_filter, filter_height, filter_width, in_channel]
+=======
+        4-D with shape [filter_height, filter_width, in_channel, num_filter]
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     stride : int or a list/tuple of two ints
         Stride size, or [stride_height, stride_width]
@@ -63,5 +67,9 @@ def conv2d_nhwc_python(a_np, w_np, stride, padding):
                     apad = at[n, c]
                 out = scipy.signal.convolve2d(
                     apad, np.rot90(np.rot90(wt[f, c])), mode='valid')
+<<<<<<< HEAD
                 bt[n, f] += out[::stride, ::stride]
+=======
+                bt[n, f] += out[::stride_h, ::stride_w]
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     return bt.transpose((0, 2, 3, 1))

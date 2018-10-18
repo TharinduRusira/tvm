@@ -9,7 +9,11 @@
 #include <unordered_set>
 #include <cstring>
 #ifndef _LIBCPP_SGX_CONFIG
+<<<<<<< HEAD
 #include "./file_util.h"
+=======
+#include "file_util.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #endif
 
 namespace tvm {
@@ -20,7 +24,7 @@ void Module::Import(Module other) {
   if (!std::strcmp((*this)->type_key(), "rpc")) {
     static const PackedFunc* fimport_ = nullptr;
     if (fimport_ == nullptr) {
-      fimport_ = runtime::Registry::Get("contrib.rpc._ImportRemoteModule");
+      fimport_ = runtime::Registry::Get("rpc._ImportRemoteModule");
       CHECK(fimport_ != nullptr);
     }
     (*fimport_)(*this, other);
@@ -106,7 +110,7 @@ bool RuntimeEnabled(const std::string& target) {
     return true;
   } else if (target == "cuda" || target == "gpu") {
     f_name = "device_api.gpu";
-  } else if (target == "cl" || target == "opencl") {
+  } else if (target == "cl" || target == "opencl" || target == "sdaccel") {
     f_name = "device_api.opencl";
   } else if (target == "gl" || target == "opengl") {
     f_name = "device_api.opengl";

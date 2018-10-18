@@ -36,7 +36,11 @@ class MemoryAccessVerifier final : protected IRVisitor {
 
   /// Interface to perform memory access verification
   void Run() {
+<<<<<<< HEAD
     if (!IsGPUDevice(dev_type_)) return;
+=======
+    if (!IsGPUDevice(dev_type_) && !IsFPGADevice(dev_type_)) return;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     IRVisitor::Visit(func_->body);
   }
 
@@ -143,6 +147,13 @@ class MemoryAccessVerifier final : protected IRVisitor {
            kDLVulkan == dev_type || kDLMetal == dev_type ||
            kDLROCM == dev_type || kOpenGL == dev_type;
   }
+<<<<<<< HEAD
+=======
+  /// Check if a given DLDeviceType/TVMDeviceExtType value denotes FPGA device.
+  static bool IsFPGADevice(int dev_type) {
+    return kDLSDAccel == dev_type || kDLAOCL == dev_type;
+  }
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
  private:
   /// Status of visitor

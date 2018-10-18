@@ -9,7 +9,11 @@
 #include <tvm/codegen.h>
 #include <tvm/packed_func_ext.h>
 #include <string>
+<<<<<<< HEAD
 #include "./codegen_c.h"
+=======
+#include "codegen_c.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include "../runtime/opengl/opengl_module.h"
 
 namespace tvm {

@@ -18,7 +18,11 @@
 #include <tvm/lowered_func.h>
 #include <string>
 #include <utility>
+<<<<<<< HEAD
 #include "./graph_hash.h"
+=======
+#include "graph_hash.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace nnvm {
 namespace compiler {
@@ -71,7 +75,11 @@ struct GraphCacheEntryNode : public tvm::Node {
 class GraphCacheEntry : public ::tvm::NodeRef {
  public:
   GraphCacheEntry() {}
+<<<<<<< HEAD
   explicit GraphCacheEntry(std::shared_ptr<::tvm::Node> n) : NodeRef(n) {}
+=======
+  explicit GraphCacheEntry(::tvm::NodePtr<::tvm::Node> n) : NodeRef(n) {}
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   GraphCacheEntryNode* operator->() {
     return static_cast<GraphCacheEntryNode*>(node_.get());
   }

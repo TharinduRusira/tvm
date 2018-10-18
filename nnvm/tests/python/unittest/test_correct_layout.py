@@ -3,7 +3,10 @@ import nnvm.symbol as sym
 import nnvm.graph as graph
 from nnvm.compiler import graph_attr
 
+<<<<<<< HEAD
 # Level 1
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def correct_layout(g, layout=None):
     if isinstance(g, nnvm.symbol.Symbol):
         g = graph.create(g)
@@ -19,6 +22,10 @@ def correct_layout(g, layout=None):
     return g, ldict
 
 
+<<<<<<< HEAD
+=======
+# Level 1
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def test_dense():
     x = sym.Variable("data", shape=(10, 20))
     y = sym.dense(x, units=30, name="fc")
@@ -77,14 +84,35 @@ def test_concatenate():
     g, ldict = correct_layout(z, {"x": "HW", "y": "HW"})
     assert(ldict["x"][0] == "HW")
     assert(ldict["y"][0] == "HW")
+<<<<<<< HEAD
     assert(ldict["concat"][0] == "__undef__")
+=======
+    assert(ldict["concat"][0] == "HW")
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     # second pass will insert layout transform
     _, ldict = correct_layout(g, {"x": "HW16w", "y": "HW16w"})
     assert(ldict["x"][0] == "HW16w")
     assert(ldict["y"][0] == "HW16w")
+<<<<<<< HEAD
     assert(ldict["x_HW"][0] == "HW")
     assert(ldict["y_HW"][0] == "HW")
     assert(ldict["concat"][0] == "__undef__")
+=======
+    assert(ldict["concat"][0] == "HW16w")
+
+    x1 = sym.Variable("x", shape=(10, 20, 60))
+    x2 = sym.Variable("y", shape=(10, 20, 40))
+    z = sym.concatenate(x1, x2, axis=2, name="concat")
+    g, ldict = correct_layout(z, {"x": "H20wW", "y": "H20wW"})
+    assert(ldict["x"][0] == "H20wW")
+    assert(ldict["y"][0] == "H20wW")
+    assert(ldict["concat"][0] == "H20wW")
+    # second pass will insert layout transform
+    _, ldict = correct_layout(g, {"x": "HW", "y": "HW"})
+    assert(ldict["x_H20wW"][0] == "H20wW")
+    assert(ldict["x_H20wW"][0] == "H20wW")
+    assert(ldict["concat"][0] == "H20wW")
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 
 def test_expand_dims():
@@ -169,6 +197,22 @@ def test_flatten():
     assert(ldict["y"][0] == "__undef__")
 
 
+<<<<<<< HEAD
+=======
+def test_softmax():
+    x = sym.Variable("x", shape=(10, 20, 10, 10))
+    y = sym.softmax(x, name="y")
+    g, ldict = correct_layout(y, "NCHW")
+    assert(ldict["x"][0] == "NCHW")
+    assert(ldict["y"][0] == "NCHW")
+    # second pass will insert layout transform
+    _, ldict = correct_layout(g, "NCHW16c")
+    assert(ldict["x"][0] == "NCHW16c")
+    assert(ldict["x_NCHW"][0] == "NCHW")
+    assert(ldict["y"][0] == "NCHW")
+
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 # Level 2
 def test_conv2d():
     x = sym.Variable("data", shape=(1, 32, 512, 512))
@@ -327,6 +371,10 @@ if __name__ == "__main__":
     test_split()
     test_batchnorm()
     test_flatten()
+<<<<<<< HEAD
+=======
+    test_softmax()
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     test_conv2d()
     test_conv2d_transpose()
     test_max_pool2d()
@@ -335,4 +383,8 @@ if __name__ == "__main__":
     test_transpose()
     test_broadcast_to()
     test_broadcast_binary()
+<<<<<<< HEAD
     test_reduce()
+=======
+    test_reduce()
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

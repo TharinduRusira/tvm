@@ -3,6 +3,7 @@ import numpy as np
 import tvm
 import topi
 from topi.util import get_const_tuple
+<<<<<<< HEAD
 
 def lrn_python(a_np, size, axis, bias, alpha, beta):
     """Local response norm operator in NCHW layout.
@@ -60,6 +61,9 @@ def lrn_python(a_np, size, axis, bias, alpha, beta):
 
     sqr_sum_up = np.power((bias + (alpha * sqr_sum /size)), beta)
     return np.divide(a_np, sqr_sum_up)
+=======
+import topi.testing
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 def verify_lrn(shape, size, axis, bias, alpha, beta):
     A = tvm.placeholder(shape, name='A')
@@ -67,22 +71,38 @@ def verify_lrn(shape, size, axis, bias, alpha, beta):
     dtype = A.dtype
 
     a_np = np.random.uniform(size=shape).astype(dtype)
+<<<<<<< HEAD
     b_np = lrn_python(a_np, size, axis, bias, alpha, beta)
 
     def check_device(device):
         ctx = tvm.context(device, 0)
         if not ctx.exist:
+=======
+    b_np = topi.testing.lrn_python(a_np, size, axis, bias, alpha, beta)
+
+    def check_device(device):
+        if not tvm.module.enabled(device):
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
             print("Skip because %s is not enabled" % device)
             return
         print("Running on target: %s" % device)
         with tvm.target.create(device):
+<<<<<<< HEAD
             s = topi.generic.schedule_lrn(B)
+=======
+            if device == 'llvm':
+                s = topi.generic.schedule_lrn([B])
+            else:
+                s = topi.cuda.schedule_lrn([B])
+        ctx = tvm.context(device, 0)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         a = tvm.nd.array(a_np, ctx)
         b = tvm.nd.array(np.zeros(get_const_tuple(B.shape), dtype=dtype), ctx)
         f = tvm.build(s, [A, B], device)
         f(a, b)
         np.testing.assert_allclose(b.asnumpy(), b_np, rtol=1e-5)
 
+<<<<<<< HEAD
     for device in ['llvm', 'cuda', 'opencl', 'metal', 'rocm', 'vulkan']:
         check_device(device)
 
@@ -90,6 +110,15 @@ def test_lrn():
     verify_lrn((1, 3, 5, 5), 3, 1, 1, 1, 0.5)
     verify_lrn((1, 3, 5, 5), 3, 3, 1, 1, 0.5)
     verify_lrn((1, 3, 20, 20), 3, 1, 2, 1, 0.75)
+=======
+    for device in ['llvm', 'cuda', 'opencl', 'metal', 'rocm', 'vulkan', 'nvptx']:
+        check_device(device)
+
+def test_lrn():
+    verify_lrn((1, 3, 5, 5), 3, 1, 1.0, 1.0, 0.5)
+    verify_lrn((1, 3, 5, 5), 3, 3, 1.0, 1.0, 0.5)
+    verify_lrn((1, 3, 20, 20), 3, 1, 2.0, 1.0, 0.75)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 if __name__ == "__main__":
     test_lrn()

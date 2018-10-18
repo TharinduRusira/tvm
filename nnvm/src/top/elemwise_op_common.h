@@ -12,7 +12,11 @@
 #include <vector>
 #include <utility>
 #include <functional>
+<<<<<<< HEAD
 #include "./op_common.h"
+=======
+#include "op_common.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace nnvm {
 namespace top {
@@ -320,7 +324,11 @@ inline bool ElemwiseBinaryKeepLeftLayout(const NodeAttrs& attrs,
   .set_attr<nnvm::FInferShape>("FInferShape",                       \
     ElementWiseReduceShape)                                         \
   .set_attr<FCorrectLayout>("FCorrectLayout",                       \
+<<<<<<< HEAD
     ElemwiseFixedLayoutCopyToOut<1, 1>)                             \
+=======
+    ElemwiseFixedLayoutCopyToOut<-1, 1>)                             \
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   .set_attr<nnvm::FInferType>("FInferType", ElementWiseReduceType)  \
   .add_argument("args", "Symbol[]", "Positional input arguments")
 

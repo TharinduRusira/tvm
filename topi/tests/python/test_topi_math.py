@@ -18,12 +18,20 @@ def test_ewise():
 
     shape = (20, 3)
 
+<<<<<<< HEAD
     def test_apply(func, name, f_numpy):
         B = func(A)
         assert tuple(B.shape) == tuple(A.shape)
         assert B.op.body[0].name == name
         a_np = np.random.uniform(low=1e-5, size=shape).astype(A.dtype)
         a_np = np.abs(a_np)
+=======
+    def test_apply(func, name, f_numpy, low, high):
+        B = func(A)
+        assert tuple(B.shape) == tuple(A.shape)
+        assert B.op.body[0].name == name
+        a_np = np.random.uniform(low=low, high=high, size=shape).astype(A.dtype) * 10
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         b_np = f_numpy(a_np)
 
         def check_device(device):
@@ -34,6 +42,7 @@ def test_ewise():
             print("Running on target: %s" % device)
             with tvm.target.create(device):
                 s = topi.generic.schedule_injective(B)
+<<<<<<< HEAD
             a = tvm.nd.array(a_np, ctx)
             b = tvm.nd.array(np.zeros_like(b_np), ctx)
             foo = tvm.build(s, [A, B], device, name=name)
@@ -48,6 +57,29 @@ def test_ewise():
     test_apply(topi.sigmoid, "sigmoid", lambda x:1/(1+np.exp(-x)))
     test_apply(topi.log, "log", np.log)
     test_apply(topi.sqrt, "sqrt", np.sqrt)
+=======
+            foo = tvm.build(s, [A, B], device, name=name)
+            a = tvm.nd.array(a_np, ctx)
+            b = tvm.nd.array(np.zeros_like(b_np), ctx)
+            foo(a, b)
+            np.testing.assert_allclose(b.asnumpy(), b_np, rtol=1e-5, atol=1e-5)
+
+        for device in ['cuda', 'opencl', 'metal', 'rocm', 'vulkan', 'llvm', 'nvptx', 'sdaccel',
+                       'aocl_sw_emu']:
+            check_device(device)
+
+
+    test_apply(topi.floor, "floor", np.floor, -100, 100)
+    test_apply(topi.ceil, "ceil", np.ceil, -100, 100)
+    test_apply(topi.trunc, "trunc", np.trunc, -100, 100)
+    test_apply(topi.abs, "fabs", np.abs, -100, 100)
+    test_apply(topi.round, "round", np.round, -100, 100)
+    test_apply(topi.exp, "exp", np.exp, -1, 1)
+    test_apply(topi.tanh, "tanh", np.tanh, -10, 10)
+    test_apply(topi.sigmoid, "sigmoid", lambda x:1/(1+np.exp(-x)), -1, 1)
+    test_apply(topi.log, "log", np.log, 0, 100)
+    test_apply(topi.sqrt, "sqrt", np.sqrt, 0, 100)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 if __name__ == "__main__":
     test_util()

@@ -6,8 +6,8 @@
 #include <tvm/ir.h>
 #include <tvm/ir_pass.h>
 #include <tvm/runtime/device_api.h>
-#include "./ir_util.h"
-#include "./arg_binder.h"
+#include "ir_util.h"
+#include "arg_binder.h"
 #include "../arithmetic/compute_expr.h"
 
 namespace tvm {
@@ -91,7 +91,9 @@ void ArgBinder::BindBuffer(const Buffer& arg,
   // bind pointer and offset.
   if (is_zero(arg->elem_offset)) {
     CHECK(is_zero(value->elem_offset))
-        << "Trying to bind a Buffer with offset into one without offset";
+        << "Trying to bind a Buffer with offset into one without offset "
+        << " required elem_offset=" << arg->elem_offset
+        << ", provided elem_offset=" << value->elem_offset;
   }
 
   this->Bind(arg->data, value->data, arg_name + ".data");
@@ -168,7 +170,7 @@ void ArgBinder::BindDLTensor(const Buffer& buffer,
   if (Bind_(buffer->data, TVMArrayGet(Handle(), handle, intrinsic::kArrData),
             arg_name + ".data", true)) {
     Var vptr(buffer->data);
-    def_handle_dtype_.Set(vptr, make_const(buffer->dtype, 0));
+    def_handle_dtype_.Set(vptr, ir::TypeAnnotation(buffer->dtype));
     // mark alignment of external bufs
     init_nest_.emplace_back(AttrStmt::make(
         vptr, ir::attr::storage_alignment,
@@ -190,7 +192,7 @@ void ArgBinder::BindDLTensor(const Buffer& buffer,
   }
   // strides field
   Var v_strides(arg_name + ".strides", Handle());
-  def_handle_dtype_.Set(v_strides, make_const(tvm_shape_type, 0));
+  def_handle_dtype_.Set(v_strides, ir::TypeAnnotation(tvm_shape_type));
   init_nest_.emplace_back(LetStmt::make(
       v_strides, TVMArrayGet(Handle(), handle, intrinsic::kArrStrides),
       nop));

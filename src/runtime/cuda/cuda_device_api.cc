@@ -3,15 +3,12 @@
  * \file cuda_device_api.cc
  * \brief GPU specific API
  */
-#include <tvm/runtime/config.h>
 #include <tvm/runtime/device_api.h>
 
-#if TVM_CUDA_RUNTIME
-#include <dmlc/logging.h>
 #include <dmlc/thread_local.h>
 #include <tvm/runtime/registry.h>
 #include <cuda_runtime.h>
-#include "./cuda_common.h"
+#include "cuda_common.h"
 
 namespace tvm {
 namespace runtime {
@@ -72,6 +69,23 @@ class CUDADeviceAPI final : public DeviceAPI {
             &value, cudaDevAttrMultiProcessorCount, ctx.device_id));
         break;
       }
+<<<<<<< HEAD
+=======
+      case kMaxThreadDimensions: {
+        int dims[3];
+        CUDA_CALL(cudaDeviceGetAttribute(
+            &dims[0], cudaDevAttrMaxBlockDimX, ctx.device_id));
+        CUDA_CALL(cudaDeviceGetAttribute(
+            &dims[1], cudaDevAttrMaxBlockDimY, ctx.device_id));
+        CUDA_CALL(cudaDeviceGetAttribute(
+            &dims[2], cudaDevAttrMaxBlockDimZ, ctx.device_id));
+
+        std::stringstream ss;  // use json string to return multiple int values;
+        ss << "[" << dims[0] <<", " << dims[1] << ", " << dims[2] << "]";
+        *rv = ss.str();
+        return;
+      }
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     }
     *rv = value;
   }
@@ -204,4 +218,3 @@ TVM_REGISTER_GLOBAL("device_api.gpu")
 
 }  // namespace runtime
 }  // namespace tvm
-#endif  // TVM_CUDA_RUNTIME

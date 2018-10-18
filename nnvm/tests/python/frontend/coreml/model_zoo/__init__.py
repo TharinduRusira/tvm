@@ -25,7 +25,11 @@ def get_resnet50():
 
 def get_cat_image():
     url = 'https://gist.githubusercontent.com/zhreshold/bcda4716699ac97ea44f791c24310193/raw/fa7ef0e9c9a5daea686d6473a62aacd1a5885849/cat.png'
+<<<<<<< HEAD
     dst = 'cat.jpg'
+=======
+    dst = 'cat.png'
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     real_dst = os.path.abspath(os.path.join(os.path.dirname(__file__), dst))
     download(url, real_dst)
     img = Image.open(real_dst).resize((224, 224))

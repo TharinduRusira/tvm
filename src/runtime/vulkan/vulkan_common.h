@@ -6,14 +6,20 @@
 #ifndef TVM_RUNTIME_VULKAN_VULKAN_COMMON_H_
 #define TVM_RUNTIME_VULKAN_VULKAN_COMMON_H_
 
+<<<<<<< HEAD
 #include <tvm/runtime/config.h>
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/runtime/packed_func.h>
 #include <tvm/runtime/device_api.h>
 #include <dmlc/logging.h>
 
+<<<<<<< HEAD
 #if TVM_VULKAN_RUNTIME
 
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include <vulkan/vulkan.h>
 #include <mutex>
 #include <string>
@@ -89,9 +95,15 @@ struct VulkanContext {
 /*! \brief The buffer object */
 struct VulkanBuffer {
   /*! \brief underlying buffer */
+<<<<<<< HEAD
   VkBuffer buffer{nullptr};
   /*! \brief underlying buffer */
   VkDeviceMemory memory{nullptr};
+=======
+  VkBuffer buffer{VK_NULL_HANDLE};
+  /*! \brief underlying buffer */
+  VkDeviceMemory memory{VK_NULL_HANDLE};
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 };
 
 /*! \brief Buffer only used for stagging */
@@ -99,9 +111,15 @@ struct VulkanStagingBuffer {
   /*! \brief the corresponding device */
   VkDevice device{nullptr};
   /*! \brief underlying buffer */
+<<<<<<< HEAD
   VkBuffer buffer{nullptr};
   /*! \brief underlying buffer */
   VkDeviceMemory memory{nullptr};
+=======
+  VkBuffer buffer{VK_NULL_HANDLE};
+  /*! \brief underlying buffer */
+  VkDeviceMemory memory{VK_NULL_HANDLE};
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   /*! \brief host address */
   void* host_addr{nullptr};
   /*! \brief size of the memory */
@@ -153,18 +171,30 @@ class VulkanWorkspace final : public DeviceAPI {
 /*! \brief Helper command buffer resource */
 struct VulkanCommandBuffer {
   /*! \brief fence to signal the resource is ready to use */
+<<<<<<< HEAD
   VkFence fence{nullptr};
   /*! \brief The internal command buffer */
   VkCommandBuffer cmd_buffer{nullptr};
   /*! \brief Descriptor set used to bind arguments */
   VkDescriptorSet descriptor_set{nullptr};
+=======
+  VkFence fence{VK_NULL_HANDLE};
+  /*! \brief The internal command buffer */
+  VkCommandBuffer cmd_buffer{nullptr};
+  /*! \brief Descriptor set used to bind arguments */
+  VkDescriptorSet descriptor_set{VK_NULL_HANDLE};
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   /*! \brief Internal utilities for write command */
   VkWriteDescriptorSet write_descriptor_set;
 
   VulkanCommandBuffer() {
     write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write_descriptor_set.pNext = nullptr;
+<<<<<<< HEAD
     write_descriptor_set.dstSet = nullptr;
+=======
+    write_descriptor_set.dstSet = VK_NULL_HANDLE;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     write_descriptor_set.dstBinding = 0;
     write_descriptor_set.dstArrayElement = 0;
     write_descriptor_set.descriptorCount = 1;
@@ -233,9 +263,15 @@ class VulkanCommandPool {
   /*! \brief the corresponding device*/
   VkDevice device_{nullptr};
   /*! \brief internal command buffer pool */
+<<<<<<< HEAD
   VkCommandPool cmd_pool_{nullptr};
   /*! \brief Descriptor pool */
   VkDescriptorPool descriptor_pool_{nullptr};
+=======
+  VkCommandPool cmd_pool_{VK_NULL_HANDLE};
+  /*! \brief Descriptor pool */
+  VkDescriptorPool descriptor_pool_{VK_NULL_HANDLE};
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 };
 
 /*! \brief Thread local workspace */
@@ -281,5 +317,8 @@ class VulkanThreadEntry {
 }  // namespace vulkan
 }  // namespace runtime
 }  // namespace tvm
+<<<<<<< HEAD
 #endif  // TVM_VULKAN_RUNTIME
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #endif  // TVM_RUNTIME_VULKAN_VULKAN_COMMON_H_

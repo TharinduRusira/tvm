@@ -16,4 +16,9 @@ from .conv2d_transpose import *
 from .bnn import *
 from .upsampling import *
 from .local_response_norm import *
+<<<<<<< HEAD
 from .l2_norm import *
+=======
+from .bitserial_conv2d import *
+from .l2_normalize import *
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

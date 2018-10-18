@@ -1,5 +1,6 @@
 ROOTDIR = $(CURDIR)
 
+<<<<<<< HEAD
 ifndef config
 ifneq ("$(wildcard ./config.mk)","")
 	config ?= config.mk
@@ -12,12 +13,17 @@ include $(config)
 
 .PHONY: clean install installdev all test doc pylint cpplint lint\
 	 verilog cython cython2 cython3 web topi nnvm runtime
+=======
+.PHONY: clean all test doc pylint cpplint lint\
+	 cython cython2 cython3 web runtime vta
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 ifndef DMLC_CORE_PATH
-  DMLC_CORE_PATH = $(ROOTDIR)/dmlc-core
+  DMLC_CORE_PATH = $(ROOTDIR)/3rdparty/dmlc-core
 endif
 
 ifndef DLPACK_PATH
+<<<<<<< HEAD
   DLPACK_PATH = $(ROOTDIR)/dlpack
 endif
 
@@ -270,12 +276,20 @@ ${LLVM_BUILD}/codegen/llvm/%.o: src/codegen/llvm/%.cc
 	@mkdir -p $(@D)
 	$(CXX) $(CFLAGS) $(LLVM_CFLAGS) -MM -MT ${LLVM_BUILD}/codegen/llvm/$*.o $< >${LLVM_BUILD}/codegen/llvm/$*.d
 	$(CXX) -c $(CFLAGS) $(LLVM_CFLAGS) -c $< -o $@
+=======
+  DLPACK_PATH = $(ROOTDIR)/3rdparty/dlpack
+endif
 
-build/runtime/metal/%.o: src/runtime/metal/%.mm
-	@mkdir -p $(@D)
-	$(CXX) $(OBJCFLAGS) $(CFLAGS) -MM -MT build/runtime/metal/$*.o $< >build/runtime/metal/$*.d
-	$(CXX) $(OBJCFLAGS) -c $(CFLAGS) -c $< -o $@
+INCLUDE_FLAGS = -Iinclude -I$(DLPACK_PATH)/include -I$(DMLC_CORE_PATH)/include
+PKG_CFLAGS = -std=c++11 -Wall -O2 $(INCLUDE_FLAGS) -fPIC
+PKG_LDFLAGS =
 
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
+
+all:
+	@mkdir -p build && cd build && cmake .. && $(MAKE)
+
+<<<<<<< HEAD
 build/runtime/sgx/untrusted/tvm_u.h: src/runtime/sgx/tvm.edl
 	@mkdir -p $(@D)
 	$(EDGER8R) $< --untrusted --untrusted-dir $(@D) --search-path $(SGX_SDK)/include
@@ -318,18 +332,40 @@ lib/libtvm_web_runtime.bc: web/web_runtime.cc
 	@mkdir -p build/web
 	@mkdir -p $(@D)
 	emcc $(EMCC_FLAGS) -MM -MT lib/libtvm_web_runtime.bc $< >build/web/web_runtime.d
+=======
+runtime:
+	@mkdir -p build && cd build && cmake .. && $(MAKE) runtime
+
+vta:
+	@mkdir -p build && cd build && cmake .. && $(MAKE) vta
+
+cpptest:
+	@mkdir -p build && cd build && cmake .. && $(MAKE) cpptest
+
+# EMCC; Web related scripts
+EMCC_FLAGS= -std=c++11 -DDMLC_LOG_STACK_TRACE=0\
+	-Oz -s RESERVED_FUNCTION_POINTERS=2 -s MAIN_MODULE=1 -s NO_EXIT_RUNTIME=1\
+	-s TOTAL_MEMORY=1073741824\
+	-s EXTRA_EXPORTED_RUNTIME_METHODS="['cwrap','getValue','setValue','addFunction']"\
+	-s USE_GLFW=3 -s USE_WEBGL2=1 -lglfw\
+	$(INCLUDE_FLAGS)
+
+web: build/libtvm_web_runtime.js build/libtvm_web_runtime.bc
+
+build/libtvm_web_runtime.bc: web/web_runtime.cc
+	@mkdir -p build/web
+	@mkdir -p $(@D)
+	emcc $(EMCC_FLAGS) -MM -MT build/libtvm_web_runtime.bc $< >build/web/web_runtime.d
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 	emcc $(EMCC_FLAGS) -o $@ web/web_runtime.cc
 
-lib/libtvm_web_runtime.js: lib/libtvm_web_runtime.bc
+build/libtvm_web_runtime.js: build/libtvm_web_runtime.bc
 	@mkdir -p $(@D)
-	emcc $(EMCC_FLAGS) -o $@ lib/libtvm_web_runtime.bc
+	emcc $(EMCC_FLAGS) -o $@ build/libtvm_web_runtime.bc
 
-$(LIB_HALIDEIR): LIBHALIDEIR
-
-LIBHALIDEIR:
-	+ cd HalideIR; make lib/libHalideIR.a DMLC_CORE_PATH=../dmlc-core; cd $(ROOTDIR)
-
+# Lint scripts
 cpplint:
+<<<<<<< HEAD
 	python dmlc-core/scripts/lint.py topi cpp topi/include;
 	python dmlc-core/scripts/lint.py nnvm cpp nnvm/include nnvm/src;
 	python dmlc-core/scripts/lint.py tvm cpp include src verilog\
@@ -339,26 +375,31 @@ pylint:
 	pylint python/tvm --rcfile=$(ROOTDIR)/tests/lint/pylintrc
 	pylint topi/python/topi --rcfile=$(ROOTDIR)/tests/lint/pylintrc
 	pylint nnvm/python/nnvm --rcfile=$(ROOTDIR)/tests/lint/pylintrc
+=======
+	python3 3rdparty/dmlc-core/scripts/lint.py vta cpp vta/include vta/src
+	python3 3rdparty/dmlc-core/scripts/lint.py topi cpp topi/include;
+	python3 3rdparty/dmlc-core/scripts/lint.py nnvm cpp nnvm/include nnvm/src;
+	python3 3rdparty/dmlc-core/scripts/lint.py tvm cpp include src verilog\
+	 examples/extension/src examples/graph_executor/src
+
+pylint:
+	python3 -m pylint python/tvm --rcfile=$(ROOTDIR)/tests/lint/pylintrc
+	python3 -m pylint topi/python/topi --rcfile=$(ROOTDIR)/tests/lint/pylintrc
+	python3 -m pylint nnvm/python/nnvm --rcfile=$(ROOTDIR)/tests/lint/pylintrc
+	python3 -m pylint vta/python/vta --rcfile=$(ROOTDIR)/tests/lint/pylintrc
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 jnilint:
-	python dmlc-core/scripts/lint.py tvm4j-jni cpp jvm/native/src
+	python3 3rdparty/dmlc-core/scripts/lint.py tvm4j-jni cpp jvm/native/src
 
 lint: cpplint pylint jnilint
 
 doc:
 	doxygen docs/Doxyfile
 
-install: lib/libtvm_runtime.$(SHARED_LIBRARY_SUFFIX)
-	mkdir -p $(DESTDIR)$(PREFIX)/include/tvm/runtime
-	cp -R include/tvm/runtime/. $(DESTDIR)$(PREFIX)/include/tvm/runtime
-	cp lib/libtvm_runtime.$(SHARED_LIBRARY_SUFFIX) $(DESTDIR)$(PREFIX)/lib
-
-installdev: lib/libtvm.$(SHARED_LIBRARY_SUFFIX) lib/libtvm_runtime.$(SHARED_LIBRARY_SUFFIX) lib/libtvm.a
-	mkdir -p $(DESTDIR)$(PREFIX)/include
-	cp -R include/tvm $(DESTDIR)$(PREFIX)/include
-	cp lib/libtvm.$(SHARED_LIBRARY_SUFFIX) $(DESTDIR)$(PREFIX)/lib
-	cp lib/libtvm_runtime.$(SHARED_LIBRARY_SUFFIX) $(DESTDIR)$(PREFIX)/lib
-	cp lib/libtvm.a $(DESTDIR)$(PREFIX)/lib
+javadoc:
+	# build artifact is in jvm/core/target/site/apidocs
+	cd jvm && mvn javadoc:javadoc
 
 # Cython build
 cython:
@@ -373,22 +414,34 @@ cython3:
 cyclean:
 	rm -rf python/tvm/*/*/*.so python/tvm/*/*/*.dylib python/tvm/*/*/*.cpp
 
+# JVM build rules
+ifeq ($(OS),Windows_NT)
+  JVM_PKG_PROFILE := windows
+  SHARED_LIBRARY_SUFFIX := dll
+else
+  UNAME_S := $(shell uname -s)
+  ifeq ($(UNAME_S), Darwin)
+    JVM_PKG_PROFILE := osx-x86_64
+    SHARED_LIBRARY_SUFFIX := dylib
+  else
+    JVM_PKG_PROFILE := linux-x86_64
+    SHARED_LIBRARY_SUFFIX := so
+  endif
+endif
+
+JVM_TEST_ARGS := $(if $(JVM_TEST_ARGS),$(JVM_TEST_ARGS),-DskipTests -Dcheckstyle.skip=true)
+
 jvmpkg:
 	(cd $(ROOTDIR)/jvm; \
 		mvn clean package -P$(JVM_PKG_PROFILE) -Dcxx="$(CXX)" \
-			-Dcflags="$(CFLAGS)" -Dldflags="$(LDFLAGS)" \
-			-Dcurrent_libdir="$(ROOTDIR)/lib" $(JVM_TEST_ARGS))
+			-Dcflags="$(PKG_CFLAGS)" -Dldflags="$(PKG_LDFLAGS)" \
+			-Dcurrent_libdir="$(ROOTDIR)/build" $(JVM_TEST_ARGS))
 jvminstall:
 	(cd $(ROOTDIR)/jvm; \
 		mvn install -P$(JVM_PKG_PROFILE) -Dcxx="$(CXX)" \
-			-Dcflags="$(CFLAGS)" -Dldflags="$(LDFLAGS)" \
-			-Dcurrent_libdir="$(ROOTDIR)/lib" $(JVM_TEST_ARGS))
+			-Dcflags="$(PKG_CFLAGS)" -Dldflags="$(PKG_LDFLAGS)" \
+			-Dcurrent_libdir="$(ROOTDIR)/build" $(JVM_TEST_ARGS))
 
+# clean rule
 clean:
-	$(RM) -rf build lib bin *~ */*~ */*/*~ */*/*/*~ */*.o */*/*.o */*/*/*.o */*.d */*/*.d */*/*/*.d
-	cd HalideIR; make clean; cd $(ROOTDIR)
-
--include build/*.d
--include build/*/*.d
--include build/*/*/*.d
--include build/*/*/*/*.d
+	@mkdir -p build && cd build && cmake .. && $(MAKE) clean

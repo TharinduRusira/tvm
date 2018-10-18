@@ -4,7 +4,11 @@
  * \brief Source code module, only for viewing
  */
 #include <tvm/runtime/packed_func.h>
+<<<<<<< HEAD
 #include "./codegen_source_base.h"
+=======
+#include "codegen_source_base.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include "../runtime/file_util.h"
 #include "../runtime/meta_data.h"
 

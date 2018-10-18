@@ -3,6 +3,7 @@
  * \file codegen_spirv.cc
  * \brief Generate SPIRV block
  */
+<<<<<<< HEAD
 
 #if TVM_VULKAN_RUNTIME
 
@@ -10,6 +11,13 @@
 #include <tvm/ir_pass.h>
 #include "../codegen_common.h"
 #include "./codegen_spirv.h"
+=======
+#include <tvm/ir.h>
+#include <tvm/ir_pass.h>
+#include <string>
+#include "../codegen_common.h"
+#include "codegen_spirv.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace tvm {
 namespace codegen {
@@ -38,7 +46,11 @@ std::vector<uint32_t> CodeGenSPIRV::BuildFunction(const LoweredFunc& f) {
       pod_args.push_back(arg);
     }
   }
+<<<<<<< HEAD
   spirv::Value func_ptr = builder_->DeclareKenrelFunction(f->name);
+=======
+  spirv::Value func_ptr = builder_->NewFunction();
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   builder_->StartFunction(func_ptr);
 
   // All the POD arguments are passed in through PushConstant
@@ -59,6 +71,11 @@ std::vector<uint32_t> CodeGenSPIRV::BuildFunction(const LoweredFunc& f) {
   builder_->MakeInst(spv::OpReturn);
   builder_->MakeInst(spv::OpFunctionEnd);
 
+<<<<<<< HEAD
+=======
+  builder_->CommitKernelFunction(func_ptr, f->name);
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   return builder_->Finalize();
 }
 
@@ -94,12 +111,23 @@ spirv::Value CodeGenSPIRV::CreateStorageSync(const Call* op) {
   if (sync == "warp") {
     return value;
   } else if (sync == "shared") {
+<<<<<<< HEAD
     builder_->MakeInst(
         spv::OpControlBarrier,
         spv::ScopeWorkgroup,
         spv::ScopeWorkgroup,
         spv::MemorySemanticsSequentiallyConsistentMask |
         spv::MemorySemanticsWorkgroupMemoryMask);
+=======
+    auto type_int = builder_->GetSType(Int(32));
+    builder_->MakeInst(
+      spv::OpControlBarrier,
+      builder_->IntImm(type_int, static_cast<int64_t>(spv::ScopeWorkgroup)),
+      builder_->IntImm(type_int, static_cast<int64_t>(spv::ScopeWorkgroup)),
+      builder_->IntImm(type_int, static_cast<int64_t>(
+        spv::MemorySemanticsSequentiallyConsistentMask |
+        spv::MemorySemanticsWorkgroupMemoryMask)));
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   } else {
     LOG(FATAL) << "Do not support sync " << sync;
   }
@@ -634,5 +662,8 @@ void CodeGenSPIRV::VisitStmt_(const ProducerConsumer* op) {
 
 }  // namespace codegen
 }  // namespace tvm
+<<<<<<< HEAD
 
 #endif  // TVM_VULKAN_RUNTIME
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

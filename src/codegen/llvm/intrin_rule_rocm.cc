@@ -1,10 +1,10 @@
 /*!
  *  Copyright (c) 2017 by Contributors
- * \file intrin_rule_llvm.cc
+ * \file intrin_rule_rocm.cc
  */
 #ifdef TVM_LLVM_VERSION
 
-#include "./intrin_rule_llvm.h"
+#include "intrin_rule_llvm.h"
 #include <tvm/ir.h>
 #include <tvm/expr.h>
 #include <tvm/api_registry.h>
@@ -25,6 +25,21 @@ inline void DispatchExternOCML(const TVMArgs& args, TVMRetValue* rv) {
 }
 
 namespace llvm {
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.rocm.floor")
+.set_body(DispatchLLVMPureIntrin<::llvm::Intrinsic::floor, 1>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.rocm.ceil")
+.set_body(DispatchLLVMPureIntrin<::llvm::Intrinsic::ceil, 1>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.rocm.round")
+.set_body(DispatchLLVMPureIntrin<::llvm::Intrinsic::round, 1>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.rocm.trunc")
+.set_body(DispatchLLVMPureIntrin<::llvm::Intrinsic::trunc, 1>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.rocm.fabs")
+.set_body(DispatchLLVMPureIntrin<::llvm::Intrinsic::fabs, 1>);
 
 TVM_REGISTER_GLOBAL("tvm.intrin.rule.rocm.exp")
 .set_body(DispatchExternOCML);

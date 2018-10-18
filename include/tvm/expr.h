@@ -7,12 +7,11 @@
 #define TVM_EXPR_H_
 
 #include <ir/Expr.h>
-#include <ir/IROperator.h>
 #include <ir/IRPrinter.h>
 #include <string>
 #include <algorithm>
-#include "./base.h"
-#include "./runtime/c_runtime_api.h"
+#include "base.h"
+#include "runtime/c_runtime_api.h"
 
 namespace tvm {
 
@@ -33,6 +32,7 @@ using HalideIR::IR::FunctionBaseNode;
 using HalideIR::Internal::Stmt;
 using HalideIR::Internal::IRPrinter;
 using HalideIR::Internal::Variable;
+<<<<<<< HEAD
 
 using HalideIR::Internal::make_const;
 using HalideIR::Internal::make_zero;
@@ -41,6 +41,8 @@ using HalideIR::Internal::as_const_uint;
 using HalideIR::Internal::const_true;
 using HalideIR::Internal::const_false;
 using HalideIR::Internal::is_no_op;
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 inline Type TVMShapeIndexType() {
   if (std::is_signed<tvm_index_t>::value) {
@@ -65,6 +67,8 @@ inline TVMType Type2TVMType(Type t) {
 // Get number of bytes considering vector type.
 inline int GetVectorBytes(Type dtype) {
   int data_bits = dtype.bits() * dtype.lanes();
+  // allow bool to exist
+  if (dtype == Bool()) return 1;
   CHECK_EQ(data_bits % 8, 0U)
       << "Need to load/store by multiple of bytes";
   return data_bits / 8;
@@ -75,7 +79,7 @@ class Var : public HalideIR::VarExpr {
  public:
   EXPORT explicit Var(const std::string& name_hint = "v",
                Type t = Int(32)) : VarExpr(name_hint, t) {}
-  explicit Var(std::shared_ptr<Node> n) : VarExpr(n) {}
+  explicit Var(NodePtr<Node> n) : VarExpr(n) {}
   explicit Var(VarExpr v) : VarExpr(v) {}
   /*!
    * \brief Make a new copy of var with same type, append suffix
@@ -106,7 +110,11 @@ class Range : public HalideIR::IR::Range {
  public:
   /*! \brief constructor */
   Range() {}
+<<<<<<< HEAD
   explicit Range(std::shared_ptr<Node> n) : HalideIR::IR::Range(n) {}
+=======
+  explicit Range(NodePtr<Node> n) : HalideIR::IR::Range(n) {}
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   /*!
    * \brief constructor by begin and end
    * \param begin The begin of the range.
@@ -116,6 +124,8 @@ class Range : public HalideIR::IR::Range {
 
   TVM_DLL static Range make_by_min_extent(Expr min, Expr extent);
 };
+
+using Region = Array<Range>;
 
 /*!
  * \brief Type of iteration variable.
@@ -196,7 +206,7 @@ class IterVar : public NodeRef {
   // construct a new iter var without a domain
   IterVar() {}
   // construct from shared ptr.
-  explicit IterVar(std::shared_ptr<Node> n) : NodeRef(n) {}
+  explicit IterVar(NodePtr<Node> n) : NodeRef(n) {}
   /*!
    * \brief access the internal node container
    * \return the pointer to the internal node container
@@ -230,6 +240,13 @@ using Domain = Array<Range>;
 
 // print functions for expr
 TVM_DLL std::ostream& operator<<(std::ostream& os, const NodeRef& n);  // NOLINT(*)
+
+/*!
+ * \brief Dump the node to stderr, used for debug purposes.
+ * \param node The input node
+ */
+TVM_DLL void Dump(const NodeRef& node);
+
 // definition of Node.
 /*!
  * \brief An iteration variable representing an iteration

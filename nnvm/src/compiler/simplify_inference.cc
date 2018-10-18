@@ -9,8 +9,13 @@
 #include <nnvm/pass.h>
 #include <nnvm/compiler/op_attr_types.h>
 #include <nnvm/top/nn.h>
+<<<<<<< HEAD
 #include "./graph_transform.h"
 #include "./pattern_util.h"
+=======
+#include "graph_transform.h"
+#include "pattern_util.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace nnvm {
 namespace compiler {

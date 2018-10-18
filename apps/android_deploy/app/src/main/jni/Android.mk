@@ -20,9 +20,15 @@ LOCAL_SRC_FILES := ml_dmlc_tvm_native_c_api.cc
 LOCAL_LDFLAGS := -L$(SYSROOT)/usr/lib/ -llog
 
 LOCAL_C_INCLUDES := $(ROOT_PATH)/include \
+<<<<<<< HEAD
                     $(ROOT_PATH)/dlpack/include \
                     $(ROOT_PATH)/dmlc-core/include \
                     $(ROOT_PATH)/HalideIR/src \
+=======
+                    $(ROOT_PATH)/3rdparty/dlpack/include \
+                    $(ROOT_PATH)/3rdparty/dmlc-core/include \
+                    $(ROOT_PATH)/3rdparty/HalideIR/src \
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
                     $(ROOT_PATH)/topi/include
 
 LOCAL_MODULE = tvm4j_runtime_packed

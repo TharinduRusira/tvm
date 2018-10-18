@@ -71,9 +71,14 @@ sudo ldconfig
 git clone --recursive https://github.com/dmlc/tvm
 ```
 
+<<<<<<< HEAD
 * Set `USE_NNPACK = 1` in config.mk.
 * Set `NNPACK_PATH` to the $(YOUR_NNPACK_INSTALL_PATH)
 * Set `LLVM_CONFIG = llvm-config-4.0` depending of llvm version installed
+=======
+* Set `set(USE_NNPACK ON)` in config.cmake.
+* Set `NNPACK_PATH` to the $(YOUR_NNPACK_INSTALL_PATH)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 after configuration use `make` to build TVM
 

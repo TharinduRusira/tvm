@@ -9,7 +9,7 @@
 #include <tvm/codegen.h>
 #include <tvm/packed_func_ext.h>
 #include <string>
-#include "./codegen_c.h"
+#include "codegen_c.h"
 
 namespace tvm {
 namespace codegen {
@@ -19,6 +19,8 @@ class CodeGenCUDA final : public CodeGenC {
   CodeGenCUDA();
   void Init(bool output_ssa);
   void AddFunction(LoweredFunc f);
+  std::string Finish();
+  bool need_include_path() { return (enable_fp16_ || enable_int8_); }
   // override behavior
   void VisitStmt_(const ir::For* op) final;
   void PrintStorageSync(const Call* op) final;
@@ -35,6 +37,7 @@ class CodeGenCUDA final : public CodeGenC {
   // overload visitor
   void VisitExpr_(const Ramp* op, std::ostream& os) final; // NOLINT(*)
   void VisitExpr_(const Broadcast* op, std::ostream& os) final; // NOLINT(*)
+  void VisitExpr_(const FloatImm *op, std::ostream& os) final;
   void VisitStmt_(const Evaluate *op) final;
 
  private:
@@ -44,6 +47,10 @@ class CodeGenCUDA final : public CodeGenC {
   std::string vid_global_barrier_state_;
   // Global barrier expected node.
   std::string vid_global_barrier_expect_;
+  // whether enable fp16
+  bool enable_fp16_{false};
+  // whether enable int8
+  bool enable_int8_{false};
 };
 
 }  // namespace codegen

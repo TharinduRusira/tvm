@@ -8,8 +8,8 @@
  *  - Compile with -std=c++11
  *  - Add the following include path
  *     - /path/to/tvm/include/
- *     - /path/to/tvm/dmlc-core/include/
- *     - /path/to/tvm/dlpack/include/
+ *     - /path/to/tvm/3rdparty/dmlc-core/include/
+ *     - /path/to/tvm/3rdparty/dlpack/include/
  *   - Add -lpthread -ldl to the linked library.
  *   - You are good to go.
  *   - See the Makefile in the same folder for example.
@@ -27,6 +27,7 @@
 #include "../../src/runtime/file_util.cc"
 #include "../../src/runtime/threading_backend.cc"
 #include "../../src/runtime/thread_pool.cc"
+#include "../../src/runtime/ndarray.cc"
 
 // NOTE: all the files after this are optional modules
 // that you can include remove, depending on how much feature you use.

@@ -64,7 +64,11 @@ inline tvm::Tensor relu(const tvm::Tensor& t,
 * \param name The name of the operation
 * \param tag The tag to mark the operation
 *
+<<<<<<< HEAD
 * \return A Tensor whose op member is the relu operation
+=======
+* \return A Tensor whose op member is the leaky relu operation
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 */
 inline tvm::Tensor leaky_relu(const tvm::Tensor& t,
                               double alpha = 0.1,
@@ -90,9 +94,14 @@ inline tvm::Tensor leaky_relu(const tvm::Tensor& t,
  * \param name The name of the operation
  * \param tag The tag to mark the operation
  *
+<<<<<<< HEAD
  * \return A Tensor whose op member is the relu operation
  */
 template <typename T>
+=======
+ * \return A Tensor whose op member is the parametric relu operation
+ */
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 inline tvm::Tensor prelu(const tvm::Tensor &x,
                          const tvm::Tensor &slope,
                          const int axis = 1,
@@ -197,6 +206,7 @@ inline tvm::Tensor pad(const tvm::Tensor& t,
       return tvm::select(detail::Map(sel, tvm::ir::And::make), t(indices), pad_value);
     }
     return t(indices);
+<<<<<<< HEAD
   };
   return tvm::compute(output_shape, l, name, tag);
 }
@@ -228,6 +238,8 @@ inline tvm::Tensor matmult(const tvm::Tensor& A,
   auto l = [&](tvm::Var i, tvm::Var j) {
     return tvm::sum((trans_a ? A[k][i] : A[i][k]) * (trans_b ? B[j][k] : B[k][j]),
                     {k});
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   };
   return tvm::compute(output_shape, l, name, tag);
 }
@@ -266,7 +278,7 @@ inline tvm::Tensor conv2d_nchw(const tvm::Tensor& I,
   auto pW = I->shape[3];
   tvm::Array<tvm::Expr> output_shape{
       I->shape[0],                                            // B
-      W->shape[1],                                            // O
+      W->shape[0],                                            // O
       (I->shape[2] - W->shape[2] + 2 * pad_h) / stride_h + 1,  // H
       (I->shape[3] - W->shape[3] + 2 * pad_w) / stride_w + 1   // W
   };

@@ -6,7 +6,10 @@
 #ifndef TVM_RUNTIME_OPENGL_OPENGL_MODULE_H_
 #define TVM_RUNTIME_OPENGL_OPENGL_MODULE_H_
 
+<<<<<<< HEAD
 #include <tvm/runtime/config.h>
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 #include <tvm/runtime/packed_func.h>
 #include <algorithm>
 #include <memory>
@@ -89,8 +92,15 @@ inline std::string OpenGLArgKind2String(OpenGLArgKind kind) {
       return "input_texture";
     case OpenGLArgKind::kUniform:
       return "uniform";
+<<<<<<< HEAD
   }
   assert(false);
+=======
+    default:
+      LOG(FATAL) << "invalid arg kind";
+      return "";
+  }
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
 inline OpenGLArgKind String2OpenGLArgKind(const std::string& str) {
@@ -102,7 +112,11 @@ inline OpenGLArgKind String2OpenGLArgKind(const std::string& str) {
     return OpenGLArgKind::kUniform;
   } else {
     LOG(FATAL) << "Invalid OpenGL arg kind.";
+<<<<<<< HEAD
     assert(false);
+=======
+    return OpenGLArgKind::kUniform;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   }
 }
 

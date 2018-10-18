@@ -17,15 +17,11 @@
 
 package ml.dmlc.tvm.tvmrpc;
 
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.os.ParcelFileDescriptor;
-
 import java.net.Socket;
-
-import ml.dmlc.tvm.rpc.ConnectProxyServerProcessor;
+import ml.dmlc.tvm.rpc.ConnectTrackerServerProcessor;
 import ml.dmlc.tvm.rpc.SocketFileDescriptorGetter;
+import ml.dmlc.tvm.rpc.RPCWatchdog;
 
 /**
  * Connect to RPC proxy and deal with requests.
@@ -34,10 +30,10 @@ class RPCProcessor extends Thread {
   private String host;
   private int port;
   private String key;
-
   private boolean running = false;
-  private ConnectProxyServerProcessor currProcessor;
-  private final Handler uiHandler;
+  private long startTime;
+  private ConnectTrackerServerProcessor currProcessor;
+  private boolean first = true;
 
   static final SocketFileDescriptorGetter socketFdGetter
       = new SocketFileDescriptorGetter() {
@@ -47,11 +43,9 @@ class RPCProcessor extends Thread {
         }
       };
 
-  RPCProcessor(Handler uiHandler) {
-    this.uiHandler = uiHandler;
-  }
-
   @Override public void run() {
+    RPCWatchdog watchdog = new RPCWatchdog();
+    watchdog.start();
     while (true) {
       synchronized (this) {
         currProcessor = null;
@@ -61,20 +55,17 @@ class RPCProcessor extends Thread {
           } catch (InterruptedException e) {
           }
         }
-        currProcessor = new ConnectProxyServerProcessor(host, port, key, socketFdGetter);
+        try {
+          currProcessor = new ConnectTrackerServerProcessor(host, port, key, socketFdGetter, watchdog);
+        } catch (Throwable e) {
+          e.printStackTrace();
+          // kill if creating a new processor failed
+          System.exit(0);
+        }
       }
-      try {
+      if (currProcessor != null)
         currProcessor.run();
-      } catch (Throwable e) {
-        disconnect();
-        // turn connect switch off.
-        Message message = new Message();
-        message.what = MainActivity.MSG_RPC_ERROR;
-        Bundle bundle = new Bundle();
-        bundle.putString(MainActivity.MSG_RPC_ERROR_DATA_KEY, e.getMessage());
-        message.setData(bundle);
-        uiHandler.sendMessage(message);
-      }
+      watchdog.finishTimeout();
     }
   }
 
@@ -101,6 +92,6 @@ class RPCProcessor extends Thread {
     this.port = port;
     this.key = key;
     running = true;
-    notify();
+    this.notify();
   }
 }

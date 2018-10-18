@@ -15,11 +15,19 @@ def test_operator_type_and_tags():
 
     assert isinstance(k + n, tvm.expr.Expr)
     assert isinstance(n + n, tvm.expr.Expr)
+<<<<<<< HEAD
     assert isinstance(k + A, tvm.expr.Expr)
     assert isinstance(A + k, tvm.expr.Expr)
     assert isinstance(n + A, tvm.expr.Expr)
     assert isinstance(A + n, tvm.expr.Expr)
     assert isinstance(A + A, tvm.expr.Expr)
+=======
+    assert isinstance(k + A, tvm.tensor.Tensor)
+    assert isinstance(A + k, tvm.tensor.Tensor)
+    assert isinstance(n + A, tvm.tensor.Tensor)
+    assert isinstance(A + n, tvm.tensor.Tensor)
+    assert isinstance(A + A, tvm.tensor.Tensor)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     assert isinstance(k + B, tvm.tensor.Tensor)
     assert isinstance(B + k, tvm.tensor.Tensor)
@@ -33,8 +41,13 @@ def test_operator_type_and_tags():
     assert (B + k).op.tag == topi.tag.ELEMWISE
     assert (n + B).op.tag == topi.tag.ELEMWISE
     assert (B + n).op.tag == topi.tag.ELEMWISE
+<<<<<<< HEAD
     assert (A + B).op.tag == topi.tag.ELEMWISE
     assert (B + A).op.tag == topi.tag.ELEMWISE
+=======
+    assert (A + B).op.tag == topi.tag.BROADCAST
+    assert (B + A).op.tag == topi.tag.BROADCAST
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     assert (B + B).op.tag == topi.tag.BROADCAST
 
     assert isinstance(k + B2, tvm.expr.Expr)
@@ -42,8 +55,13 @@ def test_operator_type_and_tags():
     assert isinstance(n + B2, tvm.expr.Expr)
     assert isinstance(B2 + n, tvm.expr.Expr)
     assert isinstance(B2 + B2, tvm.expr.Expr)
+<<<<<<< HEAD
     assert isinstance(B2 + A, tvm.expr.Expr)
     assert isinstance(A + B2, tvm.expr.Expr)
+=======
+    assert isinstance(B2 + A, tvm.tensor.Tensor)
+    assert isinstance(A + B2, tvm.tensor.Tensor)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     assert isinstance(B2 + B, tvm.tensor.Tensor)
     assert isinstance(B + B2, tvm.tensor.Tensor)
 
@@ -246,4 +264,8 @@ if __name__ == "__main__":
     test_combination()
     test_tensor_scalar_bop()
     test_broadcast_bop()
+<<<<<<< HEAD
     test_conv2d_scalar_bop()
+=======
+    test_conv2d_scalar_bop()
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

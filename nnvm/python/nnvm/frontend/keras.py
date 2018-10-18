@@ -23,6 +23,17 @@ def _get_pad_pair(input1d, kernel1d, stride1d):
     pad_after = pad - pad_before
     return [pad_before, pad_after]
 
+<<<<<<< HEAD
+=======
+def _get_elu(insym, alpha):
+    """ A helper method for elu.
+    """
+    return -alpha * _sym.relu(1 - _sym.exp(insym)) + _sym.relu(insym)
+
+def _convert_recurrent_activation(insym, keras_layer):
+    act_type = keras_layer.recurrent_activation.__name__
+    return _convert_activation(insym, act_type, None)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 def _convert_activation(insym, keras_layer, _):
     if isinstance(keras_layer, str):
@@ -50,6 +61,7 @@ def _convert_activation(insym, keras_layer, _):
     elif act_type == 'softplus':
         return _sym.log(_sym.__add_scalar__(_sym.exp(insym), scalar=1))
     elif act_type == 'elu':
+<<<<<<< HEAD
         raise NotImplementedError('elu not implemented')
     elif act_type == 'relu6':
         return _sym.clip(insym, a_min=0, a_max=6)
@@ -57,10 +69,29 @@ def _convert_activation(insym, keras_layer, _):
         raise NotImplementedError('softsign not implemented')
     elif act_type == 'hard_sigmoid':
         raise NotImplementedError('hard_sigmoid not implemented')
+=======
+        alpha = keras_layer.alpha if hasattr(keras_layer, "alpha") else 1
+        return _get_elu(insym, alpha)
+    elif act_type == 'selu':
+        # Alpha, Gamma values, obtained from  https://arxiv.org/abs/1706.02515
+        alpha = keras_layer.alpha if hasattr(keras_layer, "alpha") \
+            else 1.6732632423543772848170429916717
+        gamma = keras_layer.gamma if hasattr(keras_layer, "gamma") \
+            else 1.0507009873554804934193349852946
+        return gamma * _get_elu(insym, alpha)
+    elif act_type == 'relu6':
+        return _sym.clip(insym, a_min=0, a_max=6)
+    elif act_type == 'softsign':
+        return insym / (1 + (_sym.relu(insym) + _sym.relu(_sym.negative(insym))))
+    elif act_type == 'hard_sigmoid':
+        transformX = (0.2 * insym) + 0.5
+        return _sym.clip(transformX, a_min=0, a_max=1)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     else:
         raise TypeError("Unsupported activation type : {}".format(act_type))
 
 
+<<<<<<< HEAD
 def _convert_advanced_activation(insym, keras_layer, _):
     act_type = type(keras_layer).__name__
     if act_type == 'LeakyReLU':
@@ -71,6 +102,31 @@ def _convert_advanced_activation(insym, keras_layer, _):
         raise NotImplementedError('PReLU not implemented')
     elif act_type == 'ThresholdedReLU':
         raise NotImplementedError('ThresholdedReLU not implemented')
+=======
+def _convert_advanced_activation(insym, keras_layer, symtab):
+    act_type = type(keras_layer).__name__
+    if act_type == 'ReLU':
+        if keras_layer.max_value:
+            return _sym.clip(insym, a_min=0, a_max=keras_layer.max_value)
+        return _sym.relu(insym)
+    elif act_type == 'LeakyReLU':
+        return _sym.leaky_relu(insym, alpha=keras_layer.alpha)
+    elif act_type == 'ELU':
+        alpha = keras_layer.alpha if hasattr(keras_layer, "alpha") else 1
+        return _get_elu(insym, alpha)
+    elif act_type == 'PReLU':
+        assert hasattr(keras_layer, "alpha"), \
+            "alpha required for PReLU."
+        _check_data_format(keras_layer)
+        size = len(keras_layer.alpha.shape)
+        return -symtab.new_const(keras_layer.get_weights()[0] \
+                                 .transpose(np.roll(range(size), 1))) \
+                                 * _sym.relu(-insym) + _sym.relu(insym)
+    elif act_type == 'ThresholdedReLU':
+        theta = keras_layer.theta if hasattr(keras_layer, "theta") else 1.0
+        theta_tensor = _sym.full_like(insym[0], fill_value=float(theta))
+        return _sym.elemwise_mul(insym[0], _sym.greater(insym[0], theta_tensor, out_type="float32"))
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     else:
         raise TypeError("Unsupported advanced activation type : {}".format(act_type))
 
@@ -131,8 +187,13 @@ def _convert_convolution(insym, keras_layer, symtab):
         dilation = [keras_layer.dilation_rate[0], keras_layer.dilation_rate[1]]
     else:
         dilation = [keras_layer.dilation_rate, keras_layer.dilation_rate]
+<<<<<<< HEAD
     kernel_h = (kernel_h - 1) * dilation[0] + 1
     kernel_w = (kernel_w - 1) * dilation[1] + 1
+=======
+    dilated_kernel_h = (kernel_h - 1) * dilation[0] + 1
+    dilated_kernel_w = (kernel_w - 1) * dilation[1] + 1
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     stride_h, stride_w = keras_layer.strides
     params = {'weight': symtab.new_const(weight),
               'kernel_size': [kernel_h, kernel_w],
@@ -154,9 +215,18 @@ def _convert_convolution(insym, keras_layer, symtab):
     elif keras_layer.padding == 'same':
         in_h = keras_layer.input_shape[1]
         in_w = keras_layer.input_shape[2]
+<<<<<<< HEAD
         pad_t, pad_b = _get_pad_pair(in_h, kernel_h, stride_h)
         pad_l, pad_r = _get_pad_pair(in_w, kernel_w, stride_w)
         insym = _sym.pad(data=insym, pad_width=((0, 0), (0, 0), (pad_t, pad_b), (pad_l, pad_r)))
+=======
+        pad_t, pad_b = _get_pad_pair(in_h, dilated_kernel_h, stride_h)
+        pad_l, pad_r = _get_pad_pair(in_w, dilated_kernel_w, stride_w)
+        if pad_t == pad_b and pad_l == pad_r:
+            params['padding'] = (pad_t, pad_l)
+        else:
+            insym = _sym.pad(data=insym, pad_width=((0, 0), (0, 0), (pad_t, pad_b), (pad_l, pad_r)))
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     else:
         raise TypeError("Unsupported padding type : {}".format(keras_layer.padding))
     if is_deconv:
@@ -247,14 +317,21 @@ def _convert_pooling(insym, keras_layer, symtab):
                   'padding': [0, 0]}
         if keras_layer.padding == 'valid':
             pass
+<<<<<<< HEAD
         # we insert a separate pad operator
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         elif keras_layer.padding == 'same':
             in_h = keras_layer.input_shape[1]
             in_w = keras_layer.input_shape[2]
             pad_t, pad_b = _get_pad_pair(in_h, pool_h, stride_h)
             pad_l, pad_r = _get_pad_pair(in_w, pool_w, stride_w)
+<<<<<<< HEAD
             insym = _sym.pad(data=insym, pad_width=(
                 (0, 0), (0, 0), (pad_t, pad_b), (pad_l, pad_r)))
+=======
+            params['padding'] = [pad_t, pad_l, pad_b, pad_r]
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         else:
             raise TypeError("Unsupported padding type : {}".format(keras_layer.padding))
         if pool_type == 'MaxPooling2D':
@@ -289,6 +366,24 @@ def _convert_upsample(insym, keras_layer, _):
     return _sym.upsampling(insym, **params)
 
 
+<<<<<<< HEAD
+=======
+def _convert_cropping(insym, keras_layer, _):
+    _check_data_format(keras_layer)
+    crop_type = type(keras_layer).__name__
+    if crop_type == "Cropping1D":
+        raise NotImplementedError("Cropping1D not implemented")
+    elif crop_type == "Cropping2D":
+        (_, in_h, in_w, _) = keras_layer.input_shape
+        ((crop_t, crop_b), (crop_l, crop_r)) = keras_layer.cropping
+    else:
+        raise TypeError("Unrecognized cropping type : {}".format(crop_type))
+    int32_max = np.iinfo(np.int32).max
+    return _sym.strided_slice(insym, begin=[0, 0, crop_t, crop_l],
+                              end=[int32_max, int32_max, in_h-crop_b, in_w-crop_r])
+
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def _convert_batchnorm(insym, keras_layer, symtab):
     params = {'scale': False,
               'center': False,
@@ -353,6 +448,123 @@ def _convert_reshape(insym, keras_layer, _):
     shape = (-1, ch) + keras_layer.target_shape[:-1]
     return _sym.reshape(insym, shape=shape)
 
+<<<<<<< HEAD
+=======
+def _convert_lstm(insym, keras_layer, symtab):
+    _check_data_format(keras_layer)
+    if not isinstance(insym, list):
+        buffer = np.zeros((1, keras_layer.units), 'float32')
+        c_sym = symtab.new_const(buffer)
+        h_sym = symtab.new_const(buffer)
+        insym = [insym, h_sym, c_sym]
+
+    in_data = insym[0]
+    in_state_h = insym[1]
+    in_state_c = insym[2]
+
+    weightList = keras_layer.get_weights()
+
+    kernel_wt = symtab.new_const(weightList[0].transpose([1, 0]))
+    recurrent_wt = symtab.new_const(weightList[1].transpose([1, 0]))
+    in_bias = symtab.new_const(weightList[2])
+
+    units = list(weightList[0].shape)[1]
+
+    in_data = _sym.flatten(in_data)
+    ixh1 = _sym.dense(in_data, kernel_wt, use_bias=False, units=units)
+    ixh2 = _sym.dense(in_state_h, recurrent_wt, in_bias, use_bias=True, units=units)
+    gate = ixh1 + ixh2
+    gates = _sym.split(gate, indices_or_sections=4, axis=1)
+    in_gate = _convert_recurrent_activation(gates[0], keras_layer)
+    in_transform = _convert_recurrent_activation(gates[1], keras_layer)
+    next_c = in_transform * in_state_c + in_gate * _convert_activation(gates[2], keras_layer, None)
+    out_gate = _convert_recurrent_activation(gates[3], keras_layer)
+    next_h = out_gate * _convert_activation(next_c, keras_layer, None)
+
+    out_shape = tuple(dim if dim else 1 for dim in _as_list(keras_layer.output_shape)[0])
+    out = _sym.reshape(next_h, shape=out_shape)
+    return [out, next_h, next_c]
+
+def _convert_simple_rnn(insym, keras_layer, symtab):
+    _check_data_format(keras_layer)
+    if not isinstance(insym, list):
+        buffer = np.zeros((1, keras_layer.units), 'float32')
+        prev_sym = symtab.new_const(buffer)
+        insym = [insym, prev_sym]
+    in_data = insym[0]
+    prev_sym = insym[1]
+
+    weightList = keras_layer.get_weights()
+    kernel_wt = symtab.new_const(weightList[0].transpose([1, 0]))
+    recurrent_wt = symtab.new_const(weightList[1].transpose([1, 0]))
+    in_bias = symtab.new_const(weightList[2])
+    units = list(weightList[0].shape)[1]
+
+    in_data = _sym.flatten(in_data)
+    ixh = _sym.dense(in_data, kernel_wt, in_bias, use_bias=True, units=units)
+    prev_sym = _sym.flatten(prev_sym)
+    ixh2 = _sym.dense(prev_sym, recurrent_wt, use_bias=False, units=units)
+    output = ixh + ixh2
+    output = _convert_activation(output, keras_layer, None)
+
+    out_shape = tuple(dim if dim else 1 for dim in _as_list(keras_layer.output_shape)[0])
+    output = _sym.reshape(output, shape=out_shape)
+
+    return [output, output]
+
+def _convert_gru(insym, keras_layer, symtab):
+    _check_data_format(keras_layer)
+    if not isinstance(insym, list):
+        buffer = np.zeros((1, keras_layer.units), 'float32')
+        h_tm1 = symtab.new_const(buffer)
+        insym = [insym, h_tm1]
+    in_data = insym[0]
+    h_tm1_sym = insym[1]
+
+    weightList = keras_layer.get_weights()
+    kernel_wt = symtab.new_const(weightList[0].transpose([1, 0]))
+    recurrent_wt = symtab.new_const(weightList[1].transpose([1, 0]))
+    in_bias = symtab.new_const(weightList[2])
+
+    units = list(weightList[0].shape)[1]
+
+    in_data = _sym.flatten(in_data)
+    matrix_x = _sym.dense(in_data, kernel_wt, in_bias, use_bias=True, units=units)
+
+    # inputs projected by all gate matrices at once
+    split_indices = [keras_layer.units, 2 * keras_layer.units]
+    gates = _sym.split(matrix_x, indices_or_sections=split_indices, axis=1)
+    x_z = gates[0]
+    x_r = gates[1]
+    x_h = gates[2]
+
+    # hidden state projected separately for update/reset and new
+    units = 2 * keras_layer.units
+    split_indices = [units]
+    rec_wts = _sym.split(recurrent_wt, indices_or_sections=split_indices, axis=0)
+
+    h_tm1_sym = _sym.flatten(h_tm1_sym)
+    matrix_inner = _sym.dense(h_tm1_sym, rec_wts[0], use_bias=False, units=units)
+
+    split_indices = [keras_layer.units]
+    recurrent = _sym.split(matrix_inner, indices_or_sections=split_indices, axis=1)
+    recurrent_z = recurrent[0]
+    recurrent_r = recurrent[1]
+
+    rec_act_z = _convert_recurrent_activation(x_z + recurrent_z, keras_layer)
+    rec_act_r = _convert_recurrent_activation(x_r + recurrent_r, keras_layer)
+
+    units = keras_layer.units
+    recurrent_h = _sym.dense(rec_act_r * h_tm1_sym, rec_wts[1], use_bias=False, units=units)
+    act_hh = _convert_activation(x_h + recurrent_h, keras_layer, None)
+
+    # previous and candidate state mixed by update gate
+    output = rec_act_z * h_tm1_sym + (1 - rec_act_z) * act_hh
+
+    out_shape = tuple(dim if dim else 1 for dim in _as_list(keras_layer.output_shape)[0])
+    output = _sym.reshape(output, shape=out_shape)
+    return [output, output]
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 def _default_skip(insym, keras_layer, _): # pylint: disable=unused-argument
     """Layers that can be skipped because they are train time only."""
@@ -362,6 +574,10 @@ def _default_skip(insym, keras_layer, _): # pylint: disable=unused-argument
 _convert_map = {
     'Dense'                    : _convert_dense,
     'Activation'               : _convert_activation,
+<<<<<<< HEAD
+=======
+    'ReLU'                     : _convert_advanced_activation,
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     'LeakyReLU'                : _convert_advanced_activation,
     'PReLU'                    : _convert_advanced_activation,
     'ELU'                      : _convert_advanced_activation,
@@ -386,6 +602,10 @@ _convert_map = {
     'Multiply'                 : _convert_merge,
     'ZeroPadding2D'            : _convert_padding,
     'UpSampling2D'             : _convert_upsample,
+<<<<<<< HEAD
+=======
+    'Cropping2D'               : _convert_cropping,
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     # 'ZeroPadding1D'          : _convert_padding,
     # 'AveragePooling1D'       : _convert_pooling,
@@ -393,14 +613,23 @@ _convert_map = {
     # 'GlobalAveragePooling1D' : _convert_pooling,
     # 'GlobalMaxPooling1D'     : _convert_pooling,
     # 'Cropping1D'             : _convert_cropping,
+<<<<<<< HEAD
     # 'Cropping2D'             : _convert_cropping,
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     # 'UpSampling1D'           : _convert_upsample,
     # 'UpSampling3D'           : _convert_upsample,
     # 'Conv1D'                 : _convert_convolution1d,
 
+<<<<<<< HEAD
     # 'GRU'                    : _convert_gru,
     # 'LSTM'                   : _convert_lstm,
     # 'SimpleRNN'              : _convert_simple_rnn,
+=======
+    'SimpleRNN'                : _convert_simple_rnn,
+    'LSTM'                     : _convert_lstm,
+    'GRU'                      : _convert_gru,
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     # 'Bidirectional'          : _convert_bidirectional,
     # 'TimeDistributed'        : _default_skip,
 
@@ -423,6 +652,14 @@ def _check_unsupported_layers(model):
         if type(layer).__name__ not in _convert_map:
             raise ValueError("Keras layer {} not supported.".format(type(layer).__name__))
 
+<<<<<<< HEAD
+=======
+def _as_list(arr):
+    """Force being a list, ignore if already is."""
+    if isinstance(arr, list):
+        return arr
+    return [arr]
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 def keras_op_to_nnvm(insym, keras_layer, outname, symtab):
     """Convert keras layer to nnvm symbol, and update symtab.
@@ -443,9 +680,18 @@ def keras_op_to_nnvm(insym, keras_layer, outname, symtab):
     """
     if type(keras_layer).__name__ not in _convert_map:
         raise NotImplementedError("{} is not supported".format((type(keras_layer).__name__)))
+<<<<<<< HEAD
     ret = _convert_map[type(keras_layer).__name__](insym, keras_layer, symtab)
     symtab.set_var(outname, ret)
 
+=======
+    outs = _convert_map[type(keras_layer).__name__](insym, keras_layer, symtab)
+    outs = _as_list(outs)
+
+    for t_idx, out in enumerate(outs):
+        name = outname + ":" + str(t_idx)
+        symtab.set_var(name, out)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 def from_keras(model):
     """Convert keras model to NNVM format.
@@ -467,14 +713,25 @@ def from_keras(model):
         import keras
     except ImportError:
         raise ImportError('Keras must be installed')
+<<<<<<< HEAD
     assert isinstance(model, keras.engine.training.Model)
+=======
+
+    assert isinstance(model, keras.engine.training.Model)
+    if keras.backend.backend() != 'tensorflow':
+        raise ValueError("Keras frontend currently supports tensorflow backend only.")
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     if keras.backend.image_data_format() != 'channels_last':
         raise ValueError("Keras frontend currently supports data_format = channels_last only.")
     _check_unsupported_layers(model)
 
     symtab = SymbolTable()
     for keras_layer in model.layers:
+<<<<<<< HEAD
         if isinstance(keras_layer, keras.engine.topology.InputLayer):
+=======
+        if isinstance(keras_layer, keras.engine.InputLayer):
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
             symtab.get_var(keras_layer.name, must_contain=False)
         else:
             inbound_nodes = keras_layer.inbound_nodes if hasattr(keras_layer, 'inbound_nodes') \
@@ -483,7 +740,11 @@ def from_keras(model):
             if inbound_nodes is None:
                 raise TypeError("Unknown layer type or unsupported Keras version : {}"
                                 .format(keras_layer))
+<<<<<<< HEAD
             for my_idx, node in enumerate(inbound_nodes):
+=======
+            for node_idx, node in enumerate(inbound_nodes):
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
                 insym = []
 
                 # Since Keras allows creating multiple layers from the same name instance,
@@ -491,6 +752,7 @@ def from_keras(model):
                 # The one exception is InputLayer.  Changing input variable names after conversion
                 # would confuse users, so we should keep them as far as possible.  Fortunately,
                 # they are named uniquely to input_1, input_2, input_3 ... by default.
+<<<<<<< HEAD
                 for pred_idx, pred in zip(node.node_indices, node.inbound_layers):
                     if isinstance(pred, keras.engine.topology.InputLayer):
                         _sym = symtab.get_var(pred.name, must_contain=True)
@@ -505,3 +767,27 @@ def from_keras(model):
     outsym = symtab.get_var(model.output_layers[0].name + ':0')
     tvmparams = {k:tvm.nd.array(np.array(v, dtype=np.float32)) for k, v in symtab.params.items()}
     return outsym, tvmparams
+=======
+                zip_node = zip(node.node_indices, node.tensor_indices, node.inbound_layers)
+                for n_idx, t_idx, layer in zip_node:
+                    if isinstance(layer, keras.engine.InputLayer):
+                        sym = symtab.get_var(layer.name, must_contain=True)
+                    else:
+                        sym_name = layer.name + ':' + str(n_idx) + ':' + str(t_idx)
+                        sym = symtab.get_var(sym_name, must_contain=True)
+                    insym.append(sym)
+
+                if len(insym) == 1:
+                    insym = insym[0]
+                keras_op_to_nnvm(insym, keras_layer, keras_layer.name + ':' + str(node_idx), symtab)
+
+    #model._output_coordinates contains out_node(oc[0]), node_index(oc[1]) and tensor index(oc[2])
+    #Get all output nodes in symtab using the name made from above values. The out symbols
+    #were added to symtab in keras_op_to_nnvm using this name. For multiple outputs, make a list
+    #with these output symbols and Group them.
+    outsym = [symtab.get_var(oc[0].name + ":" + str(oc[1]) + ":" + str(oc[2]))
+              for oc in model._output_coordinates]
+
+    tvmparams = {k:tvm.nd.array(np.array(v, dtype=np.float32)) for k, v in symtab.params.items()}
+    return _sym.Group(outsym), tvmparams
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

@@ -44,6 +44,28 @@ class ThreadGroup {
     */
   void Join();
 
+<<<<<<< HEAD
+=======
+  enum AffinityMode : int {
+    kBig = 1,
+    kLittle = -1,
+  };
+
+  /*!
+   * \brief configure the CPU id affinity
+   *
+   * \param mode The preferred CPU type (1 = big, -1 = little).
+   * \param nthreads The number of threads to use (0 = use all).
+   * \param exclude_worker0 Whether to use the main thread as a worker.
+   *        If  `true`, worker0 will not be launched in a new thread and
+   *        `worker_callback` will only be called for values >= 1. This
+   *        allows use of the main thread as a worker.
+   *
+   * \return The number of workers to use.
+   */
+  int Configure(AffinityMode mode, int nthreads, bool exclude_worker0);
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
  private:
   Impl* impl_;
 };
@@ -58,6 +80,10 @@ void Yield();
  */
 int MaxConcurrency();
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }  // namespace threading
 }  // namespace runtime
 }  // namespace tvm

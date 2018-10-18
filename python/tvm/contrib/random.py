@@ -55,4 +55,32 @@ def uniform(low, high, size):
     return _api.extern(size, [], lambda ins, outs: _intrin.call_packed(
         "tvm.contrib.random.uniform", float(low), float(high), outs[0]), dtype='float32')
 
+<<<<<<< HEAD
+=======
+
+def normal(loc, scale, size):
+    """Draw samples from a normal distribution.
+
+    Return random samples from a normal distribution.
+
+    Parameters
+    ----------
+    loc : float
+        loc of the distribution.
+    scale : float
+        Standard deviation of the distribution.
+    size : tuple of ints
+        Output shape. If the given shape is, e.g., (m, n, k), then m * n * k
+        samples are drawn.
+
+    Returns
+    ------
+    out : Tensor
+        A tensor with specified size and dtype
+    """
+    return _api.extern(size, [], lambda ins, outs: _intrin.call_packed(
+        "tvm.contrib.random.normal", float(loc), float(scale), outs[0]), dtype='float32')
+
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 _init_api("tvm.contrib.random")

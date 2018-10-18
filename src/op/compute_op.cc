@@ -9,9 +9,11 @@
 #include <tvm/ir_visitor.h>
 #include <tvm/ir_pass.h>
 #include <unordered_set>
-#include "./compute_op.h"
-#include "./op_util.h"
+#include <string>
+#include "compute_op.h"
+#include "op_util.h"
 #include "../schedule/message_passing.h"
+#include "../arithmetic/compute_expr.h"
 
 namespace tvm {
 
@@ -66,8 +68,9 @@ Array<Expr> ComputeOpNode::output_shape(size_t idx) const {
 Tensor compute(Array<Expr> shape,
                FCompute fcompute,
                std::string name,
-               std::string tag) {
-  auto op_node = std::make_shared<ComputeOpNode>();
+               std::string tag,
+               Map<std::string, NodeRef> attrs) {
+  auto op_node = make_node<ComputeOpNode>();
   // compute dimension.
   size_t ndim = shape.size();
   std::vector<IterVar> axis;
@@ -80,14 +83,16 @@ Tensor compute(Array<Expr> shape,
     args.push_back(axis.back()->var);
   }
 
-  return ComputeOpNode::make(name, tag, axis, {fcompute(args)}).output(0);
+  return ComputeOpNode::make(
+      name, tag, attrs, axis, {fcompute(args)}).output(0);
 }
 
 Array<Tensor> compute(Array<Expr> shape,
                       FBatchCompute fcompute,
                       std::string name,
-                      std::string tag) {
-  auto op_node = std::make_shared<ComputeOpNode>();
+                      std::string tag,
+                      Map<std::string, NodeRef> attrs) {
+  auto op_node = make_node<ComputeOpNode>();
   // compute dimension.
   size_t ndim = shape.size();
   std::vector<IterVar> axis;
@@ -100,7 +105,7 @@ Array<Tensor> compute(Array<Expr> shape,
     args.push_back(axis.back()->var);
   }
 
-  Operation op = ComputeOpNode::make(name, tag, axis, fcompute(args));
+  Operation op = ComputeOpNode::make(name, tag, attrs, axis, fcompute(args));
   Array<Tensor> outputs;
   for (int idx = 0; idx < op->num_outputs(); ++idx) {
     outputs.push_back(op.output(idx));
@@ -110,13 +115,18 @@ Array<Tensor> compute(Array<Expr> shape,
 
 Operation ComputeOpNode::make(std::string name,
                               std::string tag,
+                              Map<std::string, NodeRef> attrs,
                               Array<IterVar> axis,
                               Array<Expr> body) {
-  auto n = std::make_shared<ComputeOpNode>();
-  n->name = name;
-  n->tag = tag;
-  n->axis = axis;
-  n->body = body;
+  if (!attrs.defined()) {
+    attrs = Map<std::string, NodeRef>();
+  }
+  auto n = make_node<ComputeOpNode>();
+  n->name = std::move(name);
+  n->tag = std::move(tag);
+  n->attrs = std::move(attrs);
+  n->axis = std::move(axis);
+  n->body = std::move(body);
   if (n->body[0]->is_type<ir::Reduce>()) {
     const ir::Reduce* reduce = n->body[0].as<ir::Reduce>();
     n->reduce_axis = reduce->axis;
@@ -157,7 +167,7 @@ Operation ComputeOpNode::ReplaceInputs(
     if (!new_reduce.same_as(this->body[0])) {
       const ir::Reduce* r = new_reduce.as<ir::Reduce>();
       for (size_t k = 0; k < this->body.size(); ++k) {
-        std::shared_ptr<ir::Reduce> n = std::make_shared<ir::Reduce>(*r);
+        auto n = make_node<ir::Reduce>(*r);
         n->value_index = static_cast<int>(k);
         n->type = r->source[k].type();
         arr.push_back(Expr(n));
@@ -171,7 +181,8 @@ Operation ComputeOpNode::ReplaceInputs(
       });
   }
   if (!arr.same_as(this->body)) {
-    return ComputeOpNode::make(name, tag, axis, arr);
+    return ComputeOpNode::make(
+        this->name, this->tag, this->attrs, this->axis, arr);
   } else {
     return self;
   }
@@ -535,4 +546,41 @@ static void VerifyComputeOp(const ComputeOpNode* op) {
   v.Run();
 }
 
+<<<<<<< HEAD
+=======
+Stmt TransformUpdate(const Stage& stage,
+                     const std::unordered_map<IterVar, Range>& dom_map,
+                     const ComputeLoopNest& n,
+                     Stmt body,
+                     Stmt update) {
+  Array<Expr> conds;
+  std::unordered_set<const Variable*> banned;
+  for (size_t i = 0; i < stage->leaf_iter_vars.size(); ++i) {
+    IterVar iv = stage->leaf_iter_vars[i];
+    auto iit = stage->iter_var_attrs.find(iv);
+    if (iit != stage->iter_var_attrs.end()) {
+      const IterVarAttr& attr = (*iit).second;
+      if (attr->iter_type == kTensorized) {
+        break;
+      }
+    }
+    if (iv->iter_type == kCommReduce) {
+      auto vit = dom_map.find(iv);
+      CHECK(vit != dom_map.end());
+      const Range& vrange = vit->second;
+      conds.push_back(likely(iv->var > vrange->min));
+      banned.insert(iv->var.get());
+    }
+  }
+  for (const Expr& pred : n.main_predicates) {
+    if (ir::ExprUseVar(pred, banned)) {
+      LOG(FATAL) << "Tensorize update transform failed, the condition "
+                 << pred << " has a conflict with the reset condition";
+    }
+  }
+
+  return IfThenElse::make(arith::ComputeReduce<ir::Or>(conds, const_true(1)),
+                          update, body);
+}
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }  // namespace tvm

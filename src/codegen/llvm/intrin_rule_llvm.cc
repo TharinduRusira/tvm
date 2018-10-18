@@ -4,7 +4,7 @@
  */
 #ifdef TVM_LLVM_VERSION
 
-#include "./intrin_rule_llvm.h"
+#include "intrin_rule_llvm.h"
 
 namespace tvm {
 namespace codegen {
@@ -25,6 +25,24 @@ TVM_REGISTER_GLOBAL("tvm.intrin.rule.llvm.log")
 TVM_REGISTER_GLOBAL("tvm.intrin.rule.llvm.sqrt")
 .set_body(DispatchLLVMPureIntrin<::llvm::Intrinsic::sqrt, 1>);
 
+<<<<<<< HEAD
+=======
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.llvm.floor")
+.set_body(DispatchLLVMPureIntrin<::llvm::Intrinsic::floor, 1>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.llvm.ceil")
+.set_body(DispatchLLVMPureIntrin<::llvm::Intrinsic::ceil, 1>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.llvm.trunc")
+.set_body(DispatchLLVMPureIntrin<::llvm::Intrinsic::trunc, 1>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.llvm.fabs")
+.set_body(DispatchLLVMPureIntrin<::llvm::Intrinsic::fabs, 1>);
+
+TVM_REGISTER_GLOBAL("tvm.intrin.rule.llvm.round")
+.set_body(DispatchLLVMPureIntrin<::llvm::Intrinsic::round, 1>);
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 TVM_REGISTER_GLOBAL("tvm.intrin.rule.llvm.tanh")
 .set_body([](const TVMArgs& targs, TVMRetValue* rv) {
   Expr e = targs[0];

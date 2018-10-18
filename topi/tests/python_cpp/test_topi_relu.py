@@ -50,16 +50,27 @@ def verify_leaky_relu(m, alpha):
     foo(a, b)
     np.testing.assert_allclose(b.asnumpy(), b_np, rtol=1e-5)
 
+<<<<<<< HEAD
 def verify_prelu(x, w):
+=======
+def verify_prelu(x, w, axis, weight_reshape):
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     X = tvm.placeholder((x), name='X')
     W = tvm.placeholder((w), name='W')
     x_np = np.random.uniform(low=-1.0, high=1.0, size=get_const_tuple(X.shape)).astype(X.dtype)
     w_np = np.random.uniform(low=-1.0, high=1.0, size=get_const_tuple(W.shape)).astype(W.dtype)
     def _prelu_numpy(x, W):
+<<<<<<< HEAD
         return (x < 0) * (x *W.reshape(3, 1, 1)) + (x>=0) * x
 
     out_np = _prelu_numpy(x_np, w_np)
     B = topi.cpp.nn.prelu(X, W)
+=======
+        return (x < 0) * (x *W.reshape(weight_reshape)) + (x>=0) * x
+
+    out_np = _prelu_numpy(x_np, w_np)
+    B = topi.cpp.nn.prelu(X, W, axis)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     device = "llvm"
     target = topi.cpp.TEST_create_target(device)
     s = topi.cpp.generic.schedule_injective(target, [B])
@@ -81,7 +92,12 @@ def test_leaky_relu():
     verify_leaky_relu(100, 0.5)
 
 def test_prelu():
+<<<<<<< HEAD
     verify_prelu((1, 3, 2, 2), (3,))
+=======
+    verify_prelu((1, 3, 2, 2), (3,), 1, (3, 1, 1))
+    verify_prelu((1, 3, 2, 2), (2,), 2, (2, 1))
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 if __name__ == "__main__":
     test_relu()

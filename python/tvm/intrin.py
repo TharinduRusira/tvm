@@ -1,4 +1,5 @@
 """Expression Intrinsics and math functions in TVM."""
+# pylint: disable=redefined-builtin
 from __future__ import absolute_import as _abs
 
 from ._ffi.function import register_func as _register_func
@@ -153,6 +154,31 @@ def call_extern(dtype, func_name, *args):
         dtype, func_name, convert(args), _Call.Extern, None, 0)
 
 
+def call_llvm_intrin(dtype, name, *args):
+    """Build expression by calling an llvm intrinsic function
+
+    Parameters
+    ----------
+    dtype : str
+       The data type of the result.
+
+    name : str
+       The name of the llvm intrinsic function.
+
+    args : list
+       Poistional arguments.
+
+    Returns
+    -------
+    call : Expr
+        The call expression.
+    """
+    import tvm
+    llvm_id = tvm.codegen.llvm_lookup_intrinsic_id(name)
+    assert llvm_id != 0, "%s is not an LLVM intrinsic" % name
+    return call_pure_intrin(dtype, 'llvm_intrin', tvm.const(llvm_id, 'uint32'), *args)
+
+
 def exp(x):
     """Take exponetial of input x.
 
@@ -231,6 +257,89 @@ def sqrt(x):
         The result.
     """
     return call_pure_intrin(x.dtype, "sqrt", x)
+
+
+def floor(x):
+    """Take floor of float input x.
+
+    Parameters
+    ----------
+    x : Expr
+        Input argument.
+
+    Returns
+    -------
+    y : Expr
+        The result.
+    """
+    return call_pure_intrin(x.dtype, "floor", x)
+
+
+def ceil(x):
+    """Take ceil of float input x.
+
+    Parameters
+    ----------
+    x : Expr
+        Input argument.
+
+    Returns
+    -------
+    y : Expr
+        The result.
+    """
+    return call_pure_intrin(x.dtype, "ceil", x)
+
+
+def trunc(x):
+    """Get truncated value of the input.
+
+    The truncated value of the scalar x is the
+    nearest integer i which is closer to zero than x is.
+
+    Parameters
+    ----------
+    x : Expr
+        Input argument.
+
+    Returns
+    -------
+    y : Expr
+        The result.
+    """
+    return call_pure_intrin(x.dtype, "trunc", x)
+
+
+def abs(x):
+    """Get absolute value of the input element-wise.
+
+    Parameters
+    ----------
+    x : Expr
+        Input argument.
+
+    Returns
+    -------
+    y : Expr
+        The result.
+    """
+    return _make.abs(x)
+
+
+def round(x):
+    """Round elements of the array to the nearest integer.
+
+    Parameters
+    ----------
+    x : Expr
+        Input argument.
+
+    Returns
+    -------
+    y : Expr
+        The result.
+    """
+    return call_pure_intrin(x.dtype, "round", x)
 
 
 def power(x, y):

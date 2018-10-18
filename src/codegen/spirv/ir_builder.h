@@ -15,7 +15,11 @@
 #include <string>
 #include <map>
 
+<<<<<<< HEAD
 #include <vulkan/spirv.hpp>
+=======
+#include <spirv.hpp>
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace tvm {
 namespace codegen {
@@ -485,11 +489,26 @@ class IRBuilder {
    */
   Value GetPushConstant(Value ptr_push_const, const SType& v_type, uint32_t index);
   /*!
+<<<<<<< HEAD
    * \brief Declare a kernel function
    * \param name Name of the entry point.
    * \return The created function ID.
    */
   Value DeclareKenrelFunction(const std::string& name);
+=======
+   * \brief Declare a new function
+   * \return The created function ID.
+   */
+  Value NewFunction();
+  /*!
+   * \brief Declare the entry point for a kernel function. This should be
+   * invoked after building the function so the builder is aware of which
+   * variables to declare as part of the function's interface.
+   * \param func The previously declared function.
+   * \param name Name of the entry point.
+   */
+  void CommitKernelFunction(const Value& func, const std::string& name);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   /*!
    * \brief Start function scope.
    * \param func function to be started.

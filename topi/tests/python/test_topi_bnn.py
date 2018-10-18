@@ -28,7 +28,11 @@ def verify_binary_dense(batch, in_dim, out_dim):
         a_np = (np.random.randint(2, size=(batch, in_dim)) * 2 - 1).astype(dtype)
         b_np = (np.random.randint(2, size=(out_dim, in_dim)) * 2 - 1).astype(dtype)
         c_np = np.dot(a_np, b_np.T)
+<<<<<<< HEAD
         return (a_np, b_np, c_np)
+=======
+        return a_np, b_np, c_np
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
     a_np, b_np, c_np = get_ref_data()
 

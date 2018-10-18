@@ -2,7 +2,15 @@ import os
 import numpy as np
 import nnvm.compiler
 import tvm
+<<<<<<< HEAD
 from tvm.contrib import rpc, util, graph_runtime
+=======
+import json
+import base64
+from tvm._ffi.base import py_str
+from tvm import rpc
+from tvm.contrib import util, graph_runtime
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 
 def test_save_load():
@@ -19,6 +27,25 @@ def test_save_load():
     np.testing.assert_equal(param2["y"].asnumpy(), y)
 
 
+<<<<<<< HEAD
+=======
+def test_ndarray_reflection():
+    x = np.random.uniform(size=(10, 2)).astype("float32")
+    xx = tvm.nd.array(x)
+    xnode = tvm.make.node("NDArrayWrapper", name="xx", array=xx)
+    xnode2 = tvm.make.node("NDArrayWrapper", name="x2", array=xx)
+    assert xnode.array.same_as(xx)
+    json_str = tvm.save_json([xnode, xnode2])
+    json_dict = json.loads(json_str)
+    b64_str = json_dict["b64ndarrays"][0]
+    decoded = py_str(base64.b64encode(base64.b64decode(b64_str)))
+    assert b64_str == decoded
+    xlist = tvm.load_json(json_str)
+    np.testing.assert_equal(xlist[0].array.asnumpy(), xx.asnumpy())
+    assert xlist[1].array == xlist[0].array
+
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def test_bigendian_rpc_param():
     """Test big endian rpc when there is a PowerPC RPC server available"""
     host = os.environ.get("TVM_POWERPC_TEST_HOST", None)
@@ -59,5 +86,9 @@ def test_bigendian_rpc_param():
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
+=======
+    test_ndarray_reflection()
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     test_save_load()
     test_bigendian_rpc_param()

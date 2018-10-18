@@ -37,11 +37,26 @@ inline Tensor expand_dims(const Tensor& x,
                           int num_newaxis = 1,
                           std::string name = "tensor",
                           std::string tag = kBroadcast) {
+<<<<<<< HEAD
   if (axis < 0) {
     // Calculate offset from last dimension
     axis = static_cast<int>(x->shape.size()) + axis + 1;
   }
 
+=======
+  int ndim = static_cast<int>(x->shape.size());
+  CHECK(-ndim - 1 <= axis && axis <= ndim)
+    << "expand_dims only accepts `axis` in [-data.ndim - 1, data.ndim]"
+    << ", but got axis = " << axis
+    << ", and data.ndim = " << ndim;
+  CHECK(num_newaxis >= 0)
+    << "expand_dims only accepts `num_newaxis >= 0`"
+    << ", but got num_newaxis = " << num_newaxis;
+  if (axis < 0) {
+    // Calculate offset from last dimension
+    axis = ndim + axis + 1;
+  }
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   Array<Expr> new_shape;
   for (size_t i = 0; i < static_cast<size_t>(axis); ++i) {
     new_shape.push_back(x->shape[i]);
@@ -89,6 +104,21 @@ inline Tensor transpose(const Tensor& x,
   }
 
   auto axes_val = GetConstIntValues(axes, "axes");
+<<<<<<< HEAD
+=======
+  for (size_t i = 0; i < axes_val.size(); ++i) {
+    int axis = axes_val[i];
+    if (axes_val[i] < 0) {
+      axes_val[i] = static_cast<int>(x->shape.size()) + axes_val[i];
+    }
+    CHECK((0 <= axes_val[i]) && (axes_val[i] < static_cast<int>(x->shape.size())))
+      << "axis=" << axis << " is invalid for the "
+      << static_cast<int>(x->shape.size()) << "-dimensional input tensor";
+
+    CHECK(1 == std::count(std::begin(axes_val), std::end(axes_val), axes_val[i]))
+      << "repeated axis in transpose";
+  }
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
   Array<Expr> new_shape;
   for (size_t i = 0; i < axes_val.size(); ++i) {
@@ -245,8 +275,18 @@ inline Tensor concatenate(const Array<Tensor>& inputs,
                           int axis = 0,
                           std::string name = "tensor",
                           std::string tag = kInjective) {
+<<<<<<< HEAD
   if (axis < 0) {
     axis += static_cast<int>(inputs[0]->shape.size());
+=======
+  int ndim = static_cast<int>(inputs[0]->shape.size());
+  CHECK(-ndim <= axis && axis < ndim)
+    << "concatenate only accepts `axis` in [-ndim, ndim)"
+    << ", but got axis = " << axis
+    << ", and ndim = " << ndim;
+  if (axis < 0) {
+    axis += ndim;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   }
   CHECK_LT(axis, inputs[0]->shape.size()) <<
     "axis out of bounds";
@@ -463,6 +503,14 @@ inline Array<Tensor> split_sections(const Tensor& x,
                            int axis,
                            std::string name = "tensor",
                            std::string tag = kInjective) {
+<<<<<<< HEAD
+=======
+  if (axis < 0) {
+    axis += static_cast<int>(x->shape.size());
+  }
+  CHECK_LT(axis, x->shape.size()) << "axis out of bounds";
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   auto src_axis_size = static_cast<int>(GetConstInt(x->shape[axis]));
 
   CHECK_GT(num_sections, 0) << "Slice count must be > 0";
@@ -563,5 +611,87 @@ inline Tensor take(const Tensor& a,
         }, name, tag);
 }
 
+<<<<<<< HEAD
+=======
+/*!
+* \brief Return the elements, either from x or y, depending on the condition.
+*
+* \param condition The condition array.
+* \param x First array to be selected.
+* \param y Second array to be selected.
+* \param name The name of the operation.
+* \param tag The tag to mark the operation.
+*
+* \return A Tensor selected from x or y depending on condition.
+*/
+inline Tensor where(const Tensor& condition,
+                    const Tensor& x,
+                    const Tensor& y,
+                    std::string name = "tensor",
+                    std::string tag = kInjective) {
+  CHECK_EQ(x->shape.size(), y->shape.size())
+    << "x and y must have the same shape.Got different number of dimension: "
+    << x->shape.size() << " vs " << y->shape.size();
+  CHECK_EQ(x->dtype, y->dtype) << "x and y must have the same dtype: "
+                               << x->dtype << " vs " << y->dtype;
+  Array<Expr> oshape = x->shape;
+  Tensor out;
+
+  if (condition->shape.size() != 1) {
+    CHECK_EQ(condition->shape.size(), x->shape.size())
+      << "condition array must be either have the same shape as x or to be a "
+         "1-D array.Got different number of dimension: "
+      << condition->shape.size() << " vs " << x->shape.size();
+    out = compute(
+      oshape, [&](const Array<Var>& indices) {
+        return tvm::select(condition(indices) != 0, x(indices), y(indices));
+      }, name, tag);
+  } else {
+    CHECK_EQ(topi::GetConstInt(condition->shape[0]), topi::GetConstInt(x->shape[0]))
+      << "If condition is 1-D, the first dimension must be the same as x: "
+      << condition->shape[0] << " vs " << x->shape[0];
+    out = compute(
+      oshape, [&](const Array<Var>& indices) {
+        Array<Expr> condition_idx{indices[0]};
+        return tvm::select(condition(condition_idx) != 0,
+                           x(indices), y(indices));
+      }, name, tag);
+  }
+  return out;
+}
+
+/*!
+ * \brief Creates an operation that calculates a matrix multiplication
+ *  (row-major notation):
+ *      A(i, k) * B(k, j), if trans_a == trans_b
+ *          the usual transposed combinations, otherwise
+ *
+ * \param A The matrix A
+ * \param B The matrix B
+ * \param trans_a Is A's layout transposed?
+ * \param trans_b Is B's layout transposed?
+ * \param name The name of the operation
+ * \param tag The tag to mark the operation
+ *
+ * \return A Tensor whose op member is the matmul operation
+ */
+inline tvm::Tensor matmul(const tvm::Tensor& A,
+                           const tvm::Tensor& B,
+                           bool trans_a = false,
+                           bool trans_b = false,
+                           std::string name = "tensor",
+                           std::string tag = kMatMul) {
+  tvm::Array<tvm::Expr> output_shape{A->shape[trans_a ? 1 : 0],
+                                     B->shape[trans_b ? 0 : 1]};
+  auto k = tvm::reduce_axis(tvm::Range{0, A->shape[trans_a ? 0 : 1]}, "k");
+  auto l = [&](tvm::Var i, tvm::Var j) {
+    return tvm::sum((trans_a ? A[k][i] : A[i][k]) * (trans_b ? B[j][k] : B[k][j]),
+                    {k});
+  };
+  return tvm::compute(output_shape, l, name, tag);
+}
+
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }  // namespace topi
 #endif  // TOPI_TRANSFORM_H_

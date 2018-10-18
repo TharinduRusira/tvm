@@ -9,12 +9,12 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include "./expr.h"
-#include "./ir_operator.h"
-#include "./tensor.h"
-#include "./schedule.h"
-#include "./arithmetic.h"
-#include "./buffer.h"
+#include "expr.h"
+#include "ir_operator.h"
+#include "tensor.h"
+#include "schedule.h"
+#include "arithmetic.h"
+#include "buffer.h"
 
 namespace tvm {
 
@@ -41,13 +41,15 @@ class OperationNode : public FunctionBaseNode {
   std::string name;
   /*! \brief optional tag of the operation */
   std::string tag;
+  /*! \brief addtitional attributes of the operation*/
+  Map<std::string, NodeRef> attrs;
   /*! \return name of the operation */
   const std::string& func_name() const final {
     return name;
   }
   /*!
    * \return The list of iteration variable at root
-   * \note root_iter_vars dedides the shape of the outputs.
+   * \note root_iter_vars decides the shape of the outputs.
    */
   virtual Array<IterVar> root_iter_vars() const = 0;
   /*!
@@ -167,6 +169,8 @@ class PlaceholderOpNode : public OperationNode {
 
   void VisitAttrs(AttrVisitor* v) final {
     v->Visit("name", &name);
+    v->Visit("tag", &tag);
+    v->Visit("attrs", &attrs);
     v->Visit("shape", &shape);
     v->Visit("dtype", &dtype);
   }
@@ -220,17 +224,87 @@ class TVM_DLL ComputeOpNode : public OperationNode {
   void VisitAttrs(AttrVisitor* v) final {
     v->Visit("name", &name);
     v->Visit("tag", &tag);
+    v->Visit("attrs", &attrs);
     v->Visit("axis", &axis);
     v->Visit("reduce_axis", &reduce_axis);
     v->Visit("body", &body);
   }
   static Operation make(std::string name,
                         std::string tag,
+                        Map<std::string, NodeRef> attrs,
                         Array<IterVar> axis,
                         Array<Expr> body);
 
   static constexpr const char* _type_key = "ComputeOp";
   TVM_DECLARE_NODE_TYPE_INFO(ComputeOpNode, OperationNode);
+};
+
+/*!
+ * \brief A TenorCompute op that compute a tensor with an tensor intrinsic.
+ */
+class TensorComputeOpNode : public OperationNode {
+ public:
+  /*! \brief IterVar on each axis */
+  Array<IterVar> axis;
+  /*! \brief IterVar on each reduction axis, if the intrin will use the reduce axis */
+  Array<IterVar> reduce_axis;
+  /*! \brief number of axes that can be scheduled */
+  int schedulable_ndim;
+  /*! \brief TensorIntrin used to compute */
+  TensorIntrin intrin;
+  /*! \brief input tensors of intrin */
+  Array<Tensor> inputs;
+  /*! \brief region of input tensors */
+  Array<Region> input_regions;
+  /*! \brief constructor */
+  TensorComputeOpNode() {}
+  // override functions
+  int num_outputs() const final;
+  Array<IterVar> root_iter_vars() const final;
+  Type output_dtype(size_t i) const final;
+  Array<Expr> output_shape(size_t i) const final;
+  Array<Tensor> InputTensors() const final;
+  Operation ReplaceInputs(
+      const Operation& self,
+      const std::unordered_map<Tensor, Tensor>& rmap) const final;
+  void PropBoundToInputs(
+      const Operation& self,
+      const std::unordered_map<const Variable*, IntSet>& dom_map,
+      std::unordered_map<Tensor, TensorDom>* out_dom_map) const final;
+  void GatherBound(
+      const Operation& self,
+      const std::unordered_map<Tensor, TensorDom>& tensor_dom,
+      std::unordered_map<IterVar, Range>* out_dom_map) const final;
+  Stmt BuildRealize(
+      const Stage& stage,
+      const std::unordered_map<IterVar, Range>& realize_map,
+      const Stmt& body) const final;
+  Stmt BuildProvide(
+      const Stage& stage,
+      const std::unordered_map<IterVar, Range>& dom_map,
+      bool debug_keep_trivial_loop) const final;
+
+  void VisitAttrs(AttrVisitor* v) final {
+    v->Visit("name", &name);
+    v->Visit("tag", &tag);
+    v->Visit("axis", &axis);
+    v->Visit("reduce_axis", &reduce_axis);
+    v->Visit("schedulable_ndim", &schedulable_ndim);
+    v->Visit("intrin", &intrin);
+    v->Visit("inputs", &inputs);
+    v->Visit("input_regions", &input_regions);
+  }
+  static Operation make(std::string name,
+                        std::string tag,
+                        Array<IterVar> axis,
+                        Array<IterVar> reduce_axis,
+                        int schedulable_ndim,
+                        TensorIntrin intrin,
+                        Array<Tensor> tensors,
+                        Array<Region> regions);
+
+  static constexpr const char* _type_key = "TensorComputeOp";
+  TVM_DECLARE_NODE_TYPE_INFO(TensorComputeOpNode, OperationNode);
 };
 
 /*!
@@ -292,6 +366,7 @@ class ScanOpNode : public OperationNode {
   void VisitAttrs(AttrVisitor* v) final {
     v->Visit("name", &name);
     v->Visit("tag", &tag);
+    v->Visit("attrs", &attrs);
     v->Visit("scan_axis", &scan_axis);
     v->Visit("init", &init);
     v->Visit("update", &update);
@@ -301,6 +376,7 @@ class ScanOpNode : public OperationNode {
   }
   static Operation make(std::string name,
                         std::string tag,
+                        Map<std::string, NodeRef> attrs,
                         IterVar axis,
                         Array<Tensor> init,
                         Array<Tensor> update,
@@ -318,7 +394,7 @@ class ExternOpNode : public OperationNode {
  public:
   /*! \brief The input tensors */
   Array<Tensor> inputs;
-  /*! \brief Symbolic placeholder representationinputs */
+  /*! \brief Symbolic placeholder representation of inputs */
   Array<Buffer> input_placeholders;
   /*! \brief Symbolic placeholder representation of outputs */
   Array<Buffer> output_placeholders;
@@ -356,15 +432,27 @@ class ExternOpNode : public OperationNode {
   void VisitAttrs(AttrVisitor* v) final {
     v->Visit("name", &name);
     v->Visit("tag", &tag);
+    v->Visit("attrs", &attrs);
     v->Visit("inputs", &inputs);
+    v->Visit("input_placeholders", &input_placeholders);
+    v->Visit("output_placeholders", &output_placeholders);
     v->Visit("body", &body);
   }
   EXPORT static Operation make(std::string name,
+<<<<<<< HEAD
                         std::string tag,
                         Array<Tensor> inputs,
                         Array<Buffer> input_placeholders,
                         Array<Buffer> output_placeholders,
                         Stmt body);
+=======
+                               std::string tag,
+                               Map<std::string, NodeRef> attrs,
+                               Array<Tensor> inputs,
+                               Array<Buffer> input_placeholders,
+                               Array<Buffer> output_placeholders,
+                               Stmt body);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
   static constexpr const char* _type_key = "ExternOp";
   TVM_DECLARE_NODE_TYPE_INFO(ExternOpNode, OperationNode);
@@ -393,11 +481,13 @@ TVM_DLL Tensor placeholder(Array<Expr> shape,
  * \param fcompute The compute function to create the tensor.
  * \param name The optional name of the tensor.
  * \param tag The optional tag of the tensor.
+ * \param attrs Optional additional attributes of the compute.
  */
 TVM_DLL Tensor compute(Array<Expr> shape,
                        FCompute fcompute,
                        std::string name = "tensor",
-                       std::string tag = "");
+                       std::string tag = "",
+                       Map<std::string, NodeRef> attrs = {});
 
 /*!
  * \brief Construct a new tensor by computing over shape,
@@ -406,11 +496,13 @@ TVM_DLL Tensor compute(Array<Expr> shape,
  * \param fcompute The compute function to create the tensors.
  * \param name The optional name of the tensor.
  * \param tag The optional tag of the tensor.
+ * \param attrs Optional additional attributes of the compute.
  */
 TVM_DLL Array<Tensor> compute(Array<Expr> shape,
                               FBatchCompute fcompute,
                               std::string name = "tensor",
-                              std::string tag = "");
+                              std::string tag = "",
+                              Map<std::string, NodeRef> attrs = {});
 
 /*!
  * \brief Construct new tensors by scan.
@@ -422,42 +514,48 @@ TVM_DLL Array<Tensor> compute(Array<Expr> shape,
  *    but recommended to provide concrete information about scan body.
  * \param name The optional name of the tensor.
  * \param tag The optional tag of the tensor.
+ * \param attrs Optional additional attributes of the compute.
  */
 TVM_DLL Array<Tensor> scan(Array<Tensor> init,
                            Array<Tensor> update,
                            Array<Tensor> state_placeholder,
                            Array<Tensor> inputs = Array<Tensor>(),
                            std::string name = "scan",
-                           std::string tag = "");
+                           std::string tag = "",
+                           Map<std::string, NodeRef> attrs = {});
 
 // same as compute, specialized for different fcompute function
 inline Tensor compute(Array<Expr> shape,
                       std::function<Expr(Var)> f,
                       std::string name = "tensor",
-                      std::string tag = "") {
+                      std::string tag = "",
+                      Map<std::string, NodeRef> attrs = {}) {
   FCompute fc = [f] (const Array<Var>& i) { return f(i[0]); };
-  return compute(shape, fc, name, tag);
+  return compute(shape, fc, name, tag, attrs);
 }
 inline Tensor compute(Array<Expr> shape,
                       std::function<Expr(Var, Var)> f,
                       std::string name = "tensor",
-                      std::string tag = "") {
+                      std::string tag = "",
+                      Map<std::string, NodeRef> attrs = {}) {
   FCompute fc = [f] (const Array<Var>& i) { return f(i[0], i[1]); };
-  return compute(shape, fc, name, tag);
+  return compute(shape, fc, name, tag, attrs);
 }
 inline Tensor compute(Array<Expr> shape,
                       std::function<Expr(Var, Var, Var)> f,
                       std::string name = "tensor",
-                      std::string tag = "") {
+                      std::string tag = "",
+                      Map<std::string, NodeRef> attrs = {}) {
   FCompute fc = [f] (const Array<Var>& i) { return f(i[0], i[1], i[2]); };
-  return  compute(shape, fc, name, tag);
+  return  compute(shape, fc, name, tag, attrs);
 }
 inline Tensor compute(Array<Expr> shape,
                       std::function<Expr(Var, Var, Var, Var)> f,
                       std::string name = "tensor",
-                      std::string tag = "") {
+                      std::string tag = "",
+                      Map<std::string, NodeRef> attrs = {}) {
   FCompute fc = [f] (const Array<Var>& i) { return f(i[0], i[1], i[2], i[3]); };
-  return compute(shape, fc, name, tag);
+  return compute(shape, fc, name, tag, attrs);
 }
 
 // inline function.

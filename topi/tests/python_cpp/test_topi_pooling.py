@@ -13,7 +13,11 @@ def verify_pool(n, ic, ih, kh, sh, padding, pool_type, ceil_mode, count_include_
     iw = ih
     kw = kh
     sw = sh
+<<<<<<< HEAD
     ph, pw = padding
+=======
+    pt, pl, pb, pr = padding
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     A = tvm.placeholder((n, ic, ih, iw), name='A')
     B = topi.cpp.nn.pool(A, [kh, kw], [sh, sw], padding,
                          pool_code[pool_type], ceil_mode, "NCHW", count_include_pad)
@@ -23,6 +27,7 @@ def verify_pool(n, ic, ih, kh, sh, padding, pool_type, ceil_mode, count_include_
     bshape = get_const_tuple(B.shape)
     ashape = get_const_tuple(A.shape)
     if ceil_mode:
+<<<<<<< HEAD
         assert bshape[2] == int(math.ceil(float(ashape[2] - kh + ph * 2) / sh) + 1)
         assert bshape[3] == int(math.ceil(float(ashape[3] - kw + pw * 2) / sw) + 1)
     else:
@@ -33,6 +38,18 @@ def verify_pool(n, ic, ih, kh, sh, padding, pool_type, ceil_mode, count_include_
     a_np = np.random.uniform(size=(n, ic, ih, iw)).astype(dtype)
     pad_np = np.zeros(shape=(n, ic, ih+2*ph, iw+2*pw)).astype(dtype)
     no_zero = (range(n), range(ic), (range(ph, ih+ph)), (range(pw, iw+pw)))
+=======
+        assert bshape[2] == int(math.ceil(float(ashape[2] - kh + pt + pb) / sh) + 1)
+        assert bshape[3] == int(math.ceil(float(ashape[3] - kw + pl + pr) / sw) + 1)
+    else:
+        assert bshape[2] == int(math.floor(float(ashape[2] - kh + pt + pb) / sh) + 1)
+        assert bshape[3] == int(math.floor(float(ashape[3] - kw + pl + pr) / sw) + 1)
+
+
+    a_np = np.random.uniform(size=(n, ic, ih, iw)).astype(dtype)
+    pad_np = np.zeros(shape=(n, ic, ih+pt+pb, iw+pl+pr)).astype(dtype)
+    no_zero = (range(n), range(ic), (range(pt, ih+pt)), (range(pl, iw+pl)))
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     pad_np[np.ix_(*no_zero)] = a_np
     _, oc, oh, ow = get_const_tuple(B.shape)
     b_np = np.zeros(shape=(n, oc, oh, ow)).astype(dtype)
@@ -73,6 +90,7 @@ def verify_pool(n, ic, ih, kh, sh, padding, pool_type, ceil_mode, count_include_
         check_device(device)
 
 def test_pool():
+<<<<<<< HEAD
     verify_pool(1, 256, 32, 2, 2, [0, 0], 'avg', False, True)
     verify_pool(1, 256, 31, 3, 3, [1, 2], 'avg', False, True)
     verify_pool(1, 256, 32, 2, 2, [1, 2], 'avg', False, False)
@@ -82,6 +100,21 @@ def test_pool():
     verify_pool(1, 256, 31, 3, 3, [2, 1], 'max', False)
     verify_pool(1, 256, 31, 3, 3, [2, 1], 'max', True)
 
+=======
+    verify_pool(1, 256, 32, 2, 2, [0, 0, 0, 0], 'avg', False, True)
+    verify_pool(1, 256, 31, 3, 3, [1, 2, 1, 2], 'avg', False, True)
+    verify_pool(1, 256, 32, 2, 2, [1, 2, 1, 2], 'avg', False, False)
+    verify_pool(1, 256, 31, 4, 4, [3, 3, 3, 3], 'avg', False, False)
+    verify_pool(1, 256, 31, 4, 4, [0, 0, 0, 0], 'avg', False, False)
+    verify_pool(1, 256, 32, 2, 2, [0, 0, 0, 0], 'max', False)
+    verify_pool(1, 256, 31, 3, 3, [2, 1, 2, 1], 'max', False)
+    verify_pool(1, 256, 31, 3, 3, [2, 1, 2, 1], 'max', True)
+
+    verify_pool(1, 256, 31, 3, 3, [2, 1, 0, 3], 'avg', False, True)
+    verify_pool(1, 256, 32, 2, 2, [0, 3, 2, 1], 'avg', False, False)
+    verify_pool(1, 256, 31, 3, 3, [1, 0, 3, 2], 'max', False)
+    verify_pool(1, 256, 31, 3, 3, [3, 2, 1, 0], 'max', True)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 
 def verify_global_pool(n, c, h, w, pool_type):

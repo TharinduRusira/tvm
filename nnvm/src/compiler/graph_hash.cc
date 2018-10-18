@@ -10,8 +10,15 @@
 #include <tvm/ir.h>
 #include <tvm/runtime/packed_func.h>
 #include <functional>
+<<<<<<< HEAD
 #include "./node_attr.h"
 #include "./graph_hash.h"
+=======
+#include <vector>
+#include <algorithm>
+#include "node_attr.h"
+#include "graph_hash.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace nnvm {
 namespace compiler {
@@ -72,8 +79,12 @@ bool GraphKeyEqual::Equal(const GraphKey& a,
 GraphKey GraphKeyNode::make(Graph graph,
                             tvm::Array<Tensor> inputs,
                             std::string target) {
+<<<<<<< HEAD
   std::shared_ptr<GraphKeyNode> n
       = std::make_shared<GraphKeyNode>();
+=======
+  auto n = tvm::make_node<GraphKeyNode>();
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   n->graph = std::move(graph);
   n->inputs = inputs;
   n->target = std::move(target);
@@ -125,7 +136,11 @@ std::string GraphDeepCompare(const Graph& a,
   const IndexedGraph& idxb = b.indexed_graph();
   std::ostringstream err;
   if (idxa.num_nodes() != idxb.num_nodes()) {
+<<<<<<< HEAD
     err << "Number of nodes mismatch";
+=======
+    err << "Number of nodes mismatch (" <<  idxa.num_nodes() << " v.s " << idxb.num_nodes() << ")";
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     return err.str();
   }
   if (idxa.num_node_entries() != idxb.num_node_entries()) {

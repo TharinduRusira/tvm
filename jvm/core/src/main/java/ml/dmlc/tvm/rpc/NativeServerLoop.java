@@ -42,7 +42,9 @@ public class NativeServerLoop implements Runnable {
     File tempDir = null;
     try {
       tempDir = serverEnv();
+      System.err.println("starting server loop...");
       RPC.getApi("_ServerLoop").pushArg(sockFd).invoke();
+      System.err.println("done server loop...");
     } catch (IOException e) {
       e.printStackTrace();
     } finally {
@@ -70,13 +72,13 @@ public class NativeServerLoop implements Runnable {
       throw new IOException("Couldn't create directory " + tempDir.getAbsolutePath());
     }
 
-    Function.register("tvm.contrib.rpc.server.workpath", new Function.Callback() {
+    Function.register("tvm.rpc.server.workpath", new Function.Callback() {
       @Override public Object invoke(TVMValue... args) {
         return tempDir + File.separator + args[0].asString();
       }
     }, true);
 
-    Function.register("tvm.contrib.rpc.server.load_module", new Function.Callback() {
+    Function.register("tvm.rpc.server.load_module", new Function.Callback() {
       @Override public Object invoke(TVMValue... args) {
         String filename = args[0].asString();
         String path = tempDir + File.separator + filename;

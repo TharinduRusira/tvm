@@ -2,16 +2,17 @@
  *  Copyright (c) 2017 by Contributors
  * \file opencl_device_api.cc
  */
-#include "./opencl_common.h"
-
-#if TVM_OPENCL_RUNTIME
-
 #include <tvm/runtime/registry.h>
 #include <dmlc/thread_local.h>
+#include "opencl_common.h"
 
 namespace tvm {
 namespace runtime {
 namespace cl {
+
+OpenCLThreadEntry* OpenCLWorkspace::GetThreadEntry() {
+  return OpenCLThreadEntry::ThreadLocal();
+}
 
 const std::shared_ptr<OpenCLWorkspace>& OpenCLWorkspace::Global() {
   static std::shared_ptr<OpenCLWorkspace> inst = std::make_shared<OpenCLWorkspace>();
@@ -19,7 +20,7 @@ const std::shared_ptr<OpenCLWorkspace>& OpenCLWorkspace::Global() {
 }
 
 void OpenCLWorkspace::SetDevice(TVMContext ctx) {
-  OpenCLThreadEntry::ThreadLocal()->context.device_id = ctx.device_id;
+  GetThreadEntry()->context.device_id = ctx.device_id;
 }
 
 void OpenCLWorkspace::GetAttr(
@@ -33,6 +34,7 @@ void OpenCLWorkspace::GetAttr(
   CHECK_LT(index, devices.size())
       << "Invalid device id " << index;
   switch (kind) {
+    case kExist: break;
     case kMaxThreadsPerBlock: {
       size_t value;
       OPENCL_CALL(clGetDeviceInfo(
@@ -43,7 +45,11 @@ void OpenCLWorkspace::GetAttr(
     }
     case kWarpSize: {
       /* TODO: the warp size of OpenCL device is not always 1
+<<<<<<< HEAD
                e.g. Intel GPU has a sub group concept which contains 8 - 32 work items,
+=======
+               e.g. Intel Graphics has a sub group concept which contains 8 - 32 work items,
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
                corresponding to the number of SIMD entries the heardware configures.
                We need to figure out a way to query this information from the hardware.
       */
@@ -83,7 +89,20 @@ void OpenCLWorkspace::GetAttr(
       *rv = static_cast<int32_t>(value);
       break;
     }
+<<<<<<< HEAD
     case kExist: break;
+=======
+    case kMaxThreadDimensions: {
+      size_t dims[3];
+      OPENCL_CALL(clGetDeviceInfo(
+          devices[index], CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(dims), dims, nullptr));
+
+      std::stringstream ss;  // use json string to return multiple int values;
+      ss << "[" << dims[0] <<", " << dims[1] << ", " << dims[2] << "]";
+      *rv = ss.str();
+      break;
+    }
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   }
 }
 
@@ -114,13 +133,21 @@ void OpenCLWorkspace::CopyDataFromTo(const void* from,
                                      TVMStreamHandle stream) {
   this->Init();
   CHECK(stream == nullptr);
+<<<<<<< HEAD
   if (ctx_from.device_type == kDLOpenCL && ctx_to.device_type == kDLOpenCL) {
+=======
+  if (IsOpenCLDevice(ctx_from) && IsOpenCLDevice(ctx_to)) {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     OPENCL_CALL(clEnqueueCopyBuffer(
         this->GetQueue(ctx_to),
         static_cast<cl_mem>((void*)from),  // NOLINT(*)
         static_cast<cl_mem>(to),
         from_offset, to_offset, size, 0, nullptr, nullptr));
+<<<<<<< HEAD
   } else if (ctx_from.device_type == kDLOpenCL && ctx_to.device_type == kDLCPU) {
+=======
+  } else if (IsOpenCLDevice(ctx_from) && ctx_to.device_type == kDLCPU) {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     OPENCL_CALL(clEnqueueReadBuffer(
         this->GetQueue(ctx_from),
         static_cast<cl_mem>((void*)from),  // NOLINT(*)
@@ -128,7 +155,11 @@ void OpenCLWorkspace::CopyDataFromTo(const void* from,
         static_cast<char*>(to) + to_offset,
         0, nullptr, nullptr));
     OPENCL_CALL(clFinish(this->GetQueue(ctx_from)));
+<<<<<<< HEAD
   } else if (ctx_from.device_type == kDLCPU && ctx_to.device_type == kDLOpenCL) {
+=======
+  } else if (ctx_from.device_type == kDLCPU && IsOpenCLDevice(ctx_to)) {
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     OPENCL_CALL(clEnqueueWriteBuffer(
         this->GetQueue(ctx_to),
         static_cast<cl_mem>(to),
@@ -149,11 +180,15 @@ void OpenCLWorkspace::StreamSync(TVMContext ctx, TVMStreamHandle stream) {
 void* OpenCLWorkspace::AllocWorkspace(TVMContext ctx,
                                       size_t size,
                                       TVMType type_hint) {
+<<<<<<< HEAD
   return OpenCLThreadEntry::ThreadLocal()->pool.AllocWorkspace(ctx, size);
+=======
+  return GetThreadEntry()->pool.AllocWorkspace(ctx, size);
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
 void OpenCLWorkspace::FreeWorkspace(TVMContext ctx, void* data) {
-  OpenCLThreadEntry::ThreadLocal()->pool.FreeWorkspace(ctx, data);
+  GetThreadEntry()->pool.FreeWorkspace(ctx, data);
 }
 
 typedef dmlc::ThreadLocalStore<OpenCLThreadEntry> OpenCLThreadStore;
@@ -216,21 +251,35 @@ bool MatchPlatformInfo(
   return param_value.find(value) != std::string::npos;
 }
 
-void OpenCLWorkspace::Init() {
+void OpenCLWorkspace::Init(const std::string& type_key, const std::string& device_type,
+                           const std::string& platform_name) {
   if (initialized_) return;
   std::lock_guard<std::mutex> lock(this->mu);
   if (initialized_) return;
   initialized_ = true;
   if (context != nullptr) return;
   // matched platforms
-  std::vector<cl_platform_id> platform_matched = cl::GetPlatformIDs();
-  if (platform_matched.size() == 0) {
+  std::vector<cl_platform_id> platform_ids = cl::GetPlatformIDs();
+  if (platform_ids.size() == 0) {
     LOG(WARNING) << "No OpenCL platform matched given existing options ...";
     return;
   }
-  if (platform_matched.size() > 1) {
-    LOG(WARNING) << "Multiple OpenCL platforms matched, use the first one ... ";
+  this->platform_id = nullptr;
+  for (auto platform_id : platform_ids) {
+    if (!MatchPlatformInfo(platform_id, CL_PLATFORM_NAME, platform_name)) {
+      continue;
+    }
+    std::vector<cl_device_id> devices_matched = cl::GetDeviceIDs(platform_id, device_type);
+    if (devices_matched.size() > 0) {
+      this->type_key = type_key;
+      this->platform_id = platform_id;
+      this->platform_name = cl::GetPlatformInfo(platform_id, CL_PLATFORM_NAME);
+      this->device_type = device_type;
+      this->devices = devices_matched;
+      break;
+    }
   }
+<<<<<<< HEAD
   this->platform_id = platform_matched[0];
   LOG(INFO) << "Initialize OpenCL platform \'"
             << cl::GetPlatformInfo(this->platform_id, CL_PLATFORM_NAME) << '\'';
@@ -244,8 +293,12 @@ void OpenCLWorkspace::Init() {
       LOG(WARNING) << "No OpenCL device any device matched given the options: cpu mode";
       return;
     }
+=======
+  if (this->platform_id == nullptr) {
+    LOG(WARNING) << "No OpenCL device";
+    return;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   }
-  this->devices = devices_matched;
   cl_int err_code;
   this->context = clCreateContext(
       nullptr, this->devices.size(), &(this->devices[0]),
@@ -257,15 +310,7 @@ void OpenCLWorkspace::Init() {
     this->queues.push_back(
         clCreateCommandQueue(this->context, did, 0, &err_code));
     OPENCL_CHECK_ERROR(err_code);
-    LOG(INFO) << "opencl(" << i
-              << ")=\'" << cl::GetDeviceInfo(did, CL_DEVICE_NAME)
-              << "\' cl_device_id=" << did;
   }
-}
-
-bool InitOpenCL(TVMArgs args, TVMRetValue* rv) {
-  cl::OpenCLWorkspace::Global()->Init();
-  return true;
 }
 
 TVM_REGISTER_GLOBAL("device_api.opencl")
@@ -277,5 +322,3 @@ TVM_REGISTER_GLOBAL("device_api.opencl")
 }  // namespace cl
 }  // namespace runtime
 }  // namespace tvm
-
-#endif  // TVM_OPENCL_RUNTIME

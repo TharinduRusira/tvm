@@ -4,7 +4,11 @@ export CFLAGS = -std=c++11 -Wall -O2 -Iinclude -fPIC
 ifdef DMLC_CORE_PATH
   CFLAGS += -I$(DMLC_CORE_PATH)/include
 else
+<<<<<<< HEAD
   CFLAGS += -I$(CURDIR)/../dmlc-core/include
+=======
+  CFLAGS += -I$(CURDIR)/../3rdparty/dmlc-core/include
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 endif
 
 .PHONY: all clean

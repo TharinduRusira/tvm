@@ -5,6 +5,10 @@ import numpy as np
 
 import tvm
 from .. import symbol as _sym
+<<<<<<< HEAD
+=======
+from .._base import string_types
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 from .common import SymbolTable
 
 __all__ = ['from_coreml']
@@ -101,9 +105,16 @@ def ActivationParams(op, insym, symtab):
     elif whichActivation == 'leakyReLU':
         return _sym.leaky_relu(insym, alpha=par.alpha)
     elif whichActivation == 'thresholdedReLU':
+<<<<<<< HEAD
         raise NotImplementedError('thresholdedReLU not implemented')
     elif whichActivation == 'PReLU':
         raise NotImplementedError('PReLU not implemented')
+=======
+        alpha_tensor = _sym.full_like(insym, fill_value=float(par.alpha))
+        return _sym.elemwise_mul(insym, _sym.greater(insym, alpha_tensor))
+    elif whichActivation == 'PReLU':
+        return _sym.prelu(insym, alpha=par.alpha)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     elif whichActivation == 'tanh':
         return _sym.tanh(insym)
     elif whichActivation == 'scaledTanh':
@@ -112,12 +123,21 @@ def ActivationParams(op, insym, symtab):
     elif whichActivation == 'sigmoid':
         return _sym.sigmoid(insym)
     elif whichActivation == 'sigmoidHard':
+<<<<<<< HEAD
         raise NotImplementedError('sigmoidHard not immplemented')
+=======
+        transformX = (par.alpha * insym) + par.beta
+        return _sym.clip(transformX, a_min=0, a_max=1)
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     elif whichActivation == 'ELU':
         return _sym.__mul_scalar__(_sym.__add_scalar__(
             _sym.exp(insym), scalar=-1), scalar=par.alpha)
     elif whichActivation == 'softsign':
+<<<<<<< HEAD
         raise NotImplementedError('softsign not implemented')
+=======
+        return insym / (1 + (_sym.relu(insym) + _sym.relu(_sym.negative(insym))))
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     elif whichActivation == 'softplus':
         return _sym.log(_sym.__add_scalar__(_sym.exp(insym), scalar=1))
     elif whichActivation == 'parametricSoftplus':
@@ -214,6 +234,19 @@ def AddLayerParams(op, insyms, symtab):
         ret = _sym.__add_scalar__(ret, scalar=op.alpha)
     return ret
 
+<<<<<<< HEAD
+=======
+def MultiplyLayerParams(op, insyms, symtab):
+    if not isinstance(insyms, list):
+        insyms = [insyms]
+    ret = insyms[0]
+    for i in range(1, len(insyms)):
+        ret = _sym.elemwise_mul(ret, insyms[i])
+    if op.alpha != 1:
+        ret = _sym.__mul_scalar__(ret, scalar=op.alpha)
+    return ret
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 def ConcatLayerParams(op, insyms, symtab):
     if not isinstance(insyms, list):
         insyms = [insyms]
@@ -246,6 +279,52 @@ def PermuteLayerParams(op, insym, symtab):
     axes = tuple(op.axis)
     return _sym.transpose(insym, axes=axes)
 
+<<<<<<< HEAD
+=======
+def UpsampleLayerParams(op, insym, symtab):
+    if op.scalingFactor[0] != op.scalingFactor[1]:
+        raise NotImplementedError("Upsampling only supported with same \
+            height and width scaling factor.")
+    interpolationMode = 'NEAREST_NEIGHBOR' if op.mode == 0 else 'BILINEAR'
+    return _sym.upsampling(insym, scale=op.scalingFactor[0], method=interpolationMode)
+
+def L2NormalizeLayerParams(op, insym, symtab):
+    return _sym.l2_normalize(insym, eps=op.epsilon, axis=1)
+
+def LRNLayerParams(op, insym, symtab):
+    par = {}
+    par['size'] = op.localSize
+    par['bias'] = op.k
+    par['alpha'] = op.alpha
+    par['beta'] = op.beta
+    par['axis'] = 1 #default layout is nchw
+    return _sym.lrn(data=insym, **par)
+
+def AverageLayerParams(op, insyms, symtab):
+    if not isinstance(insyms, list) or len(insyms) < 2:
+        raise ValueError("Expect minimum 2 inputs")
+    count = len(insyms)
+    _sum = insyms[0]
+    for i in range(1, count):
+        _sum = _sym.broadcast_add(_sum, insyms[i])
+    return _sum / count
+
+def MaxLayerParams(op, insyms, symtab):
+    if not isinstance(insyms, list) or len(insyms) < 2:
+        raise ValueError("Expect minimum 2 inputs")
+    _max = insyms[0]
+    for i in range(1, len(insyms)):
+        _max = _sym.broadcast_max(_max, insyms[i])
+    return _max
+
+def MinLayerParams(op, insyms, symtab):
+    if not isinstance(insyms, list) or len(insyms) < 2:
+        raise ValueError("Expect minimum 2 inputs")
+    _min = insyms[0]
+    for i in range(1, len(insyms)):
+        _min = _sym.broadcast_min(_min, insyms[i])
+    return _min
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 _convert_map = {
     'NeuralNetworkMeanImage': NeuralNetworkMeanImage,
@@ -258,10 +337,23 @@ _convert_map = {
     'SoftmaxLayerParams':SoftmaxLayerParams,
     'InnerProductLayerParams':InnerProductLayerParams,
     'AddLayerParams':AddLayerParams,
+<<<<<<< HEAD
+=======
+    'MultiplyLayerParams':MultiplyLayerParams,
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     'FlattenLayerParams':FlattenLayerParams,
     'ConcatLayerParams':ConcatLayerParams,
     'PaddingLayerParams':PaddingLayerParams,
     'PermuteLayerParams':PermuteLayerParams,
+<<<<<<< HEAD
+=======
+    'UpsampleLayerParams':UpsampleLayerParams,
+    'L2NormalizeLayerParams':L2NormalizeLayerParams,
+    'LRNLayerParams':LRNLayerParams,
+    'AverageLayerParams':AverageLayerParams,
+    'MaxLayerParams':MaxLayerParams,
+    'MinLayerParams':MinLayerParams,
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
 def coreml_op_to_nnvm(op, inname, outname, symtab):
@@ -281,7 +373,11 @@ def coreml_op_to_nnvm(op, inname, outname, symtab):
     classname = type(op).__name__
     if classname not in _convert_map:
         raise NotImplementedError("%s is not supported" % (classname))
+<<<<<<< HEAD
     if isinstance(inname, (str, unicode)):
+=======
+    if isinstance(inname, string_types):
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
         insym = symtab.get_var(inname)
     else:
         insym = [symtab.get_var(i) for i in inname]

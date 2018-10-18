@@ -100,6 +100,23 @@ class Symbol(SymbolBase):
         else:
             raise TypeError('type %s not supported' % str(type(other)))
 
+<<<<<<< HEAD
+=======
+    def __lshift__(self, other):
+        """x.__lshift__(y) <=> x << y"""
+        if isinstance(other, _Number):
+            return __lshift_scalar__(self, scalar=other)
+        else:
+            raise TypeError('type %s not supported' % str(type(other)))
+
+    def __rshift__(self, other):
+        """x.__rshift__(y) <=> x >> y"""
+        if isinstance(other, _Number):
+            return __rshift_scalar__(self, scalar=other)
+        else:
+            raise TypeError('type %s not supported' % str(type(other)))
+
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
     def __truediv__(self, other):
         return self.__div__(other)
 

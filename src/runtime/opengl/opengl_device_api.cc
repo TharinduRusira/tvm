@@ -2,6 +2,7 @@
  *  Copyright (c) 2017 by Contributors
  * \file opengl_device_api.cc
  */
+<<<<<<< HEAD
 #include "./opengl_common.h"
 #include "./opengl_module.h"
 
@@ -9,6 +10,12 @@
 
 #include <tvm/runtime/registry.h>
 #include <cstring>
+=======
+#include <tvm/runtime/registry.h>
+#include <cstring>
+#include "opengl_common.h"
+#include "opengl_module.h"
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 
 namespace tvm {
 namespace runtime {
@@ -100,6 +107,10 @@ void OpenGLWorkspace::GetAttr(
     case kDeviceName: return;
     case kMaxClockRate: return;
     case kMultiProcessorCount: return;
+<<<<<<< HEAD
+=======
+    case kMaxThreadDimensions: return;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
   }
 }
 
@@ -331,10 +342,18 @@ static TextureFormat GetTextureFormat(TVMType type) {
           LOG(FATAL) << "Unsupported type bits " << type.bits;
       }
     }
+<<<<<<< HEAD
     default:
       LOG(FATAL) << "Unsupported type code" << type.code;
   }
   assert(false);
+=======
+    default: {
+      LOG(FATAL) << "Unsupported type code" << type.code;
+    }
+  }
+  return {GL_R32F, GL_RED, GL_FLOAT};
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
 }
 
 Texture OpenGLWorkspace::CreateTexture(TVMType type, size_t nbytes) {
@@ -613,5 +632,8 @@ TVM_REGISTER_GLOBAL("device_api.opengl")
 }  // namespace gl
 }  // namespace runtime
 }  // namespace tvm
+<<<<<<< HEAD
 
 #endif  // TVM_OPENGL_RUNTIME
+=======
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199

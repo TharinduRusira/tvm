@@ -29,14 +29,22 @@ class LoopUnroller : public IRMutator {
 
   Stmt Mutate_(const AttrStmt* op, const Stmt& stmt) final {
     if (op->attr_key == "pragma_auto_unroll_max_step") {
+<<<<<<< HEAD
       int value;
+=======
+      int value = 0;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
       CHECK(arith::GetConstInt(op->value, &value));
       std::swap(value, auto_max_step_);
       Stmt ret = this->Mutate(op->body);
       std::swap(value, auto_max_step_);
       return ret;
     } else if (op->attr_key == "pragma_unroll_explicit") {
+<<<<<<< HEAD
       int value;
+=======
+      int value = 0;
+>>>>>>> 5e66870b31e16da7d0e95e5b0b4fc50d7cd02199
       CHECK(arith::GetConstInt(op->value, &value));
       bool explicit_unroll = value;
       std::swap(explicit_unroll, explicit_unroll_);
