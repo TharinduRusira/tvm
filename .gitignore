@@ -207,8 +207,5 @@ tvm_t.*
 *.crt
 *.der
 
-#job files
-*.sh
-*.e[0-9]*
-*.o[0-9]*
-*.out
+# patch sentinel
+patched.txt

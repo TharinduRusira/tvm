@@ -1,4 +1,4 @@
-# pylint: disable=wildcard-import, redefined-builtin
+# pylint: disable=wildcard-import, redefined-builtin, invalid-name
 """The Relay IR namespace containing the IR definition and compiler."""
 from . import base
 from . import ty
@@ -9,6 +9,7 @@ from . import ir_builder
 
 # Root operators
 from .op import Op
+from .op.reduce import *
 from .op.tensor import *
 from .op.transform import *
 from . import nn
@@ -17,6 +18,9 @@ from . import image
 
 # Span
 Span = base.Span
+
+# Env
+Environment = env.Environment
 
 # Type
 Type = ty.Type
@@ -39,3 +43,7 @@ Call = expr.Call
 Let = expr.Let
 If = expr.If
 TupleGetItem = expr.TupleGetItem
+
+# helper functions
+var = expr.var
+const = expr.const
