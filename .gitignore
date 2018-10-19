@@ -206,3 +206,9 @@ tvm_t.*
 *.cer
 *.crt
 *.der
+
+#job files
+*.sh
+*.e[0-9]*
+*.o[0-9]*
+*.out
