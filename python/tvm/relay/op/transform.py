@@ -1,6 +1,7 @@
 """Transform operators."""
 
 from . import _make
+from ..expr import TupleWrapper
 
 
 def expand_dims(data, axis, num_newaxis=1):
@@ -141,12 +142,35 @@ def reshape(data, newshape):
     return _make.reshape(data, list(newshape))
 
 
+def reshape_like(data, shape_like):
+    """Reshapes the input array by the size of another array.
+    For an input array with shape ``(d1, d2, ..., dk)``, `reshape_like` operation reshapes
+    the input array into an output array with the same shape as the second input array.
+    .. note::
+    Sizes for both array should be compatible.
+
+    Parameters
+    ----------
+    data : relay.Expr
+        The input data to the operator.
+
+    shape_like : tuple of int
+        The new shape. Should be compatible with the original shape.
+
+    Returns
+    -------
+    ret : relay.Expr
+        The computed result.
+    """
+    return _make.reshape_like(data, shape_like)
+
+
 def take(data, indices, axis=None):
     """Take elements from an array along an axis.
 
     Parameters
     ----------
-    a : relay.Expr
+    data : relay.Expr
         The source array.
 
     indices : rely.Expr
@@ -242,3 +266,73 @@ def where(condition, x, y):
     Note that the shape of condition, x, and y needs to be the same.
     """
     return _make.where(condition, x, y)
+
+
+def broadcast_to_like(data, broadcast_type):
+    """Return an scalar value array with the same shape and type as the input array.
+
+    Parameters
+    ----------
+    data : relay.Expr
+        The input tensor.
+
+    broadcast_type : relay.Expr
+        Provide the type to broadcast to.
+
+    Returns
+    -------
+    result : relay.Expr
+        The resulting tensor.
+    """
+    return _make.broadcast_to_like(data, broadcast_type)
+
+
+def collapse_sum_like(data, collapse_type):
+    """Return an scalar value array with the same shape and type as the input array.
+
+    Parameters
+    ----------
+    data : relay.Expr
+        The input tensor.
+
+    collapse_type : relay.Expr
+        Provide the type to collapse to.
+
+    Returns
+    -------
+    result : relay.Expr
+        The resulting tensor.
+    """
+    return _make.collapse_sum_like(data, collapse_type)
+
+
+def split(data, indices_or_sections, axis=0):
+    """Split input tensor along axis by sections or indices.
+
+    If indices_or_sections is an integer, the input will be divided equally
+    along given axis. If such a split is not possible, an error is raised.
+
+    If indices_or_sections is a tuple of sorted integers,
+    the entries indicate where along axis the array is split.
+
+    Parameters
+    ----------
+    data : relay.Expr
+        The source array.
+
+    indices_or_sections : int or tuple of int
+        Indices or sections to split into. Accepts an int or a tuple
+
+    axis : int, optional
+        The axis over which to split.
+
+    Returns
+    -------
+    ret : relay.Tuple([relay.Expr, relay.Expr])
+        The computed result.
+    """
+    if isinstance(indices_or_sections, int):
+        ret_size = indices_or_sections
+    else:
+        ret_size = len(indices_or_sections) + 1
+    return TupleWrapper(_make.split(data, indices_or_sections, axis), ret_size)

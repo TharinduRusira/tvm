@@ -5,8 +5,9 @@ from __future__ import absolute_import
 import numpy as _np
 from .base import RelayNode, register_relay_node
 from . import _make
+from . import _expr
 from . import ty as _ty
-from .._ffi import base as _base, node as _node
+from .._ffi import base as _base
 from .. import nd as _nd
 from .. import convert
 
@@ -28,8 +29,24 @@ class Expr(RelayNode):
                              " the checked_type for this node")
         return ret
 
-    def __call__(self, *args):
-        return Call(self, args, None, None)
+    def astype(self, dtype):
+        """Cast the content type of the current data to dtype.
+
+        Parameters
+        ----------
+        dtype : str
+            The target data type.
+
+        Note
+        ----
+        This function only works for TensorType Exprs.
+
+        Returns
+        -------
+        result : tvm.relay.Expr
+            The result expression.
+        """
+        return _make.dtype_cast(self, dtype)
 
 
 @register_relay_node
@@ -56,6 +73,17 @@ class Tuple(Expr):
     """
     def __init__(self, fields):
         self.__init_handle_by_constructor__(_make.Tuple, fields)
+
+    def __getitem__(self, index):
+        if index >= len(self):
+            raise IndexError("Tuple index out of range")
+        return self.fields[index]
+
+    def __len__(self):
+        return len(self.fields)
+
+    def astype(self, _):
+        raise TypeError("astype cannot be used on tuple")
 
 
 @register_relay_node
@@ -95,6 +123,16 @@ class GlobalVar(Expr):
     def __init__(self, name_hint):
         self.__init_handle_by_constructor__(_make.GlobalVar, name_hint)
 
+    def __call__(self, *args):
+        """Invoke the gobal function.
+
+        Parameters
+        ----------
+        args: List[relay.Expr]
+            Arguments.
+        """
+        return Call(self, args, None, None)
+
 
 @register_relay_node
 class Function(Expr):
@@ -125,6 +163,16 @@ class Function(Expr):
 
         self.__init_handle_by_constructor__(
             _make.Function, params, body, ret_type, type_params)
+
+    def __call__(self, *args):
+        """Invoke the gobal function.
+
+        Parameters
+        ----------
+        args: List[relay.Expr]
+            Arguments.
+        """
+        return Call(self, args, None, None)
 
 
 @register_relay_node
@@ -213,7 +261,7 @@ class TupleGetItem(Expr):
             _make.TupleGetItem, tuple_value, index)
 
 
-class TupleWrapper(_node.NodeGeneric):
+class TupleWrapper(object):
     """TupleWrapper.
 
     This class is a Python wrapper for a Relay tuple of known size.
@@ -232,17 +280,35 @@ class TupleWrapper(_node.NodeGeneric):
         self.tuple_value = tuple_value
         self.size = size
 
-    def asnode(self):
+    def astuple(self):
         """Returns the underlying Relay tuple if this wrapper is passed
         as an argument to an FFI function."""
-
         return self.tuple_value
 
-    def __getitem__(self, key):
-        return self.tuple_value.fields[key]
+    def astext(self):
+        """Get the text format of the tuple expression.
+
+        Returns
+        -------
+        text : str
+            The text format of the tuple expression.
+        """
+        return _expr._text_print(self.tuple_value)
+
+    def __getitem__(self, index):
+        if index >= len(self):
+            raise IndexError("Tuple index out of range")
+        return TupleGetItem(self.tuple_value, index)
 
     def __len__(self):
-        return len(self.tuple_value.fields)
+        return self.size
+
+    def __repr__(self):
+        return ("TupleWrapper(" + self.tuple_value.__repr__() +
+                ", " + self.size + ")")
+
+    def astype(self, _):
+        raise TypeError("astype cannot be used on tuple")
 
 
 def var(name_hint,
@@ -304,13 +370,27 @@ def const(value, dtype=None):
 
     dtype: str, optional
         The data type of the value.
+
+    Note
+    ----
+    When dtype is None, we use the following rule:
+
+    - int maps to "int32"
+    - float maps to "float32"
+    - bool maps to "bool"
+    - other using the same default rule as numpy.
     """
-    if isinstance(value, _base.numeric_types):
+    if isinstance(value, (_base.numeric_types, (bool, list))):
         value = _np.array(value, dtype=dtype)
-    elif isinstance(value, (bool, list)):
-        value = _np.array(value, dtype=dtype)
+        # convert default to int32 and float32
+        if dtype is None:
+            if value.dtype == "float64":
+                value = value.astype("float32")
+            elif value.dtype == "int64":
+                value = value.astype("int32")
     if isinstance(value, (_np.ndarray, _np.generic)):
         value = _nd.array(value)
+
     if not isinstance(value, _nd.NDArray):
         raise ValueError("value has to be scalar or NDArray")
     return Constant(value)

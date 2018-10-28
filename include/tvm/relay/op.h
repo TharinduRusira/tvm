@@ -371,14 +371,14 @@ inline OpRegistry& OpRegistry::add_type_rel(
     env_type_rel_func = env_func;
   }
 
-  Array<TypeParam> type_params;
+  Array<TypeVar> type_params;
   Array<Type> arg_types;
 
   // Add inputs.
   std::string input_name_prefix = "in";
   for (int i = 0; i < get()->num_inputs; i++) {
     auto name = input_name_prefix + std::to_string(i);
-    auto param = TypeParamNode::make(name, TypeParamNode::Kind::kType);
+    auto param = TypeVarNode::make(name, TypeVarNode::Kind::kType);
     type_params.push_back(param);
     arg_types.push_back(param);
   }
@@ -386,7 +386,7 @@ inline OpRegistry& OpRegistry::add_type_rel(
   Array<Type> ty_call_args = arg_types;
 
   // Add output type.
-  auto out_param = TypeParamNode::make("out", TypeParamNode::Kind::kType);
+  auto out_param = TypeVarNode::make("out", TypeVarNode::Kind::kType);
   type_params.push_back(out_param);
   // this will trigger copy on write.
   ty_call_args.push_back(out_param);
@@ -483,6 +483,36 @@ template <typename ValueType>
 inline ValueType OpMap<ValueType>::get(const Op& op,
                                        ValueType def_value) const {
   return map_.get<ValueType>(op, def_value);
+}
+
+/*!
+ * \brief Check that an expression is a "primtive operator".
+ *
+ * Will return true if the expression is an operator which
+ * matches the form of primtive operators registered directly
+ * by the Relay codebase.
+ *
+ * That is the arguments are all type variables, and there is a single
+ * type relation applied to the input and output types.
+ */
+inline bool IsPrimitiveOp(const Expr& expr) {
+  const auto* op = expr.as<OpNode>();
+
+  if (!op) {
+    return false;
+  }
+
+  const auto& fn_ty = op->op_type;
+  if (fn_ty->type_constraints.size() != 1) return false;
+
+  const TypeRelationNode* rel = fn_ty->type_constraints[0].as<TypeRelationNode>();
+  if (rel == nullptr) return false;
+  // validate if the type parameter matches up
+  for (size_t i = 0; i < fn_ty->type_params.size(); ++i) {
+    if (!fn_ty->type_params[i].same_as(rel->args[i])) return false;
+  }
+
+  return true;
 }
 
 }  // namespace relay

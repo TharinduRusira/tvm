@@ -40,6 +40,8 @@ This level enables fully connected multi-layer perceptron.
    tvm.relay.nn.relu
    tvm.relay.nn.dropout
    tvm.relay.nn.batch_norm
+   tvm.relay.nn.bias_add
+
 
 
 **Level 2: Convolutions**
@@ -76,6 +78,7 @@ This level enables additional math and transform operators.
    tvm.relay.ones
    tvm.relay.ones_like
    tvm.relay.reshape
+   tvm.relay.reshape_like
    tvm.relay.copy
    tvm.relay.transpose
    tvm.relay.floor
@@ -85,8 +88,14 @@ This level enables additional math and transform operators.
    tvm.relay.abs
    tvm.relay.negative
    tvm.relay.take
+   tvm.relay.zeros
+   tvm.relay.zeros_like
+   tvm.relay.ones
+   tvm.relay.ones_like
    tvm.relay.full
    tvm.relay.full_like
+   tvm.relay.cast
+   tvm.relay.split
 
 
 **Level 4: Broadcast and Reductions**
@@ -108,6 +117,11 @@ This level enables additional math and transform operators.
    tvm.relay.where
    tvm.relay.argmax
    tvm.relay.argmin
+   tvm.relay.sum
+   tvm.relay.max
+   tvm.relay.min
+   tvm.relay.mean
+   tvm.relay.prod
 
 
 **Level 5: Vision/Image Operators**
@@ -116,6 +130,17 @@ This level enables additional math and transform operators.
    :nosignatures:
 
    tvm.relay.image.resize
+
+
+**Level 10: Temporary Operators**
+
+This level support backpropagation of broadcast operators. It is temporary.
+
+.. autosummary::
+   :nosignatures:
+
+   tvm.relay.broadcast_to_like
+   tvm.relay.collapse_sum_like
 
 
 Level 1 Definitions
@@ -135,6 +160,9 @@ Level 1 Definitions
 .. autofunction:: tvm.relay.nn.softmax
 .. autofunction:: tvm.relay.nn.log_softmax
 .. autofunction:: tvm.relay.nn.relu
+.. autofunction:: tvm.relay.nn.dropout
+.. autofunction:: tvm.relay.nn.batch_norm
+.. autofunction:: tvm.relay.nn.bias_add
 
 
 Level 2 Definitions
@@ -162,6 +190,7 @@ Level 3 Definitions
 .. autofunction:: tvm.relay.abs
 .. autofunction:: tvm.relay.negative
 .. autofunction:: tvm.relay.reshape
+.. autofunction:: tvm.relay.reshape_like
 .. autofunction:: tvm.relay.copy
 .. autofunction:: tvm.relay.transpose
 .. autofunction:: tvm.relay.take
@@ -169,6 +198,10 @@ Level 3 Definitions
 .. autofunction:: tvm.relay.zeros_like
 .. autofunction:: tvm.relay.ones
 .. autofunction:: tvm.relay.ones_like
+.. autofunction:: tvm.relay.full
+.. autofunction:: tvm.relay.full_like
+.. autofunction:: tvm.relay.cast
+.. autofunction:: tvm.relay.split
 
 
 Level 4 Definitions
@@ -187,8 +220,20 @@ Level 4 Definitions
 .. autofunction:: tvm.relay.where
 .. autofunction:: tvm.relay.argmax
 .. autofunction:: tvm.relay.argmin
+.. autofunction:: tvm.relay.sum
+.. autofunction:: tvm.relay.max
+.. autofunction:: tvm.relay.min
+.. autofunction:: tvm.relay.mean
+.. autofunction:: tvm.relay.prod
+
 
 
 Level 5 Definitions
 -------------------
 .. autofunction:: tvm.relay.image.resize
+
+
+Level 10 Definitions
+--------------------
+.. autofunction:: tvm.relay.broadcast_to_like
+.. autofunction:: tvm.relay.collapse_sum_like
