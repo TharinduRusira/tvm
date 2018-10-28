@@ -6,14 +6,16 @@ from topi.util import get_const_tuple
 import math
 import topi.testing
 import argparse
-import tvm
 
 import logging
 import sys
 from tvm import autotvm
 
+vlen = 16
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", nargs=1, type=str, default=["alex4"])
+parser.add_argument("-debug", "--debug", dest='debug', default=False)
 args = parser.parse_args()
 layer = args.d[0]
 _3x3_layers ={
@@ -35,74 +37,141 @@ pad_width = _3x3_layers[layer][7]
 stride_height = _3x3_layers[layer][6]
 stride_width = _3x3_layers[layer][6]
 vlen = 16
-assert(pad_height == pad_width)
-assert(stride_height == stride_width)
-assert(kernel_height == kernel_width)
+
 assert(in_channel%vlen == 0)
 assert(out_channel%vlen == 0)
 padding = pad_height
+
 output_width = ((input_width + 2 * pad_width - kernel_width) // stride_width) + 1
 output_height = ((input_height + 2 * pad_height - kernel_height) // stride_height) + 1
 
-def convolution():
-  # Algorithm
-  # Algorithm
-  output_width = ((input_width + 2 * pad_width - kernel_width) // stride_width) + 1
-  output_height = ((input_height + 2 * pad_height - kernel_height) // stride_height) + 1
+'''
+adims = (batch, math.ceil(in_channel/vlen) , input_height + 2*pad_height, input_width+ 2*pad_width, vlen)
+wdims = (math.ceil(out_channel/vlen), math.ceil(in_channel/vlen), kernel_height,kernel_width, vlen, vlen)
+bdims = (batch, math.ceil(out_channel/vlen), output_height, output_width, vlen)
+'''
+h_list = []
+w_list = []
+c_list = []
 
-  adims = (batch, in_channel, input_height + 2*pad_height, input_width+ 2*pad_width)
-  wdims = (out_channel, in_channel, kernel_height,kernel_width)
-  bdims = (batch,output_height, output_width, out_channel)
+#verification with np
+def forward(A, W, B):
+    for n in range(0,batch):
+        for ko in range(0,math.ceil(out_channel/vlen)):
+            for h in range(0, output_height):
+                for w in range(0,output_width):
+                    for co in range(0, math.ceil(in_channel/vlen)):
+                        for r in range(0,kernel_height):
+                            for s in range(0,kernel_width):
+                                for ci in range(0,vlen):
+                                    for ki in range(0,vlen): 
+                                        B[ko][co][h+r][w+s][ki][ci] += A[n][ko][h][w][ki]*W[n][co][r][s][ci]
 
+    return B
+
+
+@autotvm.template
+def convolution((dtype)):
+  cfg = autotvm.get_config()
+ 
+  for i in range(2,in_channel):
+    if in_channel%i == 0:
+      c_list.append(i)
+ 
+  cfg.define_knob("tile_c", c_list)
+
+  co_dim, ci_dim = in_channel/cfg['tile_c'].val, cfg['tile_c'].val
+
+  adims = (batch, co_dim , input_height + 2*pad_height, input_width+ 2*pad_width, ci_dim)
+  wdims = (math.ceil(out_channel/vlen), co_dim, kernel_height,kernel_width, ci_dim, vlen)
+  bdims = (batch, math.ceil(out_channel/vlen), output_height, output_width, vlen)
+
+
+  A = tvm.placeholder(adims, dtype=dtype, name='A')
+  W = tvm.placeholder(wdims, dtype=dtype, name='W')
+
+  #rco = tvm.reduce_axis((0, math.ceil(in_channel/vlen)), name='rco')
+  #rci =  tvm.reduce_axis((0, vlen), name="rci")
+  rco = tvm.reduce_axis((0,co_dim), name='rco')
+  rci =  tvm.reduce_axis((0, ci_dim), name="rci")
+ 
+  ry = tvm.reduce_axis((0, kernel_height), name='ry')
+  rx = tvm.reduce_axis((0, kernel_width), name='rx')
+
+  B = tvm.compute(bdims, lambda n, ko, h, w, ki: tvm.sum(A[n, rco, h + ry, w + rx, rci] * W[ko, rco, ry, rx, rci, ki], axis=[rco, rci ,ry, rx]), name='B')
+  func = B
+  s = tvm.create_schedule(func.op)
+
+  n, ko, h,w, ki  = s[func].op.axis
+  rco, rci, ry,rx = s[func].op.reduce_axis
+
+ 
+  for i in range(2,input_height):
+    if input_height%i == 0:
+      h_list.append(i)
+  for j in range(2,input_width):
+    if input_width%j == 0:
+      w_list.append(j)
+
+  cfg.define_knob("tile_h", h_list)
+  cfg.define_knob("tile_w", w_list)
+
+  ho, hi = s[func].split(h, cfg['tile_h'].val)
+  wo, wi = s[func].split(w, cfg['tile_w'].val)
+
+  nko = s[func].fuse(n,ko)
+  
+  #TODO: tune loop orders
+  #o1 = (nko, ho, wo, rco, hi, wi, rx, ry, rci, ki)
+  #o2 = (nko, wo, ho, rco, wi, hi, rx, ry, rci, ki)
+  #cfg.define_knob("orders", [o1, o2])
+  #print(cfg['orders'].val)
+  #s[func].reorder(cfg['orders'].val) 
+
+  s[func].reorder(nko, ho, wo, rco, hi, wi, rx, ry, rci, ki)
+
+  #fixed 
+  s[func].vectorize(ki)
+  s[func].unroll(rci)
+  s[func].parallel(nko)
+  #with tvm.build_config(data_alignment=64):
+  #print(tvm.lower(s, [A, W, B], simple_mode=True))
+  
+  return s,  [A, W, B]
+
+
+def test():
   A = tvm.placeholder(adims, name='A')
   W = tvm.placeholder(wdims, name='W')
-  rco = tvm.reduce_axis((0, in_channel), name='rc')
+
+  rco = tvm.reduce_axis((0, math.ceil(in_channel/vlen)), name='rco')
+  rci =  tvm.reduce_axis((0, vlen), name="rci")
   ry = tvm.reduce_axis((0, kernel_height), name='ry')
   rx = tvm.reduce_axis((0, kernel_width), name='rx')
 
   # Compute the convolution
-  B = tvm.compute(bdims,
-        lambda n, k, h, w: tvm.sum(
-            A[n, rc, h + ry, w + rx] * W[k, rc, ry, rx],
-      axis=[rco,ry, rx]),
-  name='B')
-
+  B = tvm.compute(bdims, lambda n, ko, h, w, ki: tvm.sum(A[n, rco, h + ry, w + rx, rci] * W[ko, rco, ry, rx, rci, ki], axis=[rco, rci ,ry, rx]), name='B')
+  func = B
   s = tvm.create_schedule(func.op)
-  print(type(s))
   #print(tvm.lower(s, [A, W,func], simple_mode=True))
-  n,ko,h,w,ki  = s[func].op.axis
-  rco,ry,rx,rci = s[func].op.reduce_axis
-  cfg = autotvm.get_config()
 
-  #get h range
-  h_list = []
-  for i in range(2,input_height):
-    if input_height%i == 0:
-      h_list.append(i)
-  #get w range
-  w_list = []
-  for j in range(2,input_width):
-    if input_width%j == 0:
-      w_list.append()
+  n, ko, h,w, ki  = s[func].op.axis
+  rco, rci, ry,rx = s[func].op.reduce_axis
 
-
-  tvm.define_knob("tile_h", h_list)
-  tvm.define_knob("tile_w", w_list)
-  tvm.define_knob("orders", [(nko, ho, wo, rco, hi, wi, rx, ry, rci, ki), (nko, wo, ho, rco, wi, hi, rx, ry, rci, ki)])
+  ho, hi = s[func].split(h, 7)
+  wo, wi = s[func].split(w, 14)
 
   nko = s[func].fuse(n,ko)
-
-  ho, hi = s[func].split(h, cfg['tile_h'].val)
-  wo, wi = s[func].split(w, cfg['tile_w'].val)
-  s[func].reorder(cfg['orders'].val) 
+  s[func].reorder(nko, ho, wo, rco, hi, wi, rx, ry, rci, ki)
 
   #fixed 
+  s[func].vectorize(ki)
+  s[func].parallel(nko)
   s[func].unroll(rci)
 
-  return [s]
+  return s, A, W, B
 
-
-def compile_and_run(s, A,W,B,A1,W1):
+def compile_and_run(s, A, W, B):
 
   with tvm.build_config(data_alignment=64):
         print(tvm.lower(s, [A, W, B], simple_mode=True))
@@ -127,22 +196,43 @@ def compile_and_run(s, A,W,B,A1,W1):
         print("Time is : {0:.6f}".format(t))
         print("GFLOPS  : {0:.3f} ".format( gflops))
   return 0, gflops
+
 def driver():
-    #tuner
-    task = autotvm.task.create(convolution,target='llvm')
+  
+    task = autotvm.task.create(convolution, args=('float32'), target='llvm')
     print(task.config_space)
 
     logging.getLogger('autotvm').setLevel(logging.DEBUG)
     logging.getLogger('autotvm').addHandler(logging.StreamHandler(sys.stdout))
 
-    measure_option = autotvm.measure_option(builder='local', 
-      runner=autotvm.LocalRunner(number=5)
-      )
+    measure_option = autotvm.measure_option(builder=autotvm.LocalBuilder(), runner=autotvm.LocalRunner(number=5, timeout=100))
     tuner = autotvm.tuner.RandomTuner(task)
-    tuner.tune(n_trials = 20,
-      measure_option=measure_option,
-      callbacks=[autotvm.callback.log_to_file(convolution.log)])
+    tuner.tune(n_trial=100, measure_option=measure_option, callbacks=[autotvm.callback.log_to_file("tune.log")])
+
+'''
+#INCOMPLETE
+def verify_history_best():
+    with autotvm.apply_verify_history_best('tune.log'):
+        with tvm.target.create('llvm'):
+            s, bufs = convolution(adim, wdim, bdim, 'float32')
+            func = tvm.build(s, bufs)
+
+    a_np = np.random.uniform(size=adims).astype(np.float32)
+    w_np = np.random.uniform(size=wdims).astype(np.float32)
+
+    b_np = forward(a_np, w_np, np.zeros(bdims))
+    b_tvm = tvm.nd.empty(bdims)
+    func(tvm.nd.array(a_np), tvm.nd.array(w_np), )
+
+    tvm.testing.assert_allclose()
+'''
 
 if __name__ == "__main__":
-    driver()
+    if args.debug:
+        print("running debug mode...")
+        s, A, W, B= test()
+        compile_and_run(s, A, W, B)
+    else:
+        driver()
+        #verify_history_best()
 

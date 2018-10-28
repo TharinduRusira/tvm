@@ -268,7 +268,7 @@ void CodeGenOpenGL::VisitStmt_(const Evaluate* op) {
   this->PrintIndent();
   this->stream << GetVarID(buffer) << " = " << PrintExpr(value) << ";\n";
 }
-
+/*
 runtime::Module BuildOpenGL(Array<LoweredFunc> funcs) {
   bool output_ssa = false;
   CodeGenOpenGL cg;
@@ -284,6 +284,6 @@ TVM_REGISTER_API("codegen.build_opengl")
 .set_body([](TVMArgs args, TVMRetValue* rv) {
   *rv = BuildOpenGL(args[0]);
 });
-
+*/
 }  // namespace codegen
 }  // namespace tvm
