@@ -102,7 +102,6 @@ def convert_output(a_np, batch, out_channel,output_height,output_width,vlen):
  
  
     return to_return
- 
 def convert_weight(w_np, in_channel, out_channel, kernel_height, kernel_width, vlen,W):
     to_return = np.zeros((math.ceil(out_channel/vlen), math.ceil(in_channel/vlen),kernel_height, kernel_width,vlen,vlen), dtype = W.dtype)
  
@@ -122,18 +121,12 @@ def get_ref_data():
             w_np = np.random.uniform(size=(out_channel,in_channel,kernel_height,kernel_width)).astype(float)
             b_np = topi.testing.conv2d_nchw_python(a_np, w_np, stride_height, padding)
             return a_np, w_np, b_np
-
-
-
-
-
 def generate_variants(func, tf):
   s = tvm.create_schedule(func.op)
-  print(type(s))
+  #print(type(s))
   #print(tvm.lower(s, [A, W,func], simple_mode=True))
   n,ko,h,w,ki  = s[func].op.axis
   rco,ry,rx,rci = s[func].op.reduce_axis
-
 
   wo = None
   wi = None
@@ -147,7 +140,6 @@ def generate_variants(func, tf):
   rco_i = None
   w_tile = None
   h_tile = None
-
 
   if(tf['W'] < output_width):
       wo, wi= s[func].split(w, factor=tf['W'])
@@ -169,25 +161,15 @@ def generate_variants(func, tf):
   rci_o = None
   rci_i = rci   
 
-  
-
-  
   w_threshold = min(tf['W'],14)
- 
-     
 
- 
   while tf['W'] % w_threshold != 0:
      w_threshold = w_threshold-1
-
 
   h_threshold  = min(tf['H'], math.floor(28/w_threshold))
  
   while tf['H'] % h_threshold != 0:
      h_threshold = h_threshold-1
-
-
-
   
   if(tf['W'] < output_width):
     if w_threshold < tf['W'] and w_threshold > 1:
@@ -195,8 +177,7 @@ def generate_variants(func, tf):
         w_unroll = wi_i
         #w_tile = wi_o
     elif w_threshold == 1:
-        w_unroll  = None
-        
+        w_unroll  = None        
         wi_o = wi
         wi_i = None
         #w = None
@@ -217,12 +198,10 @@ def generate_variants(func, tf):
     wi_i = None
     w_o = None
   elif tf['W'] == w_threshold and tf['W'] == output_width:
-    
     w_o = None
     wi_o = None
     wi_i = w        
     w_unroll = wi_i
-
 
   if(tf['H'] < output_height):
     if h_threshold < tf['H'] and h_threshold > 1:
@@ -250,19 +229,17 @@ def generate_variants(func, tf):
     hi_o = hi
     hi_i = None
     h_o = None
-  elif tf['H'] == h_threshold and tf['H'] == output_height:
-     
+  elif tf['H'] == h_threshold and tf['H'] == output_height:     
     h_o = None
     hi_o = None
     hi_i = h
     h_unroll = hi_i
 
-  
   order = [n,ko]
   for i in [rco_o,ho,wo,rco_i,hi_o,wi_o,ry,rx,rci_o,rci_i,hi_i,wi_i,ki]:
      if i != None:
          order.append(i) 
-      
+
   s[func].reorder(*order)   
   s[func].vectorize(ki)
   par = s[func].fuse(n, ko)
@@ -272,13 +249,9 @@ def generate_variants(func, tf):
   if h_unroll != None:
       s[func].unroll(h_unroll)
   #s[func].unroll(rci_i)
-  
-
   return [s]
 
-
 def compile_and_run(s, A,W,B,A1,W1):
-
   '''  
   a_shape = get_const_tuple(A1.shape)
   w_shape = get_const_tuple(W1.shape)
@@ -310,11 +283,8 @@ def compile_and_run(s, A,W,B,A1,W1):
         print("GFLOPS  : {0:.3f} ".format( gflops_tvm))
 
   '''
-
-
   with tvm.build_config(data_alignment=64):
         print(tvm.lower(s, [A, W, B], simple_mode=True))
-
         func = tvm.build(s, [A,W,B], target='llvm -mtriple=x86_64 -mcpu=skylake-avx512 -mattr=+skx,+fma,+fma4,+avx512ifma,+avx512f,+avx512cd,+avx512bw,+avx512vl,+avx512dq')
         func.save('code.S', 'asm')
         #print(func.get_source())
@@ -327,7 +297,6 @@ def compile_and_run(s, A,W,B,A1,W1):
         #a_np, w_np, b_np = get_ref_data()
         a_np = np.random.uniform(size=(batch,in_channel//vlen,input_height + 2*pad_height,input_width+ 2*pad_width,vlen)).astype(A.dtype)
         w_np = np.random.uniform(size=(out_channel//vlen,in_channel//vlen,kernel_height,kernel_width,vlen,vlen)).astype(W.dtype)
-
         #a_np2 = convert_input(a_np, batch, in_channel,input_height,input_width,vlen,A)
         #w_np2 = convert_weight(w_np, in_channel, out_channel, kernel_height, kernel_width, vlen, W)
         b = tvm.nd.array(np.zeros((batch, math.ceil(out_channel/vlen),output_height, output_width,vlen), dtype=B.dtype), ctx)
@@ -337,8 +306,6 @@ def compile_and_run(s, A,W,B,A1,W1):
         func(a, w, b)
         #b_np2 = convert_output(b.asnumpy(), batch,out_channel, output_height, output_width,vlen)
         #np.testing.assert_allclose(b_np2, b_np, rtol=1e-5)
- 
- 
         evaluator = func.time_evaluator(func.entry_name, ctx, number=1000)
         t = evaluator(a, w, b).mean
         gflops = np.prod(get_const_tuple(B.shape))*in_channel*kernel_height*kernel_width*2
@@ -346,12 +313,6 @@ def compile_and_run(s, A,W,B,A1,W1):
         print("Time is : {0:.6f}".format(t))
         print("GFLOPS  : {0:.3f} ".format( gflops))
   return 0, gflops                                                  
-        
-
-
-
-
-
 
 def driver():
     # Algorithm

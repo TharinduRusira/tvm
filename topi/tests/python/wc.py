@@ -1,9 +1,6 @@
 from itertools import *
-#import latte.core
 import math
 import numpy
-#from latte import *
-
 
 l1_size = 32768
 #cache_lines = l1_size/64
@@ -18,8 +15,6 @@ L1_cache_lines = 512
 #    L2_cache_lines = (256*1024)/32
 #    L1_cache_lines = 32768/32
 VLEN = 16
-
-
 
 #def pruning_heuristics():
 '''
@@ -156,11 +151,6 @@ def calculate_input_fp(tiled_loop_order, tiled_loop_bounds,start_loop,target_loo
  
     return input_fp/VLEN
 
-
-
-
-
-
 def calculate_fp(tiled_loop_order, tiled_loop_bounds,start_loop, data_struct, actual_loop_bounds):
     input_fp = 1
     output_fp =1
@@ -245,8 +235,6 @@ def calculate_fp(tiled_loop_order, tiled_loop_bounds,start_loop, data_struct, ac
 
     return -1
 
-
-
 def get_reuse_cost(key, last_loop_level,last_bound,tiled_loop_order, parallel_loop_bounds, tiled_loop_bounds, actual_loop_bounds):
       to_return = 1  
       
@@ -262,7 +250,6 @@ def get_reuse_cost(key, last_loop_level,last_bound,tiled_loop_order, parallel_lo
           to_return = actual_loop_bounds[key[0]]
       return to_return
 
-
 def calculate_outer_iteration_count(tiled_loop_order,tiled_loop_bounds,k):
 
     to_return = 1
@@ -272,7 +259,6 @@ def calculate_outer_iteration_count(tiled_loop_order,tiled_loop_bounds,k):
          
 
     return to_return
-
 
 def compute_cost_for_LLC(actual_loop_bounds, tiled_loop_order, tiled_loop_bounds, parallel_loops, parallel_loop_bounds, num_cores, output_volume_multiplier=1, llc='L1'):
 
@@ -691,7 +677,6 @@ def compute_cost_for_LLC(actual_loop_bounds, tiled_loop_order, tiled_loop_bounds
    
     return 1, input_reloads + input_initial_misses , 1
 
-
 def compute_cost(actual_loop_bounds, tiled_loop_order, tiled_loop_bounds, parallel_loops, parallel_loop_bounds, num_cores, output_volume_multiplier=1):
 
   l1_output_reloads,l1_input_reloads,l1_weight_reloads =    compute_cost_for_LLC(actual_loop_bounds, tiled_loop_order, tiled_loop_bounds, parallel_loops, parallel_loop_bounds, num_cores, output_volume_multiplier, llc='L1')
@@ -728,13 +713,6 @@ def compute_cost(actual_loop_bounds, tiled_loop_order, tiled_loop_bounds, parall
   #    print(input_loads_stores)
     
   return output_loads_stores,weight_loads_stores,input_loads_stores, L1_latency*total_loads_stores*cost_per_thread,(total_loads_stores),l1_output_reloads +  l2_output_reloads,l1_weight_reloads +  l2_weight_reloads,l1_input_reloads +  l2_input_reloads,last_bound,last_loop_level
-
-
-
-
-
-
-
 
 def tile_and_footprint_analysis(loop_bounds, search_harder=False, output_volume_multiplier=1):
 
@@ -840,7 +818,6 @@ def tile_and_footprint_analysis(loop_bounds, search_harder=False, output_volume_
                         #print("Enetered\n")
 
     return all_permutations
-
 
 def init(l):
 
