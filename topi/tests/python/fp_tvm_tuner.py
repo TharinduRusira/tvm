@@ -49,6 +49,11 @@ output_height = ((input_height + 2 * pad_height - kernel_height) // stride_heigh
 h_list = []
 w_list = []
 c_list = []
+ho_list = []
+wo_list = []
+co_list = []
+ci_list = []
+
 
 #verification with np
 def forward(A, W, B):
@@ -153,7 +158,6 @@ def convolution():
   A = tvm.placeholder(adims, name='A', dtype='float32')
   W = tvm.placeholder(wdims, name='W', dtype='float32')
 
-
   B = tvm.compute(bdims, lambda n, ko, h, w, ki: tvm.sum(A[n, rco, h + ry, w + rx, rci] * W[ko, rco, ry, rx, rci, ki], axis=[rco, rci ,ry, rx]), name='B')
   func = B
   s = tvm.create_schedule(func.op)
@@ -161,10 +165,10 @@ def convolution():
   n, ko, h,w, ki  = s[func].op.axis
   rco, rci, ry,rx = s[func].op.reduce_axis
  
-  for i in range(2,input_height):
+  for i in range(1, input_height):
     if input_height%i == 0:
       h_list.append(i)
-  for j in range(2,input_width):
+  for j in range(1, input_width):
     if input_width%j == 0:
       w_list.append(j)
 
@@ -172,32 +176,74 @@ def convolution():
   cfg.define_knob("tile_h", h_list)
   cfg.define_knob("tile_w", w_list)
 
+  # H, W first tile
   ho, hi = s[func].split(h, cfg['tile_h'].val)
   wo, wi = s[func].split(w, cfg['tile_w'].val)
   
+  # hi, wi secondary tile
+  ho_bound = math.ceil(input_height/cfg['tile_h'].val)
+  wo_bound = math.ceil(input_height/cfg['tile_w'].val)
+  hi_bound =  int(cfg['tile_h'].val)
+  wi_bound = int(cfg['tile_w'].val)
+
+  for i in range(1, ho_bound):
+      if ho_bound%i == 0:
+          ho_list.append(i)
+  for j in range(1, wo_bound):
+      if wo_bound%j == 0:
+          wo_list.append(j)
+  print(ho_list, wo_list)
+
+  cfg.define_knob('tile_hi', ho_list)
+  cfg.define_knob('tile_wi', wo_list)
+
+  ho_o, ho_i = s[func].split(ho, cfg['tile_hi'].val)
+  wo_o, wo_i = s[func].split(wo, cfg['tile_wi'].val)
+
+  #Outer C secondary tile
+  for i in range(1, co_dim):
+    if co_dim%i == 0:
+        co_list.append(i)
+
+  cfg.define_knob('co_tile', co_list)
+  rco_o, rco_i = s[func].split(rco, cfg['co_tile'].val)
+
   cfg.define_knob('nk_fuse', ['fuse', 'no-fuse'])
+
+  #selected loop orders
+  loop_orders = {
+    'o1': [ho_o, wo_o, rco_o, ho_i, wo_i,rco_i, rx, ry, hi, wi, rci, ki],
+    'o2': [rco_o, ho_o, wo_o, rco_i, ho_i, wo_i, rx, rci, ry, hi, wi, ki],
+    'o3': [ho_o, wo_o, ho_i, wo_i, rco_o, rx, ry, rco_i, hi, wi, rci, ki]
+  }
+  cfg.define_knob('loop_order', ['o1','o2','o3'])
+  order = loop_orders[str(cfg['loop_order'].val)]
 
   if cfg['nk_fuse'].val == 'fuse':
     nko = s[func].fuse(n,ko)
-    s[func].reorder(nko, ho, wo, rco, hi, rx, ry, wi, rci, ki)
+    order = [nko]+ order
+    s[func].reorder(*order)
     s[func].parallel(nko)
-
   else:
-    s[func].reorder(n, ko, ho, wo, rco, hi, rx, ry, wi, rci, ki)
+    order = [n, ko]+order
+    s[func].reorder(*order)
     s[func].parallel(n)
 
   cfg.define_knob('ki_vectorize', ['vectorize', 'no-vectorize'])
   if cfg['ki_vectorize'].val == 'vectorize':
       s[func].vectorize(ki)
   
-  cfg.define_knob('unroll_loop', ['rci', 'wi'])
-  if cfg['unroll_loop'].val == 'rci':
+  cfg.define_knob('unroll_ci', ['unroll','no-unroll'])
+  cfg.define_knob('unroll_hi', ['unroll', 'no-unroll'])
+  cfg.define_knob('unroll_wi', ['unroll', 'no-unroll'])
+
+  if cfg['unroll_ci'].val == 'unroll':
     s[func].unroll(rci)
-  else:
+  if cfg['unroll_hi'].val == 'unroll':
+    s[func].unroll(hi)
+  if cfg['unroll_wi'].val == 'unroll':
     s[func].unroll(wi)
   
-  #TODO: tune loop orders
-
   return s,  [A, W, B]
 
 def driver():
@@ -209,7 +255,7 @@ def driver():
 
     measure_option = autotvm.measure_option(builder=autotvm.LocalBuilder(), runner=autotvm.LocalRunner(number=5, timeout=100))
     tuner = autotvm.tuner.RandomTuner(task)
-    tuner.tune(n_trial=10, measure_option=measure_option, callbacks=[autotvm.callback.log_to_file("tune.log")])
+    tuner.tune(n_trial=100, measure_option=measure_option, callbacks=[autotvm.callback.log_to_file("tune.log")])
 
 def verify_history_best():
     with autotvm.apply_history_best('tune.log'):
@@ -244,4 +290,4 @@ if __name__ == "__main__":
         compile_and_run(s, A, W, B)
     else:
         driver()
-        verify_history_best()
+        #verify_history_best()
