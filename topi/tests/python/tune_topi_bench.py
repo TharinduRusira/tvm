@@ -228,7 +228,7 @@ def generate_variants(func, tf):
     h_unroll  = None
     hi_o = hi
     hi_i = None
-    h_o = None
+  #  h_o = None
   elif tf['H'] == h_threshold and tf['H'] == output_height:     
     h_o = None
     hi_o = None
@@ -246,8 +246,10 @@ def generate_variants(func, tf):
   s[func].parallel(par)
   if w_unroll != None:
       s[func].unroll(w_unroll)
+      print(str(w_unroll))
   if h_unroll != None:
       s[func].unroll(h_unroll)
+      print(str(h_unroll))
   #s[func].unroll(rci_i)
   return [s]
 
@@ -308,9 +310,10 @@ def compile_and_run(s, A,W,B,A1,W1):
         #np.testing.assert_allclose(b_np2, b_np, rtol=1e-5)
         evaluator = func.time_evaluator(func.entry_name, ctx, number=1000)
         t = evaluator(a, w, b).mean
-        gflops = np.prod(get_const_tuple(B.shape))*in_channel*kernel_height*kernel_width*2
-        gflops = gflops/1e9/t
+        flops = np.prod(get_const_tuple(B.shape))*in_channel*kernel_height*kernel_width*2
+        gflops = (flops/1e9)/t
         print("Time is : {0:.6f}".format(t))
+        print("FLOPS    : {}".format(flops))
         print("GFLOPS  : {0:.3f} ".format( gflops))
   return 0, gflops                                                  
 
