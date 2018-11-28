@@ -280,6 +280,7 @@ class TypeReporterNode : public Node {
   TVM_DLL virtual void Assign(const Type& dst, const Type& src) = 0;
   /*!
    * \brief assert shape expression comparison.
+   * \note Use assert only if any of the condition input is symbolic.
    * \param cond The condition of operation.
    * \return false if assertation can be proven to have failed
    *      true if solver can still proceed.
@@ -348,14 +349,14 @@ class TypeRelation;
 /*!
  * \brief TypeRelation container.
  * \note This node is not directly serializable.
- * The type function need to be lookedup in the environment.
+ * The type function need to be lookedup in the module.
  */
 class TypeRelationNode : public TypeConstraintNode {
  public:
   /*!
    * \brief The function on input and output variables which
    *  this is not directly serializable,
-   *  need to be looked-up in the environment.
+   *  need to be looked-up in the module.
    */
   TypeRelationFn func;
   /*! \brief The type arguments to the type function. */

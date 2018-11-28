@@ -240,8 +240,9 @@ class AlphaEqualHandler:
   }
 
   bool VisitExpr_(const VarNode* lhs, const Expr& other) final {
+    // This function will only be triggered if we are matching free variables.
     if (const VarNode* rhs = other.as<VarNode>()) {
-      if (lhs->name_hint != rhs->name_hint) return false;
+      if (lhs->name_hint() != rhs->name_hint()) return false;
       if (!TypeEqual(lhs->type_annotation, rhs->type_annotation)) return false;
       return LeafNodeEqual(GetRef<NodeRef>(lhs), other);
     } else {
@@ -296,13 +297,23 @@ class AlphaEqualHandler:
     if (const CallNode* rhs = other.as<CallNode>()) {
       if (!ExprEqual(lhs->op, rhs->op)) return false;
       if (lhs->args.size() != rhs->args.size()) return false;
-      if (lhs->type_args.size() != rhs->type_args.size()) return false;
-
-      for (size_t i = 0; i < lhs->args.size(); ++i) {
-        if (!ExprEqual(lhs->args[i], rhs->args[i])) return false;
+      // skip type_args check for primitive ops.
+      bool is_primitive = IsPrimitiveOp(lhs->op);
+      if (!is_primitive) {
+        if (lhs->type_args.size() != rhs->type_args.size()) {
+          return false;
+        }
       }
-      for (size_t i = 0; i < lhs->type_args.size(); ++i) {
-        if (!TypeEqual(lhs->type_args[i], rhs->type_args[i])) return false;
+      for (size_t i = 0; i < lhs->args.size(); ++i) {
+        if (!ExprEqual(lhs->args[i], rhs->args[i])) {
+          return false;
+        }
+      }
+
+      if (!is_primitive) {
+        for (size_t i = 0; i < lhs->type_args.size(); ++i) {
+          if (!TypeEqual(lhs->type_args[i], rhs->type_args[i])) return false;
+        }
       }
       return AttrEqual(lhs->attrs, rhs->attrs);
     } else {

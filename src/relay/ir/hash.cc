@@ -202,7 +202,8 @@ class RelayHashHandler:
   }
 
   size_t VisitExpr_(const VarNode* var) final {
-    size_t name_hash = std::hash<std::string>()(var->name_hint);
+    // hash free variable
+    size_t name_hash = std::hash<const Node*>()(var->vid.get());
     return Combine(name_hash, TypeHash(var->type_annotation));
   }
 
@@ -285,11 +286,11 @@ class RelayHashHandler:
   int var_counter = 0;
 };
 
-size_t StructuralHash(const Type& type) {
+size_t StructuralHash::operator()(const Type& type) const {
   return RelayHashHandler().TypeHash(type);
 }
 
-size_t StructuralHash(const Expr& expr) {
+size_t StructuralHash::operator()(const Expr& expr) const {
   return RelayHashHandler().ExprHash(expr);
 }
 

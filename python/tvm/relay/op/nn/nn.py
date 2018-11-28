@@ -145,7 +145,7 @@ def conv2d_transpose(data,
                                   weight_layout, output_padding, out_dtype)
 
 
-def softmax(data, axis=1):
+def softmax(data, axis=-1):
     r"""Computes softmax.
 
     .. math:: \text{softmax}(x)_i = \frac{exp(x_i)}{\sum_j exp(x_j)}
@@ -169,7 +169,7 @@ def softmax(data, axis=1):
     return _make.softmax(data, axis)
 
 
-def log_softmax(data, axis):
+def log_softmax(data, axis=-1):
     r"""Computes log softmax.
 
     .. math::
@@ -526,6 +526,33 @@ def leaky_relu(data, alpha):
         The computed result.
     """
     return _make.leaky_relu(data, alpha)
+
+
+def prelu(data, alpha, axis=1):
+    """This operator takes data as input and does Leaky version
+    of a Rectified Linear Unit.
+
+    .. math::
+
+        `y = x > 0 ? x : alpha * x`
+
+    Parameters
+    ----------
+    data : tvm.relay.Expr
+        The input data to the operator.
+
+    alpha : tvm.relay.Expr
+        Slope coefficient for the negative half axis.
+
+    axis : int, optional
+        Specify which shape axis the channel is specified.
+
+    Returns
+    -------
+    result : tvm.relay.Expr
+        The computed result.
+    """
+    return _make.prelu(data, alpha, axis)
 
 
 def pad(data,

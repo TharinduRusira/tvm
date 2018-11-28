@@ -62,7 +62,7 @@ struct TransposeAttrs : public tvm::AttrsNode<TransposeAttrs> {
 
 /*! \brief Attributes used in reshape operators */
 struct ReshapeAttrs : public tvm::AttrsNode<ReshapeAttrs> {
-  Array<IndexExpr> newshape;
+  Array<Integer> newshape;
   TVM_DECLARE_ATTRS(ReshapeAttrs, "relay.attrs.ReshapeAttrs") {
     TVM_ATTR_FIELD(newshape)
         .describe("The new shape. Should be compatible with the original shape.");
@@ -94,15 +94,16 @@ struct InitOpAttrs : public tvm::AttrsNode<InitOpAttrs> {
 
 /*! \brief Attributes used in squeeze operators */
 struct SqueezeAttrs : public tvm::AttrsNode<SqueezeAttrs> {
-  Array<IndexExpr> axes;
+  // use axis to make the name numpy compatible.
+  Array<Integer> axis;
 
   TVM_DECLARE_ATTRS(SqueezeAttrs, "relay.attrs.SqueezeAttrs") {
-    TVM_ATTR_FIELD(axes)
-        .describe("The axes to squeeze in the input tensor."
-                  "If `axes = []`, all axis of dimension 1 get squeezed;"
+    TVM_ATTR_FIELD(axis)
+        .describe("The axis to squeeze in the input tensor."
+                  "If `axis = None`, all axis of dimension 1 get squeezed;"
                   "Else, the dimension in axes get squeezed."
-                  "It is an error if an axes does not has dimension 1.")
-        .set_default(Array<IndexExpr>({}));
+                  "It is an error if an axis does not has dimension 1.")
+        .set_default(NullValue<Array<Integer> >());
   }
 };  // struct SqueezeAttrs
 
@@ -119,6 +120,47 @@ struct SplitAttrs : public tvm::AttrsNode<SplitAttrs> {
                   "the entries indicate where along axis the array is split.");
     TVM_ATTR_FIELD(axis).set_default(0)
         .describe("the axis to be splitted.");
+  }
+};
+
+/*! \brief Attributes for StridedSlice operator */
+struct StridedSliceAttrs : public tvm::AttrsNode<StridedSliceAttrs> {
+  Array<Integer> begin;
+  Array<Integer> end;
+  Array<Integer> strides;
+
+  TVM_DECLARE_ATTRS(StridedSliceAttrs, "relay.attrs.StridedSliceAttrs") {
+    TVM_ATTR_FIELD(begin)
+        .describe("Indices for begin of slice, begin index is also inclusive");
+    TVM_ATTR_FIELD(end)
+        .describe("Indices for end of slice, end index is exclusive");
+    TVM_ATTR_FIELD(strides).set_default(Array<Integer>({}))
+        .describe("Stride values of the slice");
+  }
+};
+
+
+struct SliceLikeAttrs : public tvm::AttrsNode<SliceLikeAttrs> {
+  Array<Integer> axes;
+
+  TVM_DECLARE_ATTRS(SliceLikeAttrs, "relay.attrs.SliceLikeAttrs") {
+    TVM_ATTR_FIELD(axes)
+        .describe("List of axes on which input data will be sliced according to the "
+                  "corresponding size of the second input. By default will slice "
+                  "on all axes. Negative axes mean counting in reverse.");
+  }
+};
+
+// Clip
+struct ClipAttrs : public tvm::AttrsNode<ClipAttrs> {
+  double a_min;
+  double a_max;
+
+  TVM_DECLARE_ATTRS(ClipAttrs, "relay.attrs.ClipAttrs") {
+  TVM_ATTR_FIELD(a_min)
+    .describe("The minimum clip value.");
+  TVM_ATTR_FIELD(a_max)
+    .describe("The maximum clip value.");
   }
 };
 

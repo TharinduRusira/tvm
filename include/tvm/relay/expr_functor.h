@@ -135,9 +135,9 @@ class ExprVisitor
   void VisitExpr_(const TupleGetItemNode* op) override;
   virtual void VisitType(const Type& t);
 
- private:
-  // internal visited flag.
-  std::unordered_set<const Node*> visited_;
+ protected:
+  // Internal visiting counter
+  std::unordered_map<const Node*, size_t> visit_counter_;
 };
 
 /*!
@@ -150,7 +150,14 @@ class ExprVisitor
 class ExprMutator
     : public ::tvm::relay::ExprFunctor<Expr(const Expr&)> {
  public:
-  Expr Mutate(const Expr& expr);
+  /*!
+   * \brief Mutate is alias for VisitExpr
+   * \return expr.
+   */
+  Expr Mutate(const Expr& expr) {
+    return this->VisitExpr(expr);
+  }
+  Expr VisitExpr(const Expr& expr) override;
   Expr VisitExpr_(const VarNode* op) override;
   Expr VisitExpr_(const ConstantNode* op) override;
   Expr VisitExpr_(const GlobalVarNode* op) override;
@@ -161,7 +168,8 @@ class ExprMutator
   Expr VisitExpr_(const LetNode* op) override;
   Expr VisitExpr_(const IfNode* op) override;
   Expr VisitExpr_(const TupleGetItemNode* op) override;
-  /*! \brief Used to visit the types inside of expressions.
+  /*!
+   * \brief Used to visit the types inside of expressions.
    *
    * Can be overloaded to transform the types in arbitrary
    * ways, one way would be to define a sub-class of type
@@ -169,10 +177,29 @@ class ExprMutator
    */
   virtual Type VisitType(const Type& t);
 
- private:
+ protected:
   /*! \brief Internal map used for memoization. */
   std::unordered_map<Expr, Expr, NodeHash, NodeEqual> memo_;
 };
+
+/*!
+ * \brief recursively visit the ir in post DFS order node, apply fvisit
+ * Each node is guaranteed to be visited only once.
+ * \param node The ir to be visited.
+ * \param fvisit The visitor function to be applied.
+ */
+void PostOrderVisit(const NodeRef& node, std::function<void(const NodeRef&)> fvisit);
+
+/*
+ * \brief Bind function parameters or free variables.
+ *
+ * Parameter binding can only happen if expr is a Function.
+ * binds cannot change internal arguments of internal functions.
+ *
+ * \param expr The function to be binded.
+ * \param binds The map of arguments to
+ */
+Expr Bind(const Expr& expr, const tvm::Map<Var, Expr>& binds);
 
 }  // namespace relay
 }  // namespace tvm

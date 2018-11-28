@@ -49,27 +49,25 @@ def transpose(data, axes=None):
     return _make.transpose(data, list(axes))
 
 
-def squeeze(data, axes=None):
+def squeeze(data, axis=None):
     """Squeeze axes in the array.
 
     Parameters
     ----------
-    data : relay.Expr
+    data : tvm.relay.Expr
         The input data to the operator.
 
-    axes : None or List[int]
-        Axes to remove.
-        If axes = [] or = None, remove all axis of dimensions 1.
-        Otherwise, remove all axis in axes.
-        If any axis in axes has dimension that does not equal 1, it is an error.
+    axis : None or List[int]
+        The set of axes to remove.
+        If axis = None, remove all axis of dimensions 1.
+        If any specified axis has dimension that does not equal 1, it is an error.
 
     Returns
     -------
-    result : relay.Expr
+    result : tvm.relay.Expr
         The squeezed result.
     """
-    axes = axes or []
-    return _make.squeeze(data, list(axes))
+    return _make.squeeze(data, axis)
 
 
 def reshape(data, newshape):
@@ -336,3 +334,56 @@ def split(data, indices_or_sections, axis=0):
     else:
         ret_size = len(indices_or_sections) + 1
     return TupleWrapper(_make.split(data, indices_or_sections, axis), ret_size)
+
+
+def strided_slice(data, begin, end, strides=None):
+    """Strided slice of an array..
+
+    Parameters
+    ----------
+    data : relay.Expr
+        The source array to be sliced.
+
+    begin: list of int
+        The indices to begin with in the slicing.
+
+    end: list of int
+        Indicies indicating end of the slice.
+
+    strides: list of int, optional
+        Specifies the stride values, it can be negative in that case,
+        the input tensor will be reversed in that particular axis.
+
+    Returns
+    -------
+    ret : relay.Expr
+        The computed result.
+    """
+    strides = strides or []
+    return _make.strided_slice(data, list(begin), list(end), list(strides))
+
+
+def slice_like(data, shape_like, axes=None):
+    """Slice the first input with respect to the second input.
+
+    For an input array with shape ``(d1, d2, ..., dk)``, `slice_like` operation slices the
+    the input array corresponding size of second array. By default will slice on all axes.
+
+    Parameters
+    ----------
+    data : tvm.relay.Expr
+        The source array.
+
+    shape_like : tvm.relay.Expr
+        The new shape.
+
+    axes : Optional[Tuple[int]]
+        List of axes on which input data will be sliced according to the corresponding size of
+        the second input. By default will slice on all axes. Negative axes mean counting in reverse.
+
+    Returns
+    -------
+    result : relay.Expr
+        The computed result.
+    """
+    return _make.slice_like(data, shape_like, axes)
