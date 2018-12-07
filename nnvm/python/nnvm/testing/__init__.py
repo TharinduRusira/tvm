@@ -15,3 +15,4 @@ from . import dcgan
 from . import dqn
 from . import yolo_detection
 from . import check_computation
+from . import alexnet
