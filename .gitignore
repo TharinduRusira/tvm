@@ -210,9 +210,6 @@ tvm_t.*
 # patch sentinel
 patched.txt
 
-#tuning files
-*.e[0-9]*
-*.out
-*.log
-*.o[0-9]*
-job.sh
+# Python type checking
+.mypy_cache/
+.pyre/

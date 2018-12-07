@@ -29,11 +29,11 @@ using runtime::TypedPackedFunc;
 // FoldScaleAxis algorithm:
 //
 // The general idea is to transform Expr to tuple of
-// (value, axes, scale), where the final result satiesfies:
+// (value, axes, scale), where the final result satisfies:
 //
 // result = value
 // for i, k in enumerate(axes):
-//    k-ith dimension of result *= i-th dimension of scale
+//    k-th dimension of result *= i-th dimension of scale
 //
 // Then we can propagate this signal along and fold the scale if necessary.
 // However, it is possible that certain scale may never be consumed
@@ -246,9 +246,44 @@ class ForwardPrep : private ExprVisitor {
 // Per operator defs for FScaleAxisForward
 //----------------------------------------------
 
+// Helper functions
+Expr GetForwardScale(const Expr& expr, AxesSet out) {
+  static const Op& multiply = Op::Get("multiply");
+  static const auto& fprep = Op::GetAttr<FForwardPrep>("FScaleAxisForwardPrep");
+
+  const CallNode* call = expr.as<CallNode>();
+  if (!call) return NullValue<Expr>();
+  auto f = fprep.get(call->op, nullptr);
+
+  if (call->op.same_as(multiply)) {
+    const auto* tlhs = call->args[0]->type_as<TensorTypeNode>();
+    const auto* trhs = call->args[1]->type_as<TensorTypeNode>();
+    if (MatchBroadcastToLeftAxes(tlhs, trhs, out)) {
+      return call->args[1];
+    } else if (MatchBroadcastToLeftAxes(trhs, tlhs, out)) {
+      return call->args[0];
+    } else {
+      return NullValue<Expr>();
+    }
+  } else if (f != nullptr) {
+    Array<AxesSet> in_axes = f(GetRef<Call>(call), out);
+    for (size_t i = 0; i < call->args.size(); i++) {
+      auto scale = GetForwardScale(call->args[i], in_axes[i]);
+      if (scale.defined()) {
+        return scale;
+      }
+    }
+  }
+  return NullValue<Expr>();
+}
+
 // Intermediate operators
 Array<AxesSet> ReluForwardPrep(const Call& call, AxesSet out) {
-  return {out};
+  Expr scale = GetForwardScale(call->args[0], out);
+  if (IsPositiveConstant(scale)) {
+    return {out};
+  }
+  return {NullValue<AxesSet>()};
 }
 
 Expr ReluForwardRewrite(const Call& ref_call,
@@ -556,9 +591,7 @@ class BackwardTransformerNode :
    * \return The result of transformation.
    */
   Expr Transform(const Expr& expr, AxesSet axes, Expr scale) {
-    // NOTE: the result of Transform is not memoized.
-    // However, in the current rule, Transform will
-    // only be called to expr that is referred once.
+    // NOTE: the result of Transform is memoized.
     if (const CallNode* call_node = expr.as<CallNode>()) {
       return Transform(call_node, axes, scale);
     } else {
@@ -572,7 +605,14 @@ class BackwardTransformerNode :
    * \return the result of the call Mutation.
    */
   Expr NormalCallTransform(const CallNode* call_node) {
-    return ExprMutator::VisitExpr_(call_node);
+    const Call call = GetRef<Call>(call_node);
+    const auto it = memo_.find(call);
+    if (it != memo_.end()) {
+      return it->second;
+    }
+    Expr new_expr = ExprMutator::VisitExpr_(call_node);
+    memo_[call] = new_expr;
+    return new_expr;
   }
   /*!
    * \brief Get the expected axes on expr.
@@ -620,10 +660,17 @@ Expr BackwardTransformerNode::Transform(
       Op::GetAttr<FBackwardTransform>("FScaleAxisBackwardTransform");
   auto f = ftransform.get(call_node->op, nullptr);
   if (f != nullptr) {
-    return f(GetRef<Call>(call_node),
-             axes,
-             scale,
-             GetRef<BackwardTransformer>(this));
+    const Call call = GetRef<Call>(call_node);
+    const auto it = memo_.find(call);
+    if (it != memo_.end()) {
+      return it->second;
+    }
+    Expr new_expr = f(GetRef<Call>(call_node),
+                      axes,
+                      scale,
+                      GetRef<BackwardTransformer>(this));
+    memo_[call] = new_expr;
+    return new_expr;
   } else {
     CHECK(!axes.defined()) << "outstanding scale";
     return NormalCallTransform(call_node);
@@ -743,6 +790,22 @@ RELAY_REGISTER_OP("subtract")
 RELAY_REGISTER_OP("subtract")
 .set_attr<FBackwardTransform>("FScaleAxisBackwardTransform", AddSubBackwardTransform);
 
+// Find relu in the backward path between multiply and conv2d
+bool FindBackwardRelu(const Expr& expr) {
+  const CallNode* call = expr.as<CallNode>();
+  static const Op& conv2d = Op::Get("nn.conv2d");
+  static const Op& relu = Op::Get("nn.relu");
+
+  if (!call) return false;
+  if (call->op.same_as(relu)) return true;
+  if (call->op.same_as(conv2d)) return false;
+
+  for (size_t i = 0; i < call->args.size(); i++) {
+    if (FindBackwardRelu(call->args[i])) return true;
+  }
+  return false;
+}
+
 // Producer operators
 // Multiply produces the scale-axis pair.
 Expr MultiplyBackwardTransform(const Call& call,
@@ -758,12 +821,16 @@ Expr MultiplyBackwardTransform(const Call& call,
     // NOTE we won't recursively call mutating on scale part.
     // since there  won't be scale chance within scale part.
     Expr rhs = call->args[1];
-    if (MatchBroadcastToLeftAxes(tlhs, trhs, lhs_axes, &rhs)) {
+    if (MatchBroadcastToLeftAxes(tlhs, trhs, lhs_axes, &rhs) &&
+        (!FindBackwardRelu(call->args[0]) ||
+         IsPositiveConstant(call->args[1]))) {
       return transformer->Transform(call->args[0], lhs_axes, rhs);
     }
   } else if (rhs_axes.defined() && rhs_axes.size() != 0) {
     Expr lhs = call->args[0];
-    if (MatchBroadcastToLeftAxes(trhs, tlhs, rhs_axes, &lhs)) {
+    if (MatchBroadcastToLeftAxes(trhs, tlhs, rhs_axes, &lhs) &&
+        (!FindBackwardRelu(call->args[1]) ||
+         IsPositiveConstant(call->args[0]))) {
       return transformer->Transform(call->args[1], rhs_axes, lhs);
     }
   }

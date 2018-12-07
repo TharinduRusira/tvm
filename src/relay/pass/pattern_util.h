@@ -73,7 +73,7 @@ inline bool MatchBroadcastToLeftAxes(const TensorTypeNode* tlhs,
  * the target Tensor on the specified axis via broadcasting rule.
  *
  * \param bias The bias.
- * \param target_ndim target dimension.
+ * \param target_ndim Target dimension.
  * \param axes The axis on the output we want to match on.
  */
 inline Expr ExpandBiasToMatchAxis(Expr bias,
@@ -189,6 +189,57 @@ inline Expr ReshapeLike(Expr lhs, Expr rhs) {
 Expr MakeConcatenate(Expr data, int axis);
 
 Expr MakeStridedSlice(Expr data, Array<Integer> begin, Array<Integer> end, Array<Integer> strides);
+
+
+template <typename T>
+bool IsNDArrayAllGreaterEqual(const runtime::NDArray& tensor, T value) {
+  CHECK_EQ(tensor->ctx.device_type, kDLCPU);
+  CHECK(tensor->strides == nullptr);
+  CHECK_EQ(tensor->byte_offset, 0);
+  const T* data = static_cast<const T*>(tensor->data);
+  int64_t num_elems = 1;
+  for (int i = 0; i < tensor->ndim; ++i) {
+    num_elems *= tensor->shape[i];
+  }
+
+  for (int64_t i = 0; i < num_elems; i++) {
+    if (*data < value) {
+      return false;
+    }
+    data++;
+  }
+  return true;
+}
+
+
+inline bool IsPositiveConstant(const Expr& expr) {
+  const auto* constant = expr.as<ConstantNode>();
+  if (!constant) return false;
+  const auto& tensor = constant->data;
+  const auto& dtype = tensor->dtype;
+
+  if (dtype.lanes != 1) {
+    // pass
+  } else if (dtype.code == kDLFloat && dtype.bits == 32) {
+    return IsNDArrayAllGreaterEqual<float>(tensor, 0);
+  } else if (dtype.code == kDLFloat && dtype.bits == 64) {
+    return IsNDArrayAllGreaterEqual<double>(tensor, 0);
+  } else if (dtype.code == kDLInt && dtype.bits == 8) {
+    return IsNDArrayAllGreaterEqual<int8_t>(tensor, 0);
+  } else if (dtype.code == kDLInt && dtype.bits == 32) {
+    return IsNDArrayAllGreaterEqual<int32_t>(tensor, 0);
+  } else if (dtype.code == kDLUInt && dtype.bits == 8) {
+    return IsNDArrayAllGreaterEqual<uint8_t>(tensor, 0);
+  } else if (dtype.code == kDLUInt && dtype.bits == 32) {
+    return IsNDArrayAllGreaterEqual<uint32_t>(tensor, 0);
+  }
+
+  LOG(WARNING) << "Unsupported data type (code = " << dtype.code
+               << ", bits = " << dtype.bits << ", lanes = " << dtype.lanes
+               << ")";
+  return false;
+}
+
 
 }  // namespace relay
 }  // namespace tvm
